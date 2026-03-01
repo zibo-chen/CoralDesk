@@ -55,14 +55,15 @@ extension AgentEventPatterns on AgentEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( AgentEvent_Thinking value)?  thinking,TResult Function( AgentEvent_TextDelta value)?  textDelta,TResult Function( AgentEvent_ToolCallStart value)?  toolCallStart,TResult Function( AgentEvent_ToolCallEnd value)?  toolCallEnd,TResult Function( AgentEvent_MessageComplete value)?  messageComplete,TResult Function( AgentEvent_Error value)?  error,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( AgentEvent_Thinking value)?  thinking,TResult Function( AgentEvent_TextDelta value)?  textDelta,TResult Function( AgentEvent_ToolCallStart value)?  toolCallStart,TResult Function( AgentEvent_ToolCallEnd value)?  toolCallEnd,TResult Function( AgentEvent_ToolApprovalRequest value)?  toolApprovalRequest,TResult Function( AgentEvent_MessageComplete value)?  messageComplete,TResult Function( AgentEvent_Error value)?  error,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case AgentEvent_Thinking() when thinking != null:
 return thinking(_that);case AgentEvent_TextDelta() when textDelta != null:
 return textDelta(_that);case AgentEvent_ToolCallStart() when toolCallStart != null:
 return toolCallStart(_that);case AgentEvent_ToolCallEnd() when toolCallEnd != null:
-return toolCallEnd(_that);case AgentEvent_MessageComplete() when messageComplete != null:
+return toolCallEnd(_that);case AgentEvent_ToolApprovalRequest() when toolApprovalRequest != null:
+return toolApprovalRequest(_that);case AgentEvent_MessageComplete() when messageComplete != null:
 return messageComplete(_that);case AgentEvent_Error() when error != null:
 return error(_that);case _:
   return orElse();
@@ -82,14 +83,15 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( AgentEvent_Thinking value)  thinking,required TResult Function( AgentEvent_TextDelta value)  textDelta,required TResult Function( AgentEvent_ToolCallStart value)  toolCallStart,required TResult Function( AgentEvent_ToolCallEnd value)  toolCallEnd,required TResult Function( AgentEvent_MessageComplete value)  messageComplete,required TResult Function( AgentEvent_Error value)  error,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( AgentEvent_Thinking value)  thinking,required TResult Function( AgentEvent_TextDelta value)  textDelta,required TResult Function( AgentEvent_ToolCallStart value)  toolCallStart,required TResult Function( AgentEvent_ToolCallEnd value)  toolCallEnd,required TResult Function( AgentEvent_ToolApprovalRequest value)  toolApprovalRequest,required TResult Function( AgentEvent_MessageComplete value)  messageComplete,required TResult Function( AgentEvent_Error value)  error,}){
 final _that = this;
 switch (_that) {
 case AgentEvent_Thinking():
 return thinking(_that);case AgentEvent_TextDelta():
 return textDelta(_that);case AgentEvent_ToolCallStart():
 return toolCallStart(_that);case AgentEvent_ToolCallEnd():
-return toolCallEnd(_that);case AgentEvent_MessageComplete():
+return toolCallEnd(_that);case AgentEvent_ToolApprovalRequest():
+return toolApprovalRequest(_that);case AgentEvent_MessageComplete():
 return messageComplete(_that);case AgentEvent_Error():
 return error(_that);}
 }
@@ -105,14 +107,15 @@ return error(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( AgentEvent_Thinking value)?  thinking,TResult? Function( AgentEvent_TextDelta value)?  textDelta,TResult? Function( AgentEvent_ToolCallStart value)?  toolCallStart,TResult? Function( AgentEvent_ToolCallEnd value)?  toolCallEnd,TResult? Function( AgentEvent_MessageComplete value)?  messageComplete,TResult? Function( AgentEvent_Error value)?  error,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( AgentEvent_Thinking value)?  thinking,TResult? Function( AgentEvent_TextDelta value)?  textDelta,TResult? Function( AgentEvent_ToolCallStart value)?  toolCallStart,TResult? Function( AgentEvent_ToolCallEnd value)?  toolCallEnd,TResult? Function( AgentEvent_ToolApprovalRequest value)?  toolApprovalRequest,TResult? Function( AgentEvent_MessageComplete value)?  messageComplete,TResult? Function( AgentEvent_Error value)?  error,}){
 final _that = this;
 switch (_that) {
 case AgentEvent_Thinking() when thinking != null:
 return thinking(_that);case AgentEvent_TextDelta() when textDelta != null:
 return textDelta(_that);case AgentEvent_ToolCallStart() when toolCallStart != null:
 return toolCallStart(_that);case AgentEvent_ToolCallEnd() when toolCallEnd != null:
-return toolCallEnd(_that);case AgentEvent_MessageComplete() when messageComplete != null:
+return toolCallEnd(_that);case AgentEvent_ToolApprovalRequest() when toolApprovalRequest != null:
+return toolApprovalRequest(_that);case AgentEvent_MessageComplete() when messageComplete != null:
 return messageComplete(_that);case AgentEvent_Error() when error != null:
 return error(_that);case _:
   return null;
@@ -131,13 +134,14 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  thinking,TResult Function( String text)?  textDelta,TResult Function( String name,  String args)?  toolCallStart,TResult Function( String name,  String result,  bool success)?  toolCallEnd,TResult Function( BigInt? inputTokens,  BigInt? outputTokens)?  messageComplete,TResult Function( String message)?  error,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  thinking,TResult Function( String text)?  textDelta,TResult Function( String name,  String args)?  toolCallStart,TResult Function( String name,  String result,  bool success)?  toolCallEnd,TResult Function( String requestId,  String name,  String args)?  toolApprovalRequest,TResult Function( BigInt? inputTokens,  BigInt? outputTokens)?  messageComplete,TResult Function( String message)?  error,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case AgentEvent_Thinking() when thinking != null:
 return thinking();case AgentEvent_TextDelta() when textDelta != null:
 return textDelta(_that.text);case AgentEvent_ToolCallStart() when toolCallStart != null:
 return toolCallStart(_that.name,_that.args);case AgentEvent_ToolCallEnd() when toolCallEnd != null:
-return toolCallEnd(_that.name,_that.result,_that.success);case AgentEvent_MessageComplete() when messageComplete != null:
+return toolCallEnd(_that.name,_that.result,_that.success);case AgentEvent_ToolApprovalRequest() when toolApprovalRequest != null:
+return toolApprovalRequest(_that.requestId,_that.name,_that.args);case AgentEvent_MessageComplete() when messageComplete != null:
 return messageComplete(_that.inputTokens,_that.outputTokens);case AgentEvent_Error() when error != null:
 return error(_that.message);case _:
   return orElse();
@@ -157,13 +161,14 @@ return error(_that.message);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  thinking,required TResult Function( String text)  textDelta,required TResult Function( String name,  String args)  toolCallStart,required TResult Function( String name,  String result,  bool success)  toolCallEnd,required TResult Function( BigInt? inputTokens,  BigInt? outputTokens)  messageComplete,required TResult Function( String message)  error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  thinking,required TResult Function( String text)  textDelta,required TResult Function( String name,  String args)  toolCallStart,required TResult Function( String name,  String result,  bool success)  toolCallEnd,required TResult Function( String requestId,  String name,  String args)  toolApprovalRequest,required TResult Function( BigInt? inputTokens,  BigInt? outputTokens)  messageComplete,required TResult Function( String message)  error,}) {final _that = this;
 switch (_that) {
 case AgentEvent_Thinking():
 return thinking();case AgentEvent_TextDelta():
 return textDelta(_that.text);case AgentEvent_ToolCallStart():
 return toolCallStart(_that.name,_that.args);case AgentEvent_ToolCallEnd():
-return toolCallEnd(_that.name,_that.result,_that.success);case AgentEvent_MessageComplete():
+return toolCallEnd(_that.name,_that.result,_that.success);case AgentEvent_ToolApprovalRequest():
+return toolApprovalRequest(_that.requestId,_that.name,_that.args);case AgentEvent_MessageComplete():
 return messageComplete(_that.inputTokens,_that.outputTokens);case AgentEvent_Error():
 return error(_that.message);}
 }
@@ -179,13 +184,14 @@ return error(_that.message);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  thinking,TResult? Function( String text)?  textDelta,TResult? Function( String name,  String args)?  toolCallStart,TResult? Function( String name,  String result,  bool success)?  toolCallEnd,TResult? Function( BigInt? inputTokens,  BigInt? outputTokens)?  messageComplete,TResult? Function( String message)?  error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  thinking,TResult? Function( String text)?  textDelta,TResult? Function( String name,  String args)?  toolCallStart,TResult? Function( String name,  String result,  bool success)?  toolCallEnd,TResult? Function( String requestId,  String name,  String args)?  toolApprovalRequest,TResult? Function( BigInt? inputTokens,  BigInt? outputTokens)?  messageComplete,TResult? Function( String message)?  error,}) {final _that = this;
 switch (_that) {
 case AgentEvent_Thinking() when thinking != null:
 return thinking();case AgentEvent_TextDelta() when textDelta != null:
 return textDelta(_that.text);case AgentEvent_ToolCallStart() when toolCallStart != null:
 return toolCallStart(_that.name,_that.args);case AgentEvent_ToolCallEnd() when toolCallEnd != null:
-return toolCallEnd(_that.name,_that.result,_that.success);case AgentEvent_MessageComplete() when messageComplete != null:
+return toolCallEnd(_that.name,_that.result,_that.success);case AgentEvent_ToolApprovalRequest() when toolApprovalRequest != null:
+return toolApprovalRequest(_that.requestId,_that.name,_that.args);case AgentEvent_MessageComplete() when messageComplete != null:
 return messageComplete(_that.inputTokens,_that.outputTokens);case AgentEvent_Error() when error != null:
 return error(_that.message);case _:
   return null;
@@ -425,6 +431,76 @@ name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,result: null == result ? _self.result : result // ignore: cast_nullable_to_non_nullable
 as String,success: null == success ? _self.success : success // ignore: cast_nullable_to_non_nullable
 as bool,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class AgentEvent_ToolApprovalRequest extends AgentEvent {
+  const AgentEvent_ToolApprovalRequest({required this.requestId, required this.name, required this.args}): super._();
+  
+
+ final  String requestId;
+ final  String name;
+ final  String args;
+
+/// Create a copy of AgentEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$AgentEvent_ToolApprovalRequestCopyWith<AgentEvent_ToolApprovalRequest> get copyWith => _$AgentEvent_ToolApprovalRequestCopyWithImpl<AgentEvent_ToolApprovalRequest>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AgentEvent_ToolApprovalRequest&&(identical(other.requestId, requestId) || other.requestId == requestId)&&(identical(other.name, name) || other.name == name)&&(identical(other.args, args) || other.args == args));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,requestId,name,args);
+
+@override
+String toString() {
+  return 'AgentEvent.toolApprovalRequest(requestId: $requestId, name: $name, args: $args)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $AgentEvent_ToolApprovalRequestCopyWith<$Res> implements $AgentEventCopyWith<$Res> {
+  factory $AgentEvent_ToolApprovalRequestCopyWith(AgentEvent_ToolApprovalRequest value, $Res Function(AgentEvent_ToolApprovalRequest) _then) = _$AgentEvent_ToolApprovalRequestCopyWithImpl;
+@useResult
+$Res call({
+ String requestId, String name, String args
+});
+
+
+
+
+}
+/// @nodoc
+class _$AgentEvent_ToolApprovalRequestCopyWithImpl<$Res>
+    implements $AgentEvent_ToolApprovalRequestCopyWith<$Res> {
+  _$AgentEvent_ToolApprovalRequestCopyWithImpl(this._self, this._then);
+
+  final AgentEvent_ToolApprovalRequest _self;
+  final $Res Function(AgentEvent_ToolApprovalRequest) _then;
+
+/// Create a copy of AgentEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? requestId = null,Object? name = null,Object? args = null,}) {
+  return _then(AgentEvent_ToolApprovalRequest(
+requestId: null == requestId ? _self.requestId : requestId // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,args: null == args ? _self.args : args // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 

@@ -113,6 +113,13 @@ Future<String> openInSystem({required String path}) =>
 Future<String> copyFileTo({required String src, required String dst}) =>
     RustLib.instance.api.crateApiAgentApiCopyFileTo(src: src, dst: dst);
 
+/// Respond to a pending tool approval request from the UI.
+/// `decision` values: "yes", "no", "always"
+Future<String> respondToToolApproval({required String decision}) => RustLib
+    .instance
+    .api
+    .crateApiAgentApiRespondToToolApproval(decision: decision);
+
 @freezed
 sealed class AgentEvent with _$AgentEvent {
   const AgentEvent._();
@@ -136,6 +143,13 @@ sealed class AgentEvent with _$AgentEvent {
     required String result,
     required bool success,
   }) = AgentEvent_ToolCallEnd;
+
+  /// Tool requires user approval before execution
+  const factory AgentEvent.toolApprovalRequest({
+    required String requestId,
+    required String name,
+    required String args,
+  }) = AgentEvent_ToolApprovalRequest;
 
   /// Full message generation complete
   const factory AgentEvent.messageComplete({

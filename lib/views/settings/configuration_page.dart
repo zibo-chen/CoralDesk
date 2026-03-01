@@ -155,7 +155,43 @@ class _ConfigurationPageState extends ConsumerState<ConfigurationPage> {
             ],
           ),
           const SizedBox(height: 16),
-
+          // Trust Me mode toggle
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppLocalizations.of(context)!.trustMeMode,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: c.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      AppLocalizations.of(context)!.trustMeDescription,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: c.textSecondary.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: a.trustMe,
+                activeTrackColor: Colors.orange,
+                onChanged: (value) async {
+                  await ws_api.updateTrustMe(enabled: value);
+                  _loadAll();
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           // Settings
           _buildInfoRow(
             AppLocalizations.of(context)!.workspaceOnly,

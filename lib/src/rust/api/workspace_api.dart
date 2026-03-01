@@ -22,6 +22,10 @@ Future<AutonomyConfig> getAutonomyConfig() =>
 Future<String> updateAutonomyLevel({required String level}) =>
     RustLib.instance.api.crateApiWorkspaceApiUpdateAutonomyLevel(level: level);
 
+/// Update trust_me mode
+Future<String> updateTrustMe({required bool enabled}) =>
+    RustLib.instance.api.crateApiWorkspaceApiUpdateTrustMe(enabled: enabled);
+
 /// Get agent config
 Future<AgentConfigDto> getAgentConfig() =>
     RustLib.instance.api.crateApiWorkspaceApiGetAgentConfig();
@@ -149,6 +153,7 @@ class AgentConfigDto {
 /// Autonomy configuration DTO
 class AutonomyConfig {
   final String level;
+  final bool trustMe;
   final bool workspaceOnly;
   final List<String> allowedCommands;
   final List<String> forbiddenPaths;
@@ -161,6 +166,7 @@ class AutonomyConfig {
 
   const AutonomyConfig({
     required this.level,
+    required this.trustMe,
     required this.workspaceOnly,
     required this.allowedCommands,
     required this.forbiddenPaths,
@@ -175,6 +181,7 @@ class AutonomyConfig {
   @override
   int get hashCode =>
       level.hashCode ^
+      trustMe.hashCode ^
       workspaceOnly.hashCode ^
       allowedCommands.hashCode ^
       forbiddenPaths.hashCode ^
@@ -191,6 +198,7 @@ class AutonomyConfig {
       other is AutonomyConfig &&
           runtimeType == other.runtimeType &&
           level == other.level &&
+          trustMe == other.trustMe &&
           workspaceOnly == other.workspaceOnly &&
           allowedCommands == other.allowedCommands &&
           forbiddenPaths == other.forbiddenPaths &&

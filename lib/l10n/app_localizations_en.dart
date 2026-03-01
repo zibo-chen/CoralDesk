@@ -341,6 +341,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fullAutonomy => 'Full';
 
   @override
+  String get trustMeMode => 'Trust Me Mode';
+
+  @override
+  String get trustMeDescription =>
+      'Auto-approve all tool calls without confirmation. Use with caution.';
+
+  @override
+  String get toolApprovalTitle => 'Tool Approval Required';
+
+  @override
+  String toolApprovalBody(String toolName) {
+    return 'The agent wants to execute tool: $toolName';
+  }
+
+  @override
+  String get approve => 'Approve';
+
+  @override
+  String get deny => 'Deny';
+
+  @override
   String get workspaceOnly => 'Workspace Only';
 
   @override

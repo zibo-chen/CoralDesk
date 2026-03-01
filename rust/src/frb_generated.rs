@@ -3147,6 +3147,82 @@ fn wire__crate__api__workspace_api__update_autonomy_level_impl(
         },
     )
 }
+fn wire__crate__api__agent_api__respond_to_tool_approval_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "respond_to_tool_approval",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_decision = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, ()>(
+                    (move || async move {
+                        let output_ok = Result::<_, ()>::Ok(
+                            crate::api::agent_api::respond_to_tool_approval(api_decision).await,
+                        )?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__workspace_api__update_trust_me_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "update_trust_me",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_enabled = <bool>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, ()>(
+                    (move || async move {
+                        let output_ok = Result::<_, ()>::Ok(
+                            crate::api::workspace_api::update_trust_me(api_enabled).await,
+                        )?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__agent_api__update_config_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -3639,6 +3715,16 @@ impl SseDecode for crate::api::agent_api::AgentEvent {
                 };
             }
             4 => {
+                let mut var_requestId = <String>::sse_decode(deserializer);
+                let mut var_name = <String>::sse_decode(deserializer);
+                let mut var_args = <String>::sse_decode(deserializer);
+                return crate::api::agent_api::AgentEvent::ToolApprovalRequest {
+                    request_id: var_requestId,
+                    name: var_name,
+                    args: var_args,
+                };
+            }
+            5 => {
                 let mut var_inputTokens = <Option<u64>>::sse_decode(deserializer);
                 let mut var_outputTokens = <Option<u64>>::sse_decode(deserializer);
                 return crate::api::agent_api::AgentEvent::MessageComplete {
@@ -3646,7 +3732,7 @@ impl SseDecode for crate::api::agent_api::AgentEvent {
                     output_tokens: var_outputTokens,
                 };
             }
-            5 => {
+            6 => {
                 let mut var_message = <String>::sse_decode(deserializer);
                 return crate::api::agent_api::AgentEvent::Error {
                     message: var_message,
@@ -3685,6 +3771,7 @@ impl SseDecode for crate::api::workspace_api::AutonomyConfig {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_level = <String>::sse_decode(deserializer);
+        let mut var_trustMe = <bool>::sse_decode(deserializer);
         let mut var_workspaceOnly = <bool>::sse_decode(deserializer);
         let mut var_allowedCommands = <Vec<String>>::sse_decode(deserializer);
         let mut var_forbiddenPaths = <Vec<String>>::sse_decode(deserializer);
@@ -3696,6 +3783,7 @@ impl SseDecode for crate::api::workspace_api::AutonomyConfig {
         let mut var_alwaysAsk = <Vec<String>>::sse_decode(deserializer);
         return crate::api::workspace_api::AutonomyConfig {
             level: var_level,
+            trust_me: var_trustMe,
             workspace_only: var_workspaceOnly,
             allowed_commands: var_allowedCommands,
             forbidden_paths: var_forbiddenPaths,
@@ -5088,6 +5176,18 @@ fn pde_ffi_dispatcher_primary_impl(
         92 => {
             wire__crate__api__routes_api__upsert_model_route_impl(port, ptr, rust_vec_len, data_len)
         }
+        93 => wire__crate__api__agent_api__respond_to_tool_approval_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        94 => wire__crate__api__workspace_api__update_trust_me_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
         _ => unreachable!(),
     }
 }
@@ -5162,17 +5262,28 @@ impl flutter_rust_bridge::IntoDart for crate::api::agent_api::AgentEvent {
                 success.into_into_dart().into_dart(),
             ]
             .into_dart(),
+            crate::api::agent_api::AgentEvent::ToolApprovalRequest {
+                request_id,
+                name,
+                args,
+            } => [
+                4.into_dart(),
+                request_id.into_into_dart().into_dart(),
+                name.into_into_dart().into_dart(),
+                args.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
             crate::api::agent_api::AgentEvent::MessageComplete {
                 input_tokens,
                 output_tokens,
             } => [
-                4.into_dart(),
+                5.into_dart(),
                 input_tokens.into_into_dart().into_dart(),
                 output_tokens.into_into_dart().into_dart(),
             ]
             .into_dart(),
             crate::api::agent_api::AgentEvent::Error { message } => {
-                [5.into_dart(), message.into_into_dart().into_dart()].into_dart()
+                [6.into_dart(), message.into_into_dart().into_dart()].into_dart()
             }
             _ => {
                 unimplemented!("");
@@ -5222,6 +5333,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::workspace_api::AutonomyConfig
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.level.into_into_dart().into_dart(),
+            self.trust_me.into_into_dart().into_dart(),
             self.workspace_only.into_into_dart().into_dart(),
             self.allowed_commands.into_into_dart().into_dart(),
             self.forbidden_paths.into_into_dart().into_dart(),
@@ -6120,16 +6232,26 @@ impl SseEncode for crate::api::agent_api::AgentEvent {
                 <String>::sse_encode(result, serializer);
                 <bool>::sse_encode(success, serializer);
             }
+            crate::api::agent_api::AgentEvent::ToolApprovalRequest {
+                request_id,
+                name,
+                args,
+            } => {
+                <i32>::sse_encode(4, serializer);
+                <String>::sse_encode(request_id, serializer);
+                <String>::sse_encode(name, serializer);
+                <String>::sse_encode(args, serializer);
+            }
             crate::api::agent_api::AgentEvent::MessageComplete {
                 input_tokens,
                 output_tokens,
             } => {
-                <i32>::sse_encode(4, serializer);
+                <i32>::sse_encode(5, serializer);
                 <Option<u64>>::sse_encode(input_tokens, serializer);
                 <Option<u64>>::sse_encode(output_tokens, serializer);
             }
             crate::api::agent_api::AgentEvent::Error { message } => {
-                <i32>::sse_encode(5, serializer);
+                <i32>::sse_encode(6, serializer);
                 <String>::sse_encode(message, serializer);
             }
             _ => {
@@ -6156,6 +6278,7 @@ impl SseEncode for crate::api::workspace_api::AutonomyConfig {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.level, serializer);
+        <bool>::sse_encode(self.trust_me, serializer);
         <bool>::sse_encode(self.workspace_only, serializer);
         <Vec<String>>::sse_encode(self.allowed_commands, serializer);
         <Vec<String>>::sse_encode(self.forbidden_paths, serializer);

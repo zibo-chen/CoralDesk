@@ -13,6 +13,7 @@ pub struct WorkspaceConfig {
 #[derive(Debug, Clone)]
 pub struct AutonomyConfig {
     pub level: String, // "read_only", "supervised", "full"
+    pub trust_me: bool,
     pub workspace_only: bool,
     pub allowed_commands: Vec<String>,
     pub forbidden_paths: Vec<String>,
@@ -106,6 +107,7 @@ pub async fn get_autonomy_config() -> AutonomyConfig {
         let level_str: &str = &level_str;
         AutonomyConfig {
             level: level_str.into(),
+            trust_me: a.trust_me,
             workspace_only: a.workspace_only,
             allowed_commands: a.allowed_commands.clone(),
             forbidden_paths: a.forbidden_paths.clone(),
@@ -119,6 +121,7 @@ pub async fn get_autonomy_config() -> AutonomyConfig {
     } else {
         AutonomyConfig {
             level: "supervised".into(),
+            trust_me: false,
             workspace_only: true,
             allowed_commands: vec![],
             forbidden_paths: vec![],
@@ -147,6 +150,22 @@ pub async fn update_autonomy_level(level: String) -> String {
         };
         config.autonomy.level = new_level;
     }
+    *super::agent_api::agent_handle().lock().await = None;
+    "ok".into()
+}
+
+/// Toggle trust-me mode. When enabled, all security checks are bypassed
+/// and tool calls are auto-approved without user confirmation.
+pub async fn update_trust_me(enabled: bool) -> String {
+    {
+        let mut cs = super::agent_api::config_state().write().await;
+        let config = match cs.config.as_mut() {
+            Some(c) => c,
+            None => return "error: not initialized".into(),
+        };
+        config.autonomy.trust_me = enabled;
+    }
+    // Invalidate agent so it gets recreated with new security policy
     *super::agent_api::agent_handle().lock().await = None;
     "ok".into()
 }

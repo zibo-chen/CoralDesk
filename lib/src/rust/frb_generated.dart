@@ -388,6 +388,12 @@ abstract class RustLibApi extends BaseApi {
     required ModelRouteDto route,
   });
 
+  Future<String> crateApiAgentApiRespondToToolApproval({
+    required String decision,
+  });
+
+  Future<String> crateApiWorkspaceApiUpdateTrustMe({required bool enabled});
+
   String crateApiProxyApiValidateProxyUrl({required String url});
 }
 
@@ -3252,6 +3258,67 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiProxyApiValidateProxyUrlConstMeta =>
       const TaskConstMeta(debugName: "validate_proxy_url", argNames: ["url"]);
 
+  @override
+  Future<String> crateApiAgentApiRespondToToolApproval({
+    required String decision,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(decision, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 93,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAgentApiRespondToToolApprovalConstMeta,
+        argValues: [decision],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAgentApiRespondToToolApprovalConstMeta =>
+      const TaskConstMeta(
+        debugName: "respond_to_tool_approval",
+        argNames: ["decision"],
+      );
+
+  @override
+  Future<String> crateApiWorkspaceApiUpdateTrustMe({required bool enabled}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_bool(enabled, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 94,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiWorkspaceApiUpdateTrustMeConstMeta,
+        argValues: [enabled],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiWorkspaceApiUpdateTrustMeConstMeta =>
+      const TaskConstMeta(debugName: "update_trust_me", argNames: ["enabled"]);
+
   @protected
   AnyhowException dco_decode_AnyhowException(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
@@ -3315,11 +3382,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           success: dco_decode_bool(raw[3]),
         );
       case 4:
+        return AgentEvent_ToolApprovalRequest(
+          requestId: dco_decode_String(raw[1]),
+          name: dco_decode_String(raw[2]),
+          args: dco_decode_String(raw[3]),
+        );
+      case 5:
         return AgentEvent_MessageComplete(
           inputTokens: dco_decode_opt_box_autoadd_u_64(raw[1]),
           outputTokens: dco_decode_opt_box_autoadd_u_64(raw[2]),
         );
-      case 5:
+      case 6:
         return AgentEvent_Error(message: dco_decode_String(raw[1]));
       default:
         throw Exception("unreachable");
@@ -3347,19 +3420,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   AutonomyConfig dco_decode_autonomy_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 10)
-      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
     return AutonomyConfig(
       level: dco_decode_String(arr[0]),
-      workspaceOnly: dco_decode_bool(arr[1]),
-      allowedCommands: dco_decode_list_String(arr[2]),
-      forbiddenPaths: dco_decode_list_String(arr[3]),
-      maxActionsPerHour: dco_decode_u_32(arr[4]),
-      maxCostPerDayCents: dco_decode_u_32(arr[5]),
-      requireApprovalForMediumRisk: dco_decode_bool(arr[6]),
-      blockHighRiskCommands: dco_decode_bool(arr[7]),
-      autoApprove: dco_decode_list_String(arr[8]),
-      alwaysAsk: dco_decode_list_String(arr[9]),
+      trustMe: dco_decode_bool(arr[1]),
+      workspaceOnly: dco_decode_bool(arr[2]),
+      allowedCommands: dco_decode_list_String(arr[3]),
+      forbiddenPaths: dco_decode_list_String(arr[4]),
+      maxActionsPerHour: dco_decode_u_32(arr[5]),
+      maxCostPerDayCents: dco_decode_u_32(arr[6]),
+      requireApprovalForMediumRisk: dco_decode_bool(arr[7]),
+      blockHighRiskCommands: dco_decode_bool(arr[8]),
+      autoApprove: dco_decode_list_String(arr[9]),
+      alwaysAsk: dco_decode_list_String(arr[10]),
     );
   }
 
@@ -4217,13 +4291,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           success: var_success,
         );
       case 4:
+        var var_requestId = sse_decode_String(deserializer);
+        var var_name = sse_decode_String(deserializer);
+        var var_args = sse_decode_String(deserializer);
+        return AgentEvent_ToolApprovalRequest(
+          requestId: var_requestId,
+          name: var_name,
+          args: var_args,
+        );
+      case 5:
         var var_inputTokens = sse_decode_opt_box_autoadd_u_64(deserializer);
         var var_outputTokens = sse_decode_opt_box_autoadd_u_64(deserializer);
         return AgentEvent_MessageComplete(
           inputTokens: var_inputTokens,
           outputTokens: var_outputTokens,
         );
-      case 5:
+      case 6:
         var var_message = sse_decode_String(deserializer);
         return AgentEvent_Error(message: var_message);
       default:
@@ -4256,6 +4339,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   AutonomyConfig sse_decode_autonomy_config(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_level = sse_decode_String(deserializer);
+    var var_trustMe = sse_decode_bool(deserializer);
     var var_workspaceOnly = sse_decode_bool(deserializer);
     var var_allowedCommands = sse_decode_list_String(deserializer);
     var var_forbiddenPaths = sse_decode_list_String(deserializer);
@@ -4267,6 +4351,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_alwaysAsk = sse_decode_list_String(deserializer);
     return AutonomyConfig(
       level: var_level,
+      trustMe: var_trustMe,
       workspaceOnly: var_workspaceOnly,
       allowedCommands: var_allowedCommands,
       forbiddenPaths: var_forbiddenPaths,
@@ -5428,15 +5513,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_String(name, serializer);
         sse_encode_String(result, serializer);
         sse_encode_bool(success, serializer);
+      case AgentEvent_ToolApprovalRequest(
+        requestId: final requestId,
+        name: final name,
+        args: final args,
+      ):
+        sse_encode_i_32(4, serializer);
+        sse_encode_String(requestId, serializer);
+        sse_encode_String(name, serializer);
+        sse_encode_String(args, serializer);
       case AgentEvent_MessageComplete(
         inputTokens: final inputTokens,
         outputTokens: final outputTokens,
       ):
-        sse_encode_i_32(4, serializer);
+        sse_encode_i_32(5, serializer);
         sse_encode_opt_box_autoadd_u_64(inputTokens, serializer);
         sse_encode_opt_box_autoadd_u_64(outputTokens, serializer);
       case AgentEvent_Error(message: final message):
-        sse_encode_i_32(5, serializer);
+        sse_encode_i_32(6, serializer);
         sse_encode_String(message, serializer);
     }
   }
@@ -5460,6 +5554,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.level, serializer);
+    sse_encode_bool(self.trustMe, serializer);
     sse_encode_bool(self.workspaceOnly, serializer);
     sse_encode_list_String(self.allowedCommands, serializer);
     sse_encode_list_String(self.forbiddenPaths, serializer);

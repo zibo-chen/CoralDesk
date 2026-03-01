@@ -22,6 +22,14 @@ pub enum AgentEvent {
         result: String,
         success: bool,
     },
+    /// Tool requires user approval before execution.
+    /// Flutter should display a confirmation dialog and call
+    /// `respond_to_tool_approval()` with the request_id and decision.
+    ToolApprovalRequest {
+        request_id: String,
+        name: String,
+        args: String,
+    },
     /// Full message generation complete
     MessageComplete {
         input_tokens: Option<u64>,
@@ -112,6 +120,44 @@ pub(crate) fn config_state() -> &'static RwLock<ConfigState> {
 pub(crate) fn agent_handle() -> &'static TokioMutex<Option<zeroclaw::agent::Agent>> {
     static AGENT: OnceLock<TokioMutex<Option<zeroclaw::agent::Agent>>> = OnceLock::new();
     AGENT.get_or_init(|| TokioMutex::new(None))
+}
+
+// ──────────────── Desktop Tool Approval ──────────────────────
+//
+// When trust_me is OFF and the agent needs approval for a tool call,
+// the Rust side sends `AgentEvent::ToolApprovalRequest` through the
+// stream and then waits on a oneshot channel. Flutter displays a
+// confirmation dialog and calls `respond_to_tool_approval()` which
+// sends the user's answer back through the oneshot.
+
+/// Pending approval request waiting for Flutter's response.
+struct PendingApproval {
+    response_tx: tokio::sync::oneshot::Sender<zeroclaw::approval::ApprovalResponse>,
+}
+
+/// Global slot for at-most-one pending approval request at a time.
+fn pending_approval() -> &'static TokioMutex<Option<PendingApproval>> {
+    static SLOT: OnceLock<TokioMutex<Option<PendingApproval>>> = OnceLock::new();
+    SLOT.get_or_init(|| TokioMutex::new(None))
+}
+
+/// Respond to a pending tool approval request from Flutter UI.
+///
+/// `approved` values: "yes", "no", "always"
+pub async fn respond_to_tool_approval(decision: String) -> String {
+    let response = match decision.to_lowercase().as_str() {
+        "yes" | "y" => zeroclaw::approval::ApprovalResponse::Yes,
+        "always" | "a" => zeroclaw::approval::ApprovalResponse::Always,
+        _ => zeroclaw::approval::ApprovalResponse::No,
+    };
+
+    let mut slot = pending_approval().lock().await;
+    if let Some(pending) = slot.take() {
+        let _ = pending.response_tx.send(response);
+        "ok".into()
+    } else {
+        "error: no pending approval request".into()
+    }
 }
 
 // ──────────────────── Initialization API ──────────────────────
@@ -433,6 +479,10 @@ pub async fn save_config_to_disk() -> String {
         .and_then(|v| v.as_table())
         .cloned()
         .unwrap_or_default();
+    autonomy_table.insert(
+        "trust_me".into(),
+        toml::Value::Boolean(config.autonomy.trust_me),
+    );
     autonomy_table.insert(
         "auto_approve".into(),
         toml::Value::Array(
@@ -983,6 +1033,65 @@ pub async fn send_message_stream(
     // Lock only the agent (not config) for the duration of the LLM turn.
     // Guard with a timeout so Flutter stream won't hang forever when provider
     // or tool loop gets stuck.
+
+    // Determine whether to enable desktop approval (non-trust-me mode).
+    let trust_me = {
+        let cs = config_state().read().await;
+        cs.config
+            .as_ref()
+            .map(|c| c.autonomy.trust_me)
+            .unwrap_or(false)
+    };
+
+    // Build the approval callback. When trust_me is OFF, this callback sends
+    // a ToolApprovalRequest event to Flutter and waits for the user's decision
+    // via `respond_to_tool_approval()`.
+    let sink_for_approval = sink.clone();
+    let on_approval_fn: Option<zeroclaw::agent::loop_::OnApprovalFn> = if !trust_me {
+        Some(Box::new(
+            move |tool_name: String, tool_args: serde_json::Value| {
+                let sink_inner = sink_for_approval.clone();
+                Box::pin(async move {
+                    let request_id = uuid::Uuid::new_v4().to_string();
+                    let args_str = serde_json::to_string(&tool_args).unwrap_or_default();
+
+                    // Send approval request to Flutter UI
+                    let _ = sink_inner.add(AgentEvent::ToolApprovalRequest {
+                        request_id: request_id.clone(),
+                        name: tool_name,
+                        args: args_str,
+                    });
+
+                    // Create a oneshot channel and store it in the global slot
+                    let (resp_tx, resp_rx) = tokio::sync::oneshot::channel();
+                    {
+                        let mut slot = pending_approval().lock().await;
+                        *slot = Some(PendingApproval {
+                            response_tx: resp_tx,
+                        });
+                    }
+
+                    // Wait for Flutter to respond (with a generous timeout)
+                    match tokio::time::timeout(Duration::from_secs(300), resp_rx).await {
+                        Ok(Ok(decision)) => decision,
+                        Ok(Err(_)) => {
+                            // Channel was dropped — treat as denied
+                            zeroclaw::approval::ApprovalResponse::No
+                        }
+                        Err(_) => {
+                            // Timeout — treat as denied
+                            tracing::warn!("Tool approval timed out for request {request_id}");
+                            zeroclaw::approval::ApprovalResponse::No
+                        }
+                    }
+                })
+            },
+        ))
+    } else {
+        None
+    };
+    let on_approval_ref = on_approval_fn.as_ref();
+
     let turn_result = {
         let mut agent_guard = agent_handle().lock().await;
         let agent = match agent_guard.as_mut() {
@@ -996,7 +1105,7 @@ pub async fn send_message_stream(
         };
         timeout(
             Duration::from_secs(TURN_TIMEOUT_SECS),
-            agent.turn_streaming(&enriched_message, tx),
+            agent.turn_streaming(&enriched_message, tx, on_approval_ref),
         )
         .await
     };

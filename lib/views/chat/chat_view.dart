@@ -143,6 +143,80 @@ class _ChatViewState extends ConsumerState<ChatView> {
     _callAgent(sessionId);
   }
 
+  void _showToolApprovalDialog(
+    String requestId,
+    String toolName,
+    String toolArgs,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.security, color: Colors.orange),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                l10n.toolApprovalTitle,
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480, maxHeight: 400),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  l10n.toolApprovalBody(toolName),
+                  style: const TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SelectableText(
+                    toolArgs,
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                      color: Theme.of(ctx).colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              agent_api.respondToToolApproval(decision: 'no');
+            },
+            child: Text(l10n.deny, style: const TextStyle(color: Colors.red)),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              agent_api.respondToToolApproval(decision: 'yes');
+            },
+            child: Text(l10n.approve),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _callAgent(String sessionId) async {
     // Mark this session as processing
     ref.read(processingSessionsProvider.notifier).state = {
@@ -259,6 +333,31 @@ class _ChatViewState extends ConsumerState<ChatView> {
                   toolCalls: List.from(toolCalls),
                 );
             _scrollToBottomIfActive(sessionId);
+          },
+          toolApprovalRequest: (requestId, name, args) {
+            if (!mounted) return;
+            // Show approval dialog inline - add a pending approval tool call
+            toolCalls.add(
+              ToolCallInfo(
+                id: 'approval_$requestId',
+                name: name,
+                arguments: args,
+                status: ToolCallStatus.running,
+                result: '⏳ Waiting for approval...',
+              ),
+            );
+            ref
+                .read(messagesProvider.notifier)
+                .updateAssistantMessageForSession(
+                  sessionId,
+                  activeId(),
+                  responseBuffer.toString(),
+                  isStreaming: true,
+                  toolCalls: List.from(toolCalls),
+                );
+            _scrollToBottomIfActive(sessionId);
+            // Show approval dialog
+            _showToolApprovalDialog(requestId, name, args);
           },
           messageComplete: (inputTokens, outputTokens) {
             // Message is complete

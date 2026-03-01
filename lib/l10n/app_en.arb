@@ -335,6 +335,31 @@
   "fullAutonomy": "Full",
   "@fullAutonomy": { "description": "Full autonomy level" },
 
+  "trustMeMode": "Trust Me Mode",
+  "@trustMeMode": { "description": "Trust me mode toggle label" },
+
+  "trustMeDescription": "Auto-approve all tool calls without confirmation. Use with caution.",
+  "@trustMeDescription": { "description": "Trust me mode description" },
+
+  "toolApprovalTitle": "Tool Approval Required",
+  "@toolApprovalTitle": { "description": "Tool approval dialog title" },
+
+  "toolApprovalBody": "The agent wants to execute tool: {toolName}",
+  "@toolApprovalBody": { 
+    "description": "Tool approval dialog body",
+    "placeholders": {
+      "toolName": {
+        "type": "String"
+      }
+    }
+  },
+
+  "approve": "Approve",
+  "@approve": { "description": "Approve button" },
+
+  "deny": "Deny",
+  "@deny": { "description": "Deny button" },
+
   "workspaceOnly": "Workspace Only",
   "@workspaceOnly": { "description": "Workspace only setting" },
 

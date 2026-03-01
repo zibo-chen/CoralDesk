@@ -337,6 +337,26 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fullAutonomy => '完全自治';
 
   @override
+  String get trustMeMode => '信任模式';
+
+  @override
+  String get trustMeDescription => '自动批准所有工具调用，无需确认。请谨慎使用。';
+
+  @override
+  String get toolApprovalTitle => '需要工具审批';
+
+  @override
+  String toolApprovalBody(String toolName) {
+    return 'Agent 想要执行工具：$toolName';
+  }
+
+  @override
+  String get approve => '批准';
+
+  @override
+  String get deny => '拒绝';
+
+  @override
   String get workspaceOnly => '仅限工作区';
 
   @override

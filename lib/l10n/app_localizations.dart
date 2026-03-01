@@ -746,6 +746,42 @@ abstract class AppLocalizations {
   /// **'Full'**
   String get fullAutonomy;
 
+  /// Trust me mode toggle label
+  ///
+  /// In en, this message translates to:
+  /// **'Trust Me Mode'**
+  String get trustMeMode;
+
+  /// Trust me mode description
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-approve all tool calls without confirmation. Use with caution.'**
+  String get trustMeDescription;
+
+  /// Tool approval dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Tool Approval Required'**
+  String get toolApprovalTitle;
+
+  /// Tool approval dialog body
+  ///
+  /// In en, this message translates to:
+  /// **'The agent wants to execute tool: {toolName}'**
+  String toolApprovalBody(String toolName);
+
+  /// Approve button
+  ///
+  /// In en, this message translates to:
+  /// **'Approve'**
+  String get approve;
+
+  /// Deny button
+  ///
+  /// In en, this message translates to:
+  /// **'Deny'**
+  String get deny;
+
   /// Workspace only setting
   ///
   /// In en, this message translates to:
