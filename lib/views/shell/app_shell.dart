@@ -17,7 +17,6 @@ import 'package:deskclaw/views/settings/proxy_page.dart';
 import 'package:deskclaw/views/settings/sessions_page.dart';
 import 'package:deskclaw/views/settings/cron_jobs_page.dart';
 import 'package:deskclaw/views/settings/knowledge_page.dart';
-import 'package:deskclaw/views/placeholder_page.dart';
 import 'package:deskclaw/views/notification/notification_panel.dart';
 
 /// Root layout shell: Sidebar | Chat List (when in chat) | Main Content
@@ -141,11 +140,6 @@ class _AppShellState extends ConsumerState<AppShell> {
       NavSection.mcp => const McpPage(),
       NavSection.agents => const AgentsPage(),
       NavSection.proxy => const ProxyPage(),
-      NavSection.environments => PlaceholderPage(
-        title: AppLocalizations.of(context)!.pageEnvironments,
-        icon: Icons.language,
-        description: AppLocalizations.of(context)!.environmentsDescription,
-      ),
     };
   }
 

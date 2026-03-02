@@ -20,7 +20,6 @@ enum NavSection {
   configuration,
   models,
   proxy,
-  environments,
 }
 
 /// Current navigation state

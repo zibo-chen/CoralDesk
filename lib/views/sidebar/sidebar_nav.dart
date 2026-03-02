@@ -211,14 +211,6 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
                       section: NavSection.proxy,
                       isActive: currentNav == NavSection.proxy,
                     ),
-                    _buildNavItem(
-                      c,
-                      ref: ref,
-                      icon: Icons.language,
-                      label: l10n.navEnvironments,
-                      section: NavSection.environments,
-                      isActive: currentNav == NavSection.environments,
-                    ),
                   ],
                 ),
               ],
@@ -259,7 +251,6 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
       (Icons.settings, NavSection.configuration, l10n.navConfiguration),
       (Icons.model_training, NavSection.models, l10n.navModels),
       (Icons.vpn_key, NavSection.proxy, l10n.navProxy),
-      (Icons.language, NavSection.environments, l10n.navEnvironments),
     ];
 
     return Column(
