@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:window_manager/window_manager.dart';
 import 'package:deskclaw/constants.dart';
 import 'package:deskclaw/l10n/app_localizations.dart';
 import 'package:deskclaw/models/chat_message.dart';
@@ -28,34 +29,41 @@ class ChatListPanel extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 12, 12),
-            child: Row(
-              children: [
-                Text(
-                  l10n.workWithDeskClaw,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: c.textPrimary,
+          // Header — draggable on desktop
+          DragToMoveArea(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                AppConstants.isMacOS ? 48 : 20,
+                12,
+                12,
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    l10n.workWithDeskClaw,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: c.textPrimary,
+                    ),
                   ),
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.format_indent_decrease, size: 18),
-                  color: c.textHint,
-                  onPressed: () {
-                    ref.read(chatListCollapsedProvider.notifier).state = true;
-                  },
-                  tooltip: l10n.collapseHistory,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.format_indent_decrease, size: 18),
+                    color: c.textHint,
+                    onPressed: () {
+                      ref.read(chatListCollapsedProvider.notifier).state = true;
+                    },
+                    tooltip: l10n.collapseHistory,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
 

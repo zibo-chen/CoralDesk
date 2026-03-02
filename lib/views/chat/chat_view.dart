@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:window_manager/window_manager.dart';
+import 'package:deskclaw/constants.dart';
 import 'package:deskclaw/l10n/app_localizations.dart';
 import 'package:deskclaw/models/models.dart';
 import 'package:deskclaw/providers/providers.dart';
@@ -565,39 +567,57 @@ class _ChatViewState extends ConsumerState<ChatView> {
 
   Widget _buildTopBar(AppLocalizations l10n) {
     final isCollapsed = ref.watch(chatListCollapsedProvider);
+    final isMacOS = AppConstants.isMacOS;
+    final isDesktop = AppConstants.isDesktop;
+
     return Container(
-      height: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      height: 56 + (isMacOS ? AppConstants.macOSTopInset : 0),
+      padding: EdgeInsets.only(
+        left: 24,
+        right: isDesktop && !isMacOS ? 152 : 24,
+        top: isMacOS ? AppConstants.macOSTopInset : 0,
+      ),
       decoration: BoxDecoration(
         color: c.surfaceBg,
         border: Border(bottom: BorderSide(color: c.chatListBorder, width: 1)),
       ),
       child: Row(
         children: [
-          // Show expand button when chat list is collapsed
-          if (isCollapsed)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: IconButton(
-                icon: const Icon(Icons.menu_open, size: 20),
-                color: c.textSecondary,
-                tooltip: l10n.expandHistory,
-                onPressed: () {
-                  ref.read(chatListCollapsedProvider.notifier).state = false;
-                },
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          Expanded(
+            child: DragToMoveArea(
+              child: Row(
+                children: [
+                  // Show expand button when chat list is collapsed
+                  if (isCollapsed)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: IconButton(
+                        icon: const Icon(Icons.menu_open, size: 20),
+                        color: c.textSecondary,
+                        tooltip: l10n.expandHistory,
+                        onPressed: () {
+                          ref.read(chatListCollapsedProvider.notifier).state =
+                              false;
+                        },
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
+                      ),
+                    ),
+                  Text(
+                    l10n.chatTitle,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: c.textPrimary,
+                    ),
+                  ),
+                ],
               ),
             ),
-          Text(
-            l10n.chatTitle,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: c.textPrimary,
-            ),
           ),
-          const Spacer(),
           // Toggle workspace files panel
           IconButton(
             icon: Icon(

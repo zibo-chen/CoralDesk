@@ -162,6 +162,13 @@ jobs:
         with:
           toolchain: ${{ env.RUST_VERSION }}
 
+      - name: Install Rust native build dependencies (Windows)
+        run: |
+          choco install nasm strawberryperl -y
+
+      - name: Add Windows Rust target
+        run: rustup target add x86_64-pc-windows-msvc
+
       - name: Cache Rust dependencies
         uses: actions/cache@v4
         with:
@@ -176,6 +183,9 @@ jobs:
         run: flutter pub get
 
       - name: Build Windows app
+        env:
+          CARGOKIT_VERBOSE: "1"
+          RUST_BACKTRACE: full
         run: flutter build windows --release
 
       - name: Package Windows app

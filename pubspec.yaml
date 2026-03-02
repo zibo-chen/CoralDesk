@@ -60,6 +60,7 @@ dependencies:
   # File handling
   desktop_drop: ^0.5.0
   file_picker: ^8.1.7
+  window_manager: ^0.5.1
 
 dev_dependencies:
   flutter_test:

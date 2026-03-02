@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter/foundation.dart';
 import 'package:deskclaw/l10n/app_localizations.dart';
 import 'package:deskclaw/src/rust/frb_generated.dart';
 import 'package:deskclaw/src/rust/api/agent_api.dart' as agent_api;
@@ -10,9 +11,24 @@ import 'package:deskclaw/services/settings_service.dart';
 import 'package:deskclaw/theme/app_theme.dart';
 import 'package:deskclaw/views/shell/app_shell.dart';
 import 'package:deskclaw/providers/providers.dart';
+import 'package:window_manager/window_manager.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (!kIsWeb && _isDesktopPlatform) {
+    await windowManager.ensureInitialized();
+    const windowOptions = WindowOptions(
+      title: 'DeskClaw',
+      titleBarStyle: TitleBarStyle.hidden,
+      center: true,
+    );
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+  }
+
   await RustLib.init();
 
   // Load persisted user settings (locale, theme, etc.)
@@ -35,6 +51,17 @@ Future<void> main() async {
   }
 
   runApp(const ProviderScope(child: DeskClawApp()));
+}
+
+bool get _isDesktopPlatform {
+  switch (defaultTargetPlatform) {
+    case TargetPlatform.macOS:
+    case TargetPlatform.linux:
+    case TargetPlatform.windows:
+      return true;
+    default:
+      return false;
+  }
 }
 
 class DeskClawApp extends ConsumerWidget {

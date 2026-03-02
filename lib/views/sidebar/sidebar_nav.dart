@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:window_manager/window_manager.dart';
 import 'package:deskclaw/constants.dart';
 import 'package:deskclaw/l10n/app_localizations.dart';
 import 'package:deskclaw/providers/providers.dart';
@@ -256,46 +257,58 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
     return Column(
       children: [
         // Header: logo icon + expand button (same position as collapse btn in expanded mode)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(11, 20, 11, 8),
-          child: Column(
-            children: [
-              Tooltip(
-                message: 'DeskClaw',
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(8),
+        DragToMoveArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              11,
+              AppConstants.isMacOS ? 48 : 20,
+              11,
+              8,
+            ),
+            child: Column(
+              children: [
+                Tooltip(
+                  message: 'DeskClaw',
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.pets,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
-                  child: const Icon(Icons.pets, color: Colors.white, size: 20),
                 ),
-              ),
-              const SizedBox(height: 6),
-              // Expand button — same vertical zone as collapse button in expanded state
-              Tooltip(
-                message: l10n.expandSidebar,
-                child: Material(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(6),
-                  child: InkWell(
+                const SizedBox(height: 6),
+                // Expand button — same vertical zone as collapse button in expanded state
+                Tooltip(
+                  message: l10n.expandSidebar,
+                  child: Material(
+                    color: Colors.transparent,
                     borderRadius: BorderRadius.circular(6),
-                    onTap: () {
-                      ref.read(sidebarCollapsedProvider.notifier).state = false;
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(6),
-                      child: Icon(
-                        Icons.chevron_right,
-                        size: 18,
-                        color: c.sidebarText,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(6),
+                      onTap: () {
+                        ref.read(sidebarCollapsedProvider.notifier).state =
+                            false;
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: Icon(
+                          Icons.chevron_right,
+                          size: 18,
+                          color: c.sidebarText,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
 
@@ -471,64 +484,66 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
 
   Widget _buildLogo(DeskClawColors c, WidgetRef ref) {
     final l10n = AppLocalizations.of(ref.context)!;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 8, 8),
-      child: Row(
-        children: [
-          // Logo icon - claw paw
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(8),
+    return DragToMoveArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16, AppConstants.isMacOS ? 48 : 20, 8, 8),
+        child: Row(
+          children: [
+            // Logo icon - claw paw
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.pets, color: Colors.white, size: 20),
             ),
-            child: const Icon(Icons.pets, color: Colors.white, size: 20),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  AppConstants.appName,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: c.textPrimary,
-                    letterSpacing: -0.3,
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppConstants.appName,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: c.textPrimary,
+                      letterSpacing: -0.3,
+                    ),
                   ),
-                ),
-                Text(
-                  AppConstants.appVersion,
-                  style: TextStyle(fontSize: 11, color: c.textHint),
-                ),
-              ],
+                  Text(
+                    AppConstants.appVersion,
+                    style: TextStyle(fontSize: 11, color: c.textHint),
+                  ),
+                ],
+              ),
             ),
-          ),
-          // Collapse sidebar button
-          Tooltip(
-            message: l10n.collapseSidebar,
-            child: Material(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(6),
-              child: InkWell(
+            // Collapse sidebar button
+            Tooltip(
+              message: l10n.collapseSidebar,
+              child: Material(
+                color: Colors.transparent,
                 borderRadius: BorderRadius.circular(6),
-                onTap: () {
-                  ref.read(sidebarCollapsedProvider.notifier).state = true;
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(6),
-                  child: Icon(
-                    Icons.chevron_left,
-                    size: 18,
-                    color: c.sidebarText,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(6),
+                  onTap: () {
+                    ref.read(sidebarCollapsedProvider.notifier).state = true;
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Icon(
+                      Icons.chevron_left,
+                      size: 18,
+                      color: c.sidebarText,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

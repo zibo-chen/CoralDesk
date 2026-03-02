@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// DeskClaw application constants
 class AppConstants {
   AppConstants._();
@@ -28,4 +30,18 @@ class AppConstants {
     '帮我规划一次短途旅行。',
     '帮我头脑风暴一些创意。',
   ];
+
+  // Desktop platform helpers
+  static bool get isDesktop {
+    if (kIsWeb) return false;
+    return defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.linux ||
+        defaultTargetPlatform == TargetPlatform.windows;
+  }
+
+  static bool get isMacOS =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS;
+
+  /// Extra top padding on macOS for native traffic-light window controls.
+  static const double macOSTopInset = 28.0;
 }
