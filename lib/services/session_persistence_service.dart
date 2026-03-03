@@ -1,4 +1,4 @@
-import 'package:deskclaw/src/rust/api/sessions_api.dart' as sessions_api;
+import 'package:coraldesk/src/rust/api/sessions_api.dart' as sessions_api;
 
 /// Encapsulates session persistence (Rust-side file store).
 ///

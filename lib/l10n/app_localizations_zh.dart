@@ -9,7 +9,7 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get appTitle => 'DeskClaw';
+  String get appTitle => 'CoralDesk';
 
   @override
   String get appTagline => '从桌面出发，驾驭 AI 新时代';
@@ -57,7 +57,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get navEnvironments => '环境';
 
   @override
-  String get workWithDeskClaw => '与 DeskClaw 一起工作';
+  String get workWithCoralDesk => '与 CoralDesk 一起工作';
 
   @override
   String get newChat => '新对话';

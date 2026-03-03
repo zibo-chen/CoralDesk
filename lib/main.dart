@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:deskclaw/l10n/app_localizations.dart';
-import 'package:deskclaw/services/settings_service.dart';
-import 'package:deskclaw/theme/app_theme.dart';
-import 'package:deskclaw/views/shell/app_shell.dart';
-import 'package:deskclaw/providers/providers.dart';
-import 'package:deskclaw/bootstrap/app_bootstrapper.dart';
+import 'package:coraldesk/l10n/app_localizations.dart';
+import 'package:coraldesk/services/settings_service.dart';
+import 'package:coraldesk/theme/app_theme.dart';
+import 'package:coraldesk/views/shell/app_shell.dart';
+import 'package:coraldesk/providers/providers.dart';
+import 'package:coraldesk/bootstrap/app_bootstrapper.dart';
 
 Future<void> main() async {
   await AppBootstrapper.init();
-  runApp(const ProviderScope(child: DeskClawApp()));
+  runApp(const ProviderScope(child: CoralDeskApp()));
 }
 
-class DeskClawApp extends ConsumerWidget {
-  const DeskClawApp({super.key});
+class CoralDeskApp extends ConsumerWidget {
+  const CoralDeskApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -29,7 +29,7 @@ class DeskClawApp extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
     return MaterialApp(
-      title: 'DeskClaw',
+      title: 'CoralDesk',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,

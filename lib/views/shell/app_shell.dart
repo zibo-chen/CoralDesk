@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:deskclaw/constants.dart';
-import 'package:deskclaw/l10n/app_localizations.dart';
-import 'package:deskclaw/providers/providers.dart';
-import 'package:deskclaw/theme/app_theme.dart';
-import 'package:deskclaw/views/sidebar/sidebar_nav.dart';
-import 'package:deskclaw/views/chat/chat_list_panel.dart';
-import 'package:deskclaw/views/chat/chat_view.dart';
-import 'package:deskclaw/views/settings/models_page.dart';
-import 'package:deskclaw/views/settings/workspace_page.dart';
-import 'package:deskclaw/views/settings/configuration_page.dart';
-import 'package:deskclaw/views/settings/channels_page.dart';
-import 'package:deskclaw/views/settings/skills_page.dart';
-import 'package:deskclaw/views/settings/mcp_page.dart';
-import 'package:deskclaw/views/settings/agents_page.dart';
-import 'package:deskclaw/views/settings/proxy_page.dart';
-import 'package:deskclaw/views/settings/sessions_page.dart';
-import 'package:deskclaw/views/settings/cron_jobs_page.dart';
-import 'package:deskclaw/views/settings/knowledge_page.dart';
-import 'package:deskclaw/views/notification/notification_panel.dart';
+import 'package:coraldesk/constants.dart';
+import 'package:coraldesk/l10n/app_localizations.dart';
+import 'package:coraldesk/providers/providers.dart';
+import 'package:coraldesk/theme/app_theme.dart';
+import 'package:coraldesk/views/sidebar/sidebar_nav.dart';
+import 'package:coraldesk/views/chat/chat_list_panel.dart';
+import 'package:coraldesk/views/chat/chat_view.dart';
+import 'package:coraldesk/views/settings/models_page.dart';
+import 'package:coraldesk/views/settings/workspace_page.dart';
+import 'package:coraldesk/views/settings/configuration_page.dart';
+import 'package:coraldesk/views/settings/channels_page.dart';
+import 'package:coraldesk/views/settings/skills_page.dart';
+import 'package:coraldesk/views/settings/mcp_page.dart';
+import 'package:coraldesk/views/settings/agents_page.dart';
+import 'package:coraldesk/views/settings/proxy_page.dart';
+import 'package:coraldesk/views/settings/sessions_page.dart';
+import 'package:coraldesk/views/settings/cron_jobs_page.dart';
+import 'package:coraldesk/views/settings/knowledge_page.dart';
+import 'package:coraldesk/views/notification/notification_panel.dart';
 import 'package:window_manager/window_manager.dart';
 
 /// Root layout shell: Sidebar | Chat List (when in chat) | Main Content
@@ -271,7 +271,7 @@ class _ContentDragHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = DeskClawColors.of(context);
+    final c = CoralDeskColors.of(context);
     final isMacOS = AppConstants.isMacOS;
 
     return DragToMoveArea(
@@ -306,7 +306,7 @@ class _WindowControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = DeskClawColors.of(context);
+    final c = CoralDeskColors.of(context);
     return Container(
       height: 38,
       color: c.mainBg,

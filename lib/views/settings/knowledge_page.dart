@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:deskclaw/l10n/app_localizations.dart';
-import 'package:deskclaw/theme/app_theme.dart';
-import 'package:deskclaw/views/settings/widgets/settings_scaffold.dart';
-import 'package:deskclaw/src/rust/api/knowledge_api.dart' as kb_api;
+import 'package:coraldesk/l10n/app_localizations.dart';
+import 'package:coraldesk/theme/app_theme.dart';
+import 'package:coraldesk/views/settings/widgets/settings_scaffold.dart';
+import 'package:coraldesk/src/rust/api/knowledge_api.dart' as kb_api;
 
 /// Knowledge Base management page — view, search, add, delete memory entries
 class KnowledgePage extends ConsumerStatefulWidget {
@@ -21,7 +21,7 @@ class _KnowledgePageState extends ConsumerState<KnowledgePage> {
   String? _searchQuery;
   String _filterCategory = 'all';
   final TextEditingController _searchController = TextEditingController();
-  DeskClawColors get c => DeskClawColors.of(context);
+  CoralDeskColors get c => CoralDeskColors.of(context);
 
   @override
   void initState() {

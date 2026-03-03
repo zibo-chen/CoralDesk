@@ -2,12 +2,12 @@ import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:deskclaw/l10n/app_localizations.dart';
+import 'package:coraldesk/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
-import 'package:deskclaw/models/models.dart';
-import 'package:deskclaw/theme/app_theme.dart';
+import 'package:coraldesk/models/models.dart';
+import 'package:coraldesk/theme/app_theme.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:deskclaw/src/rust/api/agent_api.dart' as agent_api;
+import 'package:coraldesk/src/rust/api/agent_api.dart' as agent_api;
 
 /// Individual message bubble with hover-based action bar (copy / edit).
 class MessageBubble extends StatefulWidget {
@@ -81,7 +81,7 @@ class _MessageBubbleState extends State<MessageBubble> {
   // ── User bubble ────────────────────────────────────────
 
   Widget _buildUserBubble(BuildContext context) {
-    final c = DeskClawColors.of(context);
+    final c = CoralDeskColors.of(context);
     final l10n = AppLocalizations.of(context)!;
 
     return MouseRegion(
@@ -141,7 +141,7 @@ class _MessageBubbleState extends State<MessageBubble> {
     );
   }
 
-  Widget _buildEditField(DeskClawColors c, AppLocalizations l10n) {
+  Widget _buildEditField(CoralDeskColors c, AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -213,7 +213,7 @@ class _MessageBubbleState extends State<MessageBubble> {
   // ── Assistant bubble ───────────────────────────────────
 
   Widget _buildAssistantBubble(BuildContext context) {
-    final c = DeskClawColors.of(context);
+    final c = CoralDeskColors.of(context);
     final l10n = AppLocalizations.of(context)!;
 
     return MouseRegion(
@@ -311,7 +311,7 @@ class _MessageBubbleState extends State<MessageBubble> {
   // ── Shared widgets ─────────────────────────────────────
 
   Widget _buildActionBar(
-    DeskClawColors c,
+    CoralDeskColors c,
     AppLocalizations l10n, {
     required bool isUser,
   }) {
@@ -354,7 +354,7 @@ class _MessageBubbleState extends State<MessageBubble> {
     required IconData icon,
     required String tooltip,
     required VoidCallback onTap,
-    required DeskClawColors c,
+    required CoralDeskColors c,
   }) {
     return Tooltip(
       message: tooltip,
@@ -451,7 +451,7 @@ class _ToolCallCardState extends State<_ToolCallCard> {
     }
   }
 
-  Color _statusColor(DeskClawColors c) => switch (toolCall.status) {
+  Color _statusColor(CoralDeskColors c) => switch (toolCall.status) {
     ToolCallStatus.pending => c.textHint,
     ToolCallStatus.running => AppColors.warning,
     ToolCallStatus.completed => AppColors.success,
@@ -477,7 +477,7 @@ class _ToolCallCardState extends State<_ToolCallCard> {
 
   @override
   Widget build(BuildContext context) {
-    final c = DeskClawColors.of(context);
+    final c = CoralDeskColors.of(context);
     final statusColor = _statusColor(c);
 
     return Container(
@@ -552,7 +552,7 @@ class _ToolCallCardState extends State<_ToolCallCard> {
     );
   }
 
-  Widget _buildDetails(DeskClawColors c) {
+  Widget _buildDetails(CoralDeskColors c) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
@@ -581,7 +581,7 @@ class _ToolCallCardState extends State<_ToolCallCard> {
     );
   }
 
-  Widget _buildSectionHeader(DeskClawColors c, String title) {
+  Widget _buildSectionHeader(CoralDeskColors c, String title) {
     return Row(
       children: [
         Text(
@@ -622,7 +622,7 @@ class _ToolCallCardState extends State<_ToolCallCard> {
     );
   }
 
-  Widget _buildCodeBlock(DeskClawColors c, String content) {
+  Widget _buildCodeBlock(CoralDeskColors c, String content) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(8),
@@ -660,7 +660,7 @@ class _FileActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = DeskClawColors.of(context);
+    final c = CoralDeskColors.of(context);
     final l10n = AppLocalizations.of(context)!;
 
     return Row(

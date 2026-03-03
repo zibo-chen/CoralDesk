@@ -1,9 +1,9 @@
 <p align="center">
   <!-- Replace with your app logo/screenshot -->
-  <!-- <img src="docs/screenshots/logo.png" alt="DeskClaw" width="120" /> -->
+  <!-- <img src="docs/screenshots/logo.png" alt="CoralDesk" width="120" /> -->
 </p>
 
-<h1 align="center">DeskClaw 🦀</h1>
+<h1 align="center">CoralDesk 🦀</h1>
 
 <p align="center">
   <strong>The native desktop GUI for <a href="https://github.com/zeroclaw-labs/zeroclaw">ZeroClaw</a> — fast, small, and fully autonomous AI assistant infrastructure.</strong>
@@ -30,12 +30,12 @@
 
 [ZeroClaw](https://github.com/zeroclaw-labs/zeroclaw) is a lean, fully autonomous AI agent runtime written in Rust — zero overhead, provider-agnostic, and deployable anywhere from a $10 microboard to a cloud VM. It ships as a single binary with <5 MB RAM footprint, supporting swappable providers, channels, tools, memory backends, and tunnels.
 
-**DeskClaw** wraps the ZeroClaw runtime in a polished, cross-platform desktop application built with Flutter. The ZeroClaw Rust library is embedded **in-process** via [flutter_rust_bridge](https://github.com/fzyzcjy/flutter_rust_bridge) (FFI) — there is no HTTP server, no subprocess, no daemon to manage. You get the full power of the ZeroClaw agent engine with a native, responsive UI.
+**CoralDesk** wraps the ZeroClaw runtime in a polished, cross-platform desktop application built with Flutter. The ZeroClaw Rust library is embedded **in-process** via [flutter_rust_bridge](https://github.com/fzyzcjy/flutter_rust_bridge) (FFI) — there is no HTTP server, no subprocess, no daemon to manage. You get the full power of the ZeroClaw agent engine with a native, responsive UI.
 
 > Deploy anywhere. Swap anything. — now with a face.
 
 <!-- Screenshot placeholder — replace the comment below with your actual screenshot -->
-<!-- ![DeskClaw main interface](docs/screenshots/main.png) -->
+<!-- ![CoralDesk main interface](docs/screenshots/main.png) -->
 
 ---
 
@@ -92,7 +92,7 @@
 └───────────────────┬─────────────────────────────┘
                     │ flutter_rust_bridge (FFI)
 ┌───────────────────▼─────────────────────────────┐
-│              Rust (rust_lib_deskclaw)           │
+│              Rust (rust_lib_coraldesk)           │
 │                                                 │
 │   agent_api · config_api · workspace_api       │
 │                                                 │
@@ -125,8 +125,8 @@ For platform-specific build toolchains (Xcode, Android SDK, etc.) see the [Flutt
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-org/deskclaw.git
-cd deskclaw
+git clone https://github.com/your-org/coraldesk.git
+cd coraldesk
 ```
 
 ### 2. Install Flutter dependencies
@@ -143,7 +143,7 @@ flutter_rust_bridge_codegen generate
 
 ### 4. Configure ZeroClaw
 
-DeskClaw reads the ZeroClaw config from `~/.zeroclaw/config.toml` at startup. Create the file if it does not exist:
+CoralDesk reads the ZeroClaw config from `~/.zeroclaw/config.toml` at startup. Create the file if it does not exist:
 
 ```toml
 # ~/.zeroclaw/config.toml

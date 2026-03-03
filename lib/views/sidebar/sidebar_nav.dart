@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:deskclaw/constants.dart';
-import 'package:deskclaw/l10n/app_localizations.dart';
-import 'package:deskclaw/providers/providers.dart';
-import 'package:deskclaw/theme/app_theme.dart';
-import 'package:deskclaw/views/notification/notification_panel.dart';
+import 'package:coraldesk/constants.dart';
+import 'package:coraldesk/l10n/app_localizations.dart';
+import 'package:coraldesk/providers/providers.dart';
+import 'package:coraldesk/theme/app_theme.dart';
+import 'package:coraldesk/views/notification/notification_panel.dart';
 
 /// Left sidebar navigation matching the reference design
 class SidebarNav extends ConsumerStatefulWidget {
@@ -34,7 +34,7 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
     final currentNav = ref.watch(currentNavProvider);
     final isCollapsed = ref.watch(sidebarCollapsedProvider);
     final l10n = AppLocalizations.of(context)!;
-    final c = DeskClawColors.of(context);
+    final c = CoralDeskColors.of(context);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
@@ -57,7 +57,7 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
     WidgetRef ref,
     NavSection currentNav,
     AppLocalizations l10n,
-    DeskClawColors c,
+    CoralDeskColors c,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,7 +230,7 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
     WidgetRef ref,
     NavSection currentNav,
     AppLocalizations l10n,
-    DeskClawColors c,
+    CoralDeskColors c,
   ) {
     final unreadCount = ref.watch(
       cronNotificationProvider.select((s) => s.unreadCount),
@@ -268,7 +268,7 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
             child: Column(
               children: [
                 Tooltip(
-                  message: 'DeskClaw',
+                  message: 'CoralDesk',
                   child: Container(
                     width: 36,
                     height: 36,
@@ -482,7 +482,7 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
     );
   }
 
-  Widget _buildLogo(DeskClawColors c, WidgetRef ref) {
+  Widget _buildLogo(CoralDeskColors c, WidgetRef ref) {
     final l10n = AppLocalizations.of(ref.context)!;
     return DragToMoveArea(
       child: Padding(
@@ -549,7 +549,7 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
   }
 
   Widget _buildNavSection(
-    DeskClawColors c, {
+    CoralDeskColors c, {
     required IconData icon,
     required String title,
     required bool isExpanded,
@@ -597,7 +597,7 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
   }
 
   Widget _buildNavItem(
-    DeskClawColors c, {
+    CoralDeskColors c, {
     required WidgetRef ref,
     required IconData icon,
     required String label,
@@ -648,7 +648,7 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
-    DeskClawColors c,
+    CoralDeskColors c,
   ) {
     final locale = ref.watch(localeProvider);
     final isZh = locale.languageCode == 'zh';
@@ -695,7 +695,7 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
     );
   }
 
-  Widget _buildNotificationBell(WidgetRef ref, DeskClawColors c) {
+  Widget _buildNotificationBell(WidgetRef ref, CoralDeskColors c) {
     final unreadCount = ref.watch(
       cronNotificationProvider.select((s) => s.unreadCount),
     );
@@ -765,7 +765,7 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
   }
 
   Widget _buildLangChip(
-    DeskClawColors c, {
+    CoralDeskColors c, {
     required String label,
     required bool selected,
     required VoidCallback onTap,
@@ -796,7 +796,7 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
   Widget _buildThemeToggle(
     BuildContext context,
     WidgetRef ref,
-    DeskClawColors c,
+    CoralDeskColors c,
   ) {
     final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
     return InkWell(

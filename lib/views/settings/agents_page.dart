@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:deskclaw/l10n/app_localizations.dart';
-import 'package:deskclaw/theme/app_theme.dart';
-import 'package:deskclaw/src/rust/api/agents_api.dart' as agents_api;
-import 'package:deskclaw/src/rust/api/config_api.dart' as config_api;
-import 'package:deskclaw/views/settings/widgets/settings_scaffold.dart';
+import 'package:coraldesk/l10n/app_localizations.dart';
+import 'package:coraldesk/theme/app_theme.dart';
+import 'package:coraldesk/src/rust/api/agents_api.dart' as agents_api;
+import 'package:coraldesk/src/rust/api/config_api.dart' as config_api;
+import 'package:coraldesk/views/settings/widgets/settings_scaffold.dart';
 
 /// Sub-agent management page: list, create, edit, delete delegate agents
 class AgentsPage extends ConsumerStatefulWidget {
@@ -19,7 +19,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
   bool _loading = true;
   String? _message;
   bool _isError = false;
-  DeskClawColors get c => DeskClawColors.of(context);
+  CoralDeskColors get c => CoralDeskColors.of(context);
 
   @override
   void initState() {
@@ -514,7 +514,7 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final c = DeskClawColors.of(context);
+    final c = CoralDeskColors.of(context);
 
     return AlertDialog(
       title: Text(_isEdit ? l10n.agentEdit : l10n.agentNew),
@@ -709,7 +709,7 @@ class _StatChip extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
-  final DeskClawColors c;
+  final CoralDeskColors c;
 
   const _StatChip({
     required this.label,
@@ -748,7 +748,7 @@ class _StatChip extends StatelessWidget {
 class _InfoTag extends StatelessWidget {
   final String label;
   final String value;
-  final DeskClawColors c;
+  final CoralDeskColors c;
 
   const _InfoTag({required this.label, required this.value, required this.c});
 

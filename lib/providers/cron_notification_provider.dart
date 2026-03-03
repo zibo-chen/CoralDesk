@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:deskclaw/models/models.dart';
-import 'package:deskclaw/providers/chat_provider.dart';
-import 'package:deskclaw/src/rust/api/cron_notification_api.dart'
+import 'package:coraldesk/models/models.dart';
+import 'package:coraldesk/providers/chat_provider.dart';
+import 'package:coraldesk/src/rust/api/cron_notification_api.dart'
     as cron_notif_api;
-import 'package:deskclaw/src/rust/api/sessions_api.dart' as sessions_api;
+import 'package:coraldesk/src/rust/api/sessions_api.dart' as sessions_api;
 
 /// A single notification record shown in the UI.
 class CronNotificationItem {

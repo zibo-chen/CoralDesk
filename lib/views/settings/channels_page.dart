@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:deskclaw/l10n/app_localizations.dart';
-import 'package:deskclaw/theme/app_theme.dart';
-import 'package:deskclaw/views/settings/widgets/settings_scaffold.dart';
-import 'package:deskclaw/src/rust/api/workspace_api.dart' as ws_api;
+import 'package:coraldesk/l10n/app_localizations.dart';
+import 'package:coraldesk/theme/app_theme.dart';
+import 'package:coraldesk/views/settings/widgets/settings_scaffold.dart';
+import 'package:coraldesk/src/rust/api/workspace_api.dart' as ws_api;
 
 /// Channels configuration page — shows all available communication channels
 /// with GUI configuration support
@@ -19,7 +19,7 @@ class _ChannelsPageState extends ConsumerState<ChannelsPage> {
   List<ws_api.ChannelSummary>? _channels;
   bool _loading = true;
   String? _message;
-  DeskClawColors get c => DeskClawColors.of(context);
+  CoralDeskColors get c => CoralDeskColors.of(context);
 
   @override
   void initState() {

@@ -12,7 +12,7 @@ env:
   FLUTTER_VERSION: "3.35.7"
   RUST_VERSION: "1.92.0"
   ZEROCLAW_REPO: "zibo-chen/zeroclaw"
-  ZEROCLAW_REF: "main-deskclaw"
+  ZEROCLAW_REF: "main-coraldesk"
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -62,13 +62,13 @@ jobs:
       - name: Package macOS app
         run: |
           cd build/macos/Build/Products/Release
-          ditto -c -k --sequesterRsrc --keepParent deskclaw.app deskclaw-macos.zip
+          ditto -c -k --sequesterRsrc --keepParent coraldesk.app coraldesk-macos.zip
 
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
-          name: deskclaw-macos
-          path: build/macos/Build/Products/Release/deskclaw-macos.zip
+          name: coraldesk-macos
+          path: build/macos/Build/Products/Release/coraldesk-macos.zip
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
@@ -125,13 +125,13 @@ jobs:
       - name: Package Linux app
         run: |
           cd build/linux/x64/release
-          tar -czf deskclaw-linux-x64.tar.gz bundle
+          tar -czf coraldesk-linux-x64.tar.gz bundle
 
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
-          name: deskclaw-linux-x64
-          path: build/linux/x64/release/deskclaw-linux-x64.tar.gz
+          name: coraldesk-linux-x64
+          path: build/linux/x64/release/coraldesk-linux-x64.tar.gz
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
@@ -198,13 +198,13 @@ jobs:
         run: flutter build windows --release
 
       - name: Package Windows app
-        run: Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath build\deskclaw-windows-x64.zip
+        run: Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath build\coraldesk-windows-x64.zip
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: deskclaw-windows-x64
-          path: build/deskclaw-windows-x64.zip
+          name: coraldesk-windows-x64
+          path: build/coraldesk-windows-x64.zip
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
@@ -228,9 +228,9 @@ jobs:
           draft: true
           generate_release_notes: true
           files: |
-            artifacts/deskclaw-macos/deskclaw-macos.zip
-            artifacts/deskclaw-linux-x64/deskclaw-linux-x64.tar.gz
-            artifacts/deskclaw-windows-x64/deskclaw-windows-x64.zip
+            artifacts/coraldesk-macos/coraldesk-macos.zip
+            artifacts/coraldesk-linux-x64/coraldesk-linux-x64.tar.gz
+            artifacts/coraldesk-windows-x64/coraldesk-windows-x64.zip
 
   # ---------------------------------------------------------------------------
   # Create unstable pre-release (on main branch pushes)
@@ -258,6 +258,6 @@ jobs:
           make_latest: false
           generate_release_notes: true
           files: |
-            artifacts/deskclaw-macos/deskclaw-macos.zip
-            artifacts/deskclaw-linux-x64/deskclaw-linux-x64.tar.gz
-            artifacts/deskclaw-windows-x64/deskclaw-windows-x64.zip
+            artifacts/coraldesk-macos/coraldesk-macos.zip
+            artifacts/coraldesk-linux-x64/coraldesk-linux-x64.tar.gz
+            artifacts/coraldesk-windows-x64/coraldesk-windows-x64.zip

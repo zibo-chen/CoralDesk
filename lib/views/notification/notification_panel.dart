@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:deskclaw/l10n/app_localizations.dart';
-import 'package:deskclaw/providers/providers.dart';
-import 'package:deskclaw/theme/app_theme.dart';
+import 'package:coraldesk/l10n/app_localizations.dart';
+import 'package:coraldesk/providers/providers.dart';
+import 'package:coraldesk/theme/app_theme.dart';
 
 /// Whether the notification panel overlay is visible.
 final notificationPanelOpenProvider = StateProvider<bool>((ref) => false);
@@ -16,7 +16,7 @@ class NotificationPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(cronNotificationProvider);
     final l10n = AppLocalizations.of(context)!;
-    final c = DeskClawColors.of(context);
+    final c = CoralDeskColors.of(context);
 
     return Material(
       elevation: 8,
@@ -42,7 +42,7 @@ class NotificationPanel extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
-    DeskClawColors c,
+    CoralDeskColors c,
     CronNotificationState state,
   ) {
     return Container(
@@ -99,7 +99,7 @@ class NotificationPanel extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmpty(AppLocalizations l10n, DeskClawColors c) {
+  Widget _buildEmpty(AppLocalizations l10n, CoralDeskColors c) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -132,7 +132,7 @@ class NotificationPanel extends ConsumerWidget {
   Widget _buildList(
     WidgetRef ref,
     AppLocalizations l10n,
-    DeskClawColors c,
+    CoralDeskColors c,
     CronNotificationState state,
   ) {
     return ListView.separated(
@@ -162,7 +162,7 @@ class NotificationPanel extends ConsumerWidget {
 class _NotificationTile extends StatelessWidget {
   final CronNotificationItem item;
   final AppLocalizations l10n;
-  final DeskClawColors c;
+  final CoralDeskColors c;
   final VoidCallback onTapViewCron;
 
   const _NotificationTile({
@@ -313,7 +313,7 @@ class _NotificationTile extends StatelessWidget {
 /// Expandable output preview with copy button
 class _OutputPreview extends StatefulWidget {
   final String output;
-  final DeskClawColors c;
+  final CoralDeskColors c;
   const _OutputPreview({required this.output, required this.c});
 
   @override

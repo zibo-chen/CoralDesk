@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:deskclaw/l10n/app_localizations.dart';
-import 'package:deskclaw/theme/app_theme.dart';
-import 'package:deskclaw/src/rust/api/proxy_api.dart' as proxy_api;
-import 'package:deskclaw/views/settings/widgets/settings_scaffold.dart';
+import 'package:coraldesk/l10n/app_localizations.dart';
+import 'package:coraldesk/theme/app_theme.dart';
+import 'package:coraldesk/src/rust/api/proxy_api.dart' as proxy_api;
+import 'package:coraldesk/views/settings/widgets/settings_scaffold.dart';
 
 /// Proxy settings page — configure global outbound proxy
 class ProxyPage extends ConsumerStatefulWidget {
@@ -30,7 +30,7 @@ class _ProxyPageState extends ConsumerState<ProxyPage> {
   String? _httpError;
   String? _httpsError;
   String? _allError;
-  DeskClawColors get c => DeskClawColors.of(context);
+  CoralDeskColors get c => CoralDeskColors.of(context);
 
   @override
   void initState() {

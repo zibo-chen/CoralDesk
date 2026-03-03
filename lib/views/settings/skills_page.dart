@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:deskclaw/l10n/app_localizations.dart';
-import 'package:deskclaw/theme/app_theme.dart';
-import 'package:deskclaw/src/rust/api/skills_api.dart' as skills_api;
-import 'package:deskclaw/views/settings/widgets/settings_scaffold.dart';
+import 'package:coraldesk/l10n/app_localizations.dart';
+import 'package:coraldesk/theme/app_theme.dart';
+import 'package:coraldesk/src/rust/api/skills_api.dart' as skills_api;
+import 'package:coraldesk/views/settings/widgets/settings_scaffold.dart';
 
 /// Skills management page - browse, install, remove, and configure skills
 class SkillsPage extends ConsumerStatefulWidget {
@@ -22,7 +22,7 @@ class _SkillsPageState extends ConsumerState<SkillsPage> {
   bool _isError = false;
   final _installController = TextEditingController();
   final _installFocus = FocusNode();
-  DeskClawColors get c => DeskClawColors.of(context);
+  CoralDeskColors get c => CoralDeskColors.of(context);
 
   @override
   void initState() {

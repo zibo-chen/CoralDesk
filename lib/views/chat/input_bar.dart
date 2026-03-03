@@ -2,10 +2,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:deskclaw/constants.dart';
-import 'package:deskclaw/l10n/app_localizations.dart';
-import 'package:deskclaw/providers/providers.dart';
-import 'package:deskclaw/theme/app_theme.dart';
+import 'package:coraldesk/constants.dart';
+import 'package:coraldesk/l10n/app_localizations.dart';
+import 'package:coraldesk/providers/providers.dart';
+import 'package:coraldesk/theme/app_theme.dart';
 
 /// Chat input bar at the bottom of the chat view
 class ChatInputBar extends ConsumerStatefulWidget {
@@ -18,7 +18,7 @@ class ChatInputBar extends ConsumerStatefulWidget {
 }
 
 class _ChatInputBarState extends ConsumerState<ChatInputBar> {
-  DeskClawColors get c => DeskClawColors.of(context);
+  CoralDeskColors get c => CoralDeskColors.of(context);
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   bool _isExpanded = false;
@@ -202,7 +202,7 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
 class _AttachmentButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = DeskClawColors.of(context);
+    final c = CoralDeskColors.of(context);
     final l10n = AppLocalizations.of(context)!;
 
     return PopupMenuButton<String>(

@@ -1,6 +1,6 @@
 {
   "@@locale": "zh",
-  "appTitle": "DeskClaw",
+  "appTitle": "CoralDesk",
   "appTagline": "从桌面出发，驾驭 AI 新时代",
   "navSectionChat": "聊天",
   "navSectionControl": "控制",
@@ -16,7 +16,7 @@
   "navConfiguration": "配置",
   "navModels": "模型",
   "navEnvironments": "环境",
-  "workWithDeskClaw": "与 DeskClaw 一起工作",
+  "workWithCoralDesk": "与 CoralDesk 一起工作",
   "newChat": "新对话",
   "noConversationsYet": "暂无对话",
   "startNewChat": "开始新对话",

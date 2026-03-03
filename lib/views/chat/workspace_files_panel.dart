@@ -1,10 +1,10 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:deskclaw/l10n/app_localizations.dart';
-import 'package:deskclaw/providers/providers.dart';
-import 'package:deskclaw/theme/app_theme.dart';
-import 'package:deskclaw/src/rust/api/agent_api.dart' as agent_api;
+import 'package:coraldesk/l10n/app_localizations.dart';
+import 'package:coraldesk/providers/providers.dart';
+import 'package:coraldesk/theme/app_theme.dart';
+import 'package:coraldesk/src/rust/api/agent_api.dart' as agent_api;
 
 /// A slide-out panel showing files in the session's workspace directory.
 class WorkspaceFilesPanel extends ConsumerStatefulWidget {
@@ -127,7 +127,7 @@ class _WorkspaceFilesPanelState extends ConsumerState<WorkspaceFilesPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final c = DeskClawColors.of(context);
+    final c = CoralDeskColors.of(context);
     final l10n = AppLocalizations.of(context)!;
 
     // Listen for session changes to refresh
@@ -218,7 +218,7 @@ class _WorkspaceFilesPanelState extends ConsumerState<WorkspaceFilesPanel> {
     );
   }
 
-  Widget _buildEmptyState(DeskClawColors c, AppLocalizations l10n) {
+  Widget _buildEmptyState(CoralDeskColors c, AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -243,7 +243,7 @@ class _WorkspaceFilesPanelState extends ConsumerState<WorkspaceFilesPanel> {
     );
   }
 
-  Widget _buildFileList(DeskClawColors c, AppLocalizations l10n) {
+  Widget _buildFileList(CoralDeskColors c, AppLocalizations l10n) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 4),
       itemCount: _files!.length,
@@ -271,7 +271,7 @@ class _FileListTile extends StatefulWidget {
   final String sizeLabel;
   final VoidCallback onOpen;
   final VoidCallback? onSaveAs;
-  final DeskClawColors colors;
+  final CoralDeskColors colors;
   final AppLocalizations l10n;
 
   const _FileListTile({

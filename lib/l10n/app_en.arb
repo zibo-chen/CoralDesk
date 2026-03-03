@@ -1,7 +1,7 @@
 {
   "@@locale": "en",
 
-  "appTitle": "DeskClaw",
+  "appTitle": "CoralDesk",
   "@appTitle": { "description": "The application title" },
 
   "appTagline": "From your desk, master the AI era",
@@ -49,8 +49,8 @@
   "navEnvironments": "Environments",
   "@navEnvironments": { "description": "Environments nav item" },
 
-  "workWithDeskClaw": "Work with DeskClaw",
-  "@workWithDeskClaw": { "description": "Chat list panel header" },
+  "workWithCoralDesk": "Work with CoralDesk",
+  "@workWithCoralDesk": { "description": "Chat list panel header" },
 
   "newChat": "New Chat",
   "@newChat": { "description": "New chat button label" },

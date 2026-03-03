@@ -1,4 +1,4 @@
-import 'package:deskclaw/src/rust/api/agent_api.dart' as agent_api;
+import 'package:coraldesk/src/rust/api/agent_api.dart' as agent_api;
 
 /// Encapsulates all agent-related Rust FFI calls.
 ///

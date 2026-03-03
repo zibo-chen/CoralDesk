@@ -83,7 +83,7 @@ fn sessions_file_path() -> std::path::PathBuf {
     dirs::home_dir()
         .unwrap_or_default()
         .join(".zeroclaw")
-        .join("deskclaw_sessions.json")
+        .join("coraldesk_sessions.json")
 }
 
 // ──────────────────── API Functions ──────────────────────────

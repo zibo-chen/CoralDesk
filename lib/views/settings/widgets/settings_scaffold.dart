@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:deskclaw/theme/app_theme.dart';
+import 'package:coraldesk/theme/app_theme.dart';
 
 /// Reusable scaffold for settings / configuration pages.
 ///
@@ -33,7 +33,7 @@ class SettingsScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = DeskClawColors.of(context);
+    final c = CoralDeskColors.of(context);
 
     return Column(
       children: [
@@ -97,7 +97,7 @@ class SettingsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = DeskClawColors.of(context);
+    final c = CoralDeskColors.of(context);
 
     return Container(
       width: double.infinity,

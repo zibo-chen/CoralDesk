@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:deskclaw/providers/chat_provider.dart';
-import 'package:deskclaw/models/chat_message.dart';
+import 'package:coraldesk/providers/chat_provider.dart';
+import 'package:coraldesk/models/chat_message.dart';
 
 ChatMessage _msg(String id, {String role = 'user', String content = ''}) {
   return ChatMessage(

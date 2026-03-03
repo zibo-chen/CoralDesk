@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:deskclaw/l10n/app_localizations.dart';
-import 'package:deskclaw/theme/app_theme.dart';
-import 'package:deskclaw/src/rust/api/sessions_api.dart' as sessions_api;
-import 'package:deskclaw/views/settings/widgets/settings_scaffold.dart';
+import 'package:coraldesk/l10n/app_localizations.dart';
+import 'package:coraldesk/theme/app_theme.dart';
+import 'package:coraldesk/src/rust/api/sessions_api.dart' as sessions_api;
+import 'package:coraldesk/views/settings/widgets/settings_scaffold.dart';
 
 /// Sessions management page - view, rename, delete persisted sessions
 class SessionsPage extends ConsumerStatefulWidget {
@@ -20,7 +20,7 @@ class _SessionsPageState extends ConsumerState<SessionsPage> {
   bool _loading = true;
   String? _message;
   String _searchQuery = '';
-  DeskClawColors get c => DeskClawColors.of(context);
+  CoralDeskColors get c => CoralDeskColors.of(context);
 
   @override
   void initState() {

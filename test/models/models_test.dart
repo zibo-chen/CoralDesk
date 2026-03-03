@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:deskclaw/models/chat_message.dart';
-import 'package:deskclaw/models/chat_session.dart';
+import 'package:coraldesk/models/chat_message.dart';
+import 'package:coraldesk/models/chat_session.dart';
 
 void main() {
   group('ChatMessage', () {

@@ -4,16 +4,16 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:deskclaw/constants.dart';
-import 'package:deskclaw/l10n/app_localizations.dart';
-import 'package:deskclaw/models/models.dart';
-import 'package:deskclaw/providers/providers.dart';
-import 'package:deskclaw/theme/app_theme.dart';
-import 'package:deskclaw/views/chat/message_bubble.dart';
-import 'package:deskclaw/views/chat/input_bar.dart';
-import 'package:deskclaw/views/chat/file_attachment_bar.dart';
-import 'package:deskclaw/views/chat/workspace_files_panel.dart';
-import 'package:deskclaw/src/rust/api/agent_api.dart' as agent_api;
+import 'package:coraldesk/constants.dart';
+import 'package:coraldesk/l10n/app_localizations.dart';
+import 'package:coraldesk/models/models.dart';
+import 'package:coraldesk/providers/providers.dart';
+import 'package:coraldesk/theme/app_theme.dart';
+import 'package:coraldesk/views/chat/message_bubble.dart';
+import 'package:coraldesk/views/chat/input_bar.dart';
+import 'package:coraldesk/views/chat/file_attachment_bar.dart';
+import 'package:coraldesk/views/chat/workspace_files_panel.dart';
+import 'package:coraldesk/src/rust/api/agent_api.dart' as agent_api;
 
 /// Main chat view (right main area in reference)
 class ChatView extends ConsumerStatefulWidget {
@@ -25,7 +25,7 @@ class ChatView extends ConsumerStatefulWidget {
 
 class _ChatViewState extends ConsumerState<ChatView> {
   final ScrollController _scrollController = ScrollController();
-  DeskClawColors get c => DeskClawColors.of(context);
+  CoralDeskColors get c => CoralDeskColors.of(context);
   bool _isDragging = false;
   bool _showFilesPanel = false;
 

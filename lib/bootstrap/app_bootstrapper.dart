@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:deskclaw/src/rust/frb_generated.dart';
-import 'package:deskclaw/src/rust/api/agent_api.dart' as agent_api;
-import 'package:deskclaw/src/rust/api/sessions_api.dart' as sessions_api;
-import 'package:deskclaw/src/rust/api/cron_api.dart' as cron_api;
-import 'package:deskclaw/services/settings_service.dart';
+import 'package:coraldesk/src/rust/frb_generated.dart';
+import 'package:coraldesk/src/rust/api/agent_api.dart' as agent_api;
+import 'package:coraldesk/src/rust/api/sessions_api.dart' as sessions_api;
+import 'package:coraldesk/src/rust/api/cron_api.dart' as cron_api;
+import 'package:coraldesk/services/settings_service.dart';
 import 'package:window_manager/window_manager.dart';
 
 /// Centralises all application startup logic.
@@ -33,7 +33,7 @@ class AppBootstrapper {
     if (!kIsWeb && _isDesktopPlatform) {
       await windowManager.ensureInitialized();
       const windowOptions = WindowOptions(
-        title: 'DeskClaw',
+        title: 'CoralDesk',
         titleBarStyle: TitleBarStyle.hidden,
         center: true,
       );
@@ -51,18 +51,18 @@ class AppBootstrapper {
 
     // ZeroClaw runtime (loads config from ~/.zeroclaw/config.toml)
     final status = await agent_api.initRuntime();
-    debugPrint('DeskClaw runtime: $status');
+    debugPrint('CoralDesk runtime: $status');
 
     // Session persistence store
     final sessionsStatus = await sessions_api.initSessionStore();
-    debugPrint('DeskClaw sessions: $sessionsStatus');
+    debugPrint('CoralDesk sessions: $sessionsStatus');
 
     // Cron scheduler (non-critical — failure should not block startup)
     try {
       final cronStatus = await cron_api.startCronScheduler();
-      debugPrint('DeskClaw cron scheduler: $cronStatus');
+      debugPrint('CoralDesk cron scheduler: $cronStatus');
     } catch (e) {
-      debugPrint('DeskClaw cron scheduler failed: $e');
+      debugPrint('CoralDesk cron scheduler failed: $e');
     }
 
     _initialized = true;

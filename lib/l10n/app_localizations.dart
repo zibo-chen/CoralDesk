@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// The application title
   ///
   /// In en, this message translates to:
-  /// **'DeskClaw'**
+  /// **'CoralDesk'**
   String get appTitle;
 
   /// App tagline shown below input bar
@@ -197,8 +197,8 @@ abstract class AppLocalizations {
   /// Chat list panel header
   ///
   /// In en, this message translates to:
-  /// **'Work with DeskClaw'**
-  String get workWithDeskClaw;
+  /// **'Work with CoralDesk'**
+  String get workWithCoralDesk;
 
   /// New chat button label
   ///

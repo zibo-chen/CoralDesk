@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:deskclaw/l10n/app_localizations.dart';
-import 'package:deskclaw/theme/app_theme.dart';
-import 'package:deskclaw/src/rust/api/mcp_api.dart' as mcp_api;
-import 'package:deskclaw/views/settings/widgets/settings_scaffold.dart';
+import 'package:coraldesk/l10n/app_localizations.dart';
+import 'package:coraldesk/theme/app_theme.dart';
+import 'package:coraldesk/src/rust/api/mcp_api.dart' as mcp_api;
+import 'package:coraldesk/views/settings/widgets/settings_scaffold.dart';
 
 /// MCP servers management page — add, edit, remove MCP tool servers
 class McpPage extends ConsumerStatefulWidget {
@@ -18,7 +18,7 @@ class _McpPageState extends ConsumerState<McpPage> {
   bool _loading = true;
   String? _message;
   bool _isError = false;
-  DeskClawColors get c => DeskClawColors.of(context);
+  CoralDeskColors get c => CoralDeskColors.of(context);
 
   @override
   void initState() {
@@ -393,7 +393,7 @@ class _McpPageState extends ConsumerState<McpPage> {
 
 class _McpServerDialog extends StatefulWidget {
   final mcp_api.McpServerDto? existing;
-  final DeskClawColors colors;
+  final CoralDeskColors colors;
   final void Function(mcp_api.McpServerDto server) onSave;
 
   const _McpServerDialog({
@@ -416,7 +416,7 @@ class _McpServerDialogState extends State<_McpServerDialog> {
   late List<_KvEntry> _env;
   late List<_KvEntry> _headers;
 
-  DeskClawColors get c => widget.colors;
+  CoralDeskColors get c => widget.colors;
 
   @override
   void initState() {

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:deskclaw/l10n/app_localizations.dart';
-import 'package:deskclaw/theme/app_theme.dart';
-import 'package:deskclaw/providers/chat_provider.dart';
-import 'package:deskclaw/views/settings/widgets/settings_scaffold.dart';
-import 'package:deskclaw/src/rust/api/cron_api.dart' as cron_api;
+import 'package:coraldesk/l10n/app_localizations.dart';
+import 'package:coraldesk/theme/app_theme.dart';
+import 'package:coraldesk/providers/chat_provider.dart';
+import 'package:coraldesk/views/settings/widgets/settings_scaffold.dart';
+import 'package:coraldesk/src/rust/api/cron_api.dart' as cron_api;
 
 /// Cron Jobs management page - list, add, edit, delete scheduled tasks
 class CronJobsPage extends ConsumerStatefulWidget {
@@ -22,7 +22,7 @@ class _CronJobsPageState extends ConsumerState<CronJobsPage> {
   String? _expandedJobId; // For viewing run history
   List<cron_api.CronRunDto> _runs = [];
   String? _runningJobId; // Track which job is currently being run manually
-  DeskClawColors get c => DeskClawColors.of(context);
+  CoralDeskColors get c => CoralDeskColors.of(context);
 
   @override
   void initState() {

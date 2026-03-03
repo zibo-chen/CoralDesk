@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:deskclaw/models/models.dart';
-import 'package:deskclaw/services/settings_service.dart';
-import 'package:deskclaw/src/rust/api/agent_api.dart' as agent_api;
-import 'package:deskclaw/src/rust/api/config_api.dart' as config_api;
-import 'package:deskclaw/src/rust/api/sessions_api.dart' as sessions_api;
+import 'package:coraldesk/models/models.dart';
+import 'package:coraldesk/services/settings_service.dart';
+import 'package:coraldesk/src/rust/api/agent_api.dart' as agent_api;
+import 'package:coraldesk/src/rust/api/config_api.dart' as config_api;
+import 'package:coraldesk/src/rust/api/sessions_api.dart' as sessions_api;
 
 // ── Navigation ───────────────────────────────────────────
 

@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 
-/// DeskClaw application constants
+/// CoralDesk application constants
 class AppConstants {
   AppConstants._();
 
-  static const String appName = 'DeskClaw';
+  static const String appName = 'CoralDesk';
   static const String appVersion = 'v0.1.0';
   static const String appTagline = 'Works for you, grows with you';
   static const String welcomeTitle = 'Hello, how can I help you today?';

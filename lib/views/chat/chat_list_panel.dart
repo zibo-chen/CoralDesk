@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:deskclaw/constants.dart';
-import 'package:deskclaw/l10n/app_localizations.dart';
-import 'package:deskclaw/providers/providers.dart';
-import 'package:deskclaw/theme/app_theme.dart';
+import 'package:coraldesk/constants.dart';
+import 'package:coraldesk/l10n/app_localizations.dart';
+import 'package:coraldesk/providers/providers.dart';
+import 'package:coraldesk/theme/app_theme.dart';
 
 /// Chat session list panel (middle panel in reference)
 class ChatListPanel extends ConsumerWidget {
@@ -15,7 +15,7 @@ class ChatListPanel extends ConsumerWidget {
     final sessions = ref.watch(sessionsProvider);
     final activeId = ref.watch(activeSessionIdProvider);
     final l10n = AppLocalizations.of(context)!;
-    final c = DeskClawColors.of(context);
+    final c = CoralDeskColors.of(context);
 
     return Container(
       width: AppConstants.chatListWidth,
@@ -38,7 +38,7 @@ class ChatListPanel extends ConsumerWidget {
               child: Row(
                 children: [
                   Text(
-                    l10n.workWithDeskClaw,
+                    l10n.workWithCoralDesk,
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -124,7 +124,7 @@ class ChatListPanel extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(AppLocalizations l10n, DeskClawColors c) {
+  Widget _buildEmptyState(AppLocalizations l10n, CoralDeskColors c) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -164,7 +164,7 @@ class _ChatSessionTile extends StatefulWidget {
 }
 
 class _ChatSessionTileState extends State<_ChatSessionTile> {
-  DeskClawColors get c => DeskClawColors.of(context);
+  CoralDeskColors get c => CoralDeskColors.of(context);
   bool _hovering = false;
 
   @override

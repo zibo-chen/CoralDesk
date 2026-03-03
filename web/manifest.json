@@ -1,6 +1,6 @@
 {
-    "name": "deskclaw",
-    "short_name": "deskclaw",
+    "name": "coraldesk",
+    "short_name": "coraldesk",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

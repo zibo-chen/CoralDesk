@@ -12,10 +12,10 @@ class AppColors {
   static const warning = Color(0xFFFFA726);
 }
 
-/// Theme-dependent custom color palette, accessible via [DeskClawColors.of].
+/// Theme-dependent custom color palette, accessible via [CoralDeskColors.of].
 @immutable
-class DeskClawColors extends ThemeExtension<DeskClawColors> {
-  const DeskClawColors({
+class CoralDeskColors extends ThemeExtension<CoralDeskColors> {
+  const CoralDeskColors({
     required this.sidebarBg,
     required this.sidebarText,
     required this.sidebarActiveText,
@@ -49,7 +49,7 @@ class DeskClawColors extends ThemeExtension<DeskClawColors> {
   final Color textHint;
   final Color surfaceBg;
 
-  static const light = DeskClawColors(
+  static const light = CoralDeskColors(
     sidebarBg: Color(0xFFF8F9FC),
     sidebarText: Color(0xFF4A4D5C),
     sidebarActiveText: Color(0xFF5B6ABF),
@@ -67,7 +67,7 @@ class DeskClawColors extends ThemeExtension<DeskClawColors> {
     surfaceBg: Color(0xFFFFFFFF),
   );
 
-  static const dark = DeskClawColors(
+  static const dark = CoralDeskColors(
     sidebarBg: Color(0xFF1C1C2E),
     sidebarText: Color(0xFFB0B4C4),
     sidebarActiveText: Color(0xFF8B9AE8),
@@ -85,11 +85,11 @@ class DeskClawColors extends ThemeExtension<DeskClawColors> {
     surfaceBg: Color(0xFF262638),
   );
 
-  static DeskClawColors of(BuildContext context) =>
-      Theme.of(context).extension<DeskClawColors>()!;
+  static CoralDeskColors of(BuildContext context) =>
+      Theme.of(context).extension<CoralDeskColors>()!;
 
   @override
-  DeskClawColors copyWith({
+  CoralDeskColors copyWith({
     Color? sidebarBg,
     Color? sidebarText,
     Color? sidebarActiveText,
@@ -106,7 +106,7 @@ class DeskClawColors extends ThemeExtension<DeskClawColors> {
     Color? textHint,
     Color? surfaceBg,
   }) {
-    return DeskClawColors(
+    return CoralDeskColors(
       sidebarBg: sidebarBg ?? this.sidebarBg,
       sidebarText: sidebarText ?? this.sidebarText,
       sidebarActiveText: sidebarActiveText ?? this.sidebarActiveText,
@@ -126,9 +126,9 @@ class DeskClawColors extends ThemeExtension<DeskClawColors> {
   }
 
   @override
-  DeskClawColors lerp(DeskClawColors? other, double t) {
-    if (other is! DeskClawColors) return this;
-    return DeskClawColors(
+  CoralDeskColors lerp(CoralDeskColors? other, double t) {
+    if (other is! CoralDeskColors) return this;
+    return CoralDeskColors(
       sidebarBg: Color.lerp(sidebarBg, other.sidebarBg, t)!,
       sidebarText: Color.lerp(sidebarText, other.sidebarText, t)!,
       sidebarActiveText: Color.lerp(
@@ -156,7 +156,7 @@ class AppTheme {
   AppTheme._();
 
   static ThemeData get light {
-    const c = DeskClawColors.light;
+    const c = CoralDeskColors.light;
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
@@ -215,7 +215,7 @@ class AppTheme {
   }
 
   static ThemeData get dark {
-    const c = DeskClawColors.dark;
+    const c = CoralDeskColors.dark;
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,

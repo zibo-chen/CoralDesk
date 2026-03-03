@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:deskclaw/l10n/app_localizations.dart';
-import 'package:deskclaw/providers/providers.dart';
-import 'package:deskclaw/theme/app_theme.dart';
+import 'package:coraldesk/l10n/app_localizations.dart';
+import 'package:coraldesk/providers/providers.dart';
+import 'package:coraldesk/theme/app_theme.dart';
 
 /// Displays the list of attached files for the current session as chips.
 /// Shown above the input bar when files are attached.
@@ -14,7 +14,7 @@ class FileAttachmentBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final files = ref.watch(sessionFilesProvider);
-    final c = DeskClawColors.of(context);
+    final c = CoralDeskColors.of(context);
     final l10n = AppLocalizations.of(context)!;
 
     if (files.isEmpty) return const SizedBox.shrink();
@@ -78,7 +78,7 @@ class _FileChip extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = DeskClawColors.of(context);
+    final c = CoralDeskColors.of(context);
     final name = path.split(Platform.pathSeparator).last;
     final isDir = FileSystemEntity.isDirectorySync(path);
 

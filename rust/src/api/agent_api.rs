@@ -182,7 +182,7 @@ pub async fn init_runtime() -> String {
             }
             // Invalidate any existing agent
             *agent_handle().lock().await = None;
-            tracing::info!("DeskClaw runtime initialized: {info}");
+            tracing::info!("CoralDesk runtime initialized: {info}");
             info
         }
         Err(e) => {

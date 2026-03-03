@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:deskclaw/l10n/app_localizations.dart';
-import 'package:deskclaw/theme/app_theme.dart';
-import 'package:deskclaw/src/rust/api/config_api.dart' as config_api;
-import 'package:deskclaw/src/rust/api/agent_api.dart' as agent_api;
-import 'package:deskclaw/src/rust/api/routes_api.dart' as routes_api;
-import 'package:deskclaw/views/settings/widgets/settings_scaffold.dart';
+import 'package:coraldesk/l10n/app_localizations.dart';
+import 'package:coraldesk/theme/app_theme.dart';
+import 'package:coraldesk/src/rust/api/config_api.dart' as config_api;
+import 'package:coraldesk/src/rust/api/agent_api.dart' as agent_api;
+import 'package:coraldesk/src/rust/api/routes_api.dart' as routes_api;
+import 'package:coraldesk/views/settings/widgets/settings_scaffold.dart';
 
 /// Models settings page — default provider, model routes, embedding config
 class ModelsPage extends ConsumerStatefulWidget {
@@ -26,7 +26,7 @@ class _ModelsPageState extends ConsumerState<ModelsPage> {
   bool _isLoading = true;
   bool _isSaving = false;
   String? _saveMessage;
-  DeskClawColors get c => DeskClawColors.of(context);
+  CoralDeskColors get c => CoralDeskColors.of(context);
 
   // Model routes
   List<routes_api.ModelRouteDto> _modelRoutes = [];

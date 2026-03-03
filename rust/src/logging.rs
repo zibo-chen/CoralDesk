@@ -6,7 +6,7 @@ pub fn init_rust_logging() {
 
     INIT.call_once(|| {
         if std::env::var_os("RUST_LOG").is_none() {
-            std::env::set_var("RUST_LOG", "info,rust_lib_deskclaw=debug,zeroclaw=info");
+            std::env::set_var("RUST_LOG", "info,rust_lib_coraldesk=debug,zeroclaw=info");
         }
 
         let _ = fmt()

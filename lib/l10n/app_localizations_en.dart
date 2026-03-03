@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'DeskClaw';
+  String get appTitle => 'CoralDesk';
 
   @override
   String get appTagline => 'From your desk, master the AI era';
@@ -57,7 +57,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navEnvironments => 'Environments';
 
   @override
-  String get workWithDeskClaw => 'Work with DeskClaw';
+  String get workWithCoralDesk => 'Work with CoralDesk';
 
   @override
   String get newChat => 'New Chat';

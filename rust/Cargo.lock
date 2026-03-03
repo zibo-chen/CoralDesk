@@ -2998,7 +2998,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust_lib_deskclaw"
+name = "rust_lib_coraldesk"
 version = "0.1.0"
 dependencies = [
  "anyhow",
