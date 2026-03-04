@@ -378,6 +378,15 @@
   "allowedCommands": "Allowed Commands",
   "@allowedCommands": { "description": "Allowed commands label" },
 
+  "addCommand": "Add Command",
+  "@addCommand": { "description": "Add command button" },
+
+  "commandNameHint": "Enter command name (e.g., open)",
+  "@commandNameHint": { "description": "Command name input hint" },
+
+  "noCommandsConfigured": "No commands configured",
+  "@noCommandsConfigured": { "description": "No commands configured message" },
+
   "autoApprovedTools": "Auto-Approved Tools",
   "@autoApprovedTools": { "description": "Auto-approved tools label" },
 
@@ -428,6 +437,9 @@
 
   "cancel": "Cancel",
   "@cancel": { "description": "Cancel button" },
+
+  "add": "Add",
+  "@add": { "description": "Add button" },
 
   "delete": "Delete",
   "@delete": { "description": "Delete button" },
@@ -1437,5 +1449,8 @@
   "mcpTransportHttp": "HTTP",
   "@mcpTransportHttp": { "description": "HTTP transport option" },
   "mcpTransportSse": "Server-Sent Events",
-  "@mcpTransportSse": { "description": "SSE transport option" }
+  "@mcpTransportSse": { "description": "SSE transport option" },
+
+  "retryMessage": "Retry",
+  "@retryMessage": { "description": "Retry message button tooltip" }
 }

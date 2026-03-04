@@ -167,6 +167,7 @@ class ChatController {
     String content, {
     bool isStreaming = true,
     List<ToolCallInfo>? toolCalls,
+    List<MessagePart>? parts,
   }) {
     _ref
         .read(messagesProvider.notifier)
@@ -175,6 +176,7 @@ class ChatController {
           content,
           isStreaming: isStreaming,
           toolCalls: toolCalls,
+          parts: parts,
         );
   }
 
@@ -183,6 +185,7 @@ class ChatController {
     String sessionId,
     String content, {
     List<ToolCallInfo>? toolCalls,
+    List<MessagePart>? parts,
   }) {
     _ref
         .read(messagesProvider.notifier)
@@ -191,6 +194,7 @@ class ChatController {
           content,
           isStreaming: false,
           toolCalls: toolCalls,
+          parts: parts,
         );
     _ref.read(sessionsProvider.notifier).incrementMessageCount(sessionId);
     _clearProcessing(sessionId);

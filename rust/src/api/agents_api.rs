@@ -109,6 +109,9 @@ pub async fn upsert_delegate_agent(agent: DelegateAgentDto) -> String {
             .map(str::trim)
             .filter(|s| !s.is_empty())
             .map(String::from),
+        enabled: true,
+        capabilities: Vec::new(),
+        priority: 0,
         temperature: agent.temperature,
         max_depth: agent.max_depth,
         agentic: agent.agentic,
@@ -131,7 +134,7 @@ pub async fn upsert_delegate_agent(agent: DelegateAgentDto) -> String {
     }
 
     // Invalidate agent so delegate tool picks up the new config
-    *super::agent_api::agent_handle().lock().await = None;
+    super::agent_api::invalidate_all_agents().await;
 
     // Persist to disk
     super::agent_api::save_config_to_disk().await
@@ -151,7 +154,7 @@ pub async fn remove_delegate_agent(name: String) -> String {
     }
 
     // Invalidate agent
-    *super::agent_api::agent_handle().lock().await = None;
+    super::agent_api::invalidate_all_agents().await;
 
     // Persist to disk
     super::agent_api::save_config_to_disk().await

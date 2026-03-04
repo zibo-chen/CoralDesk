@@ -6,7 +6,13 @@ pub fn init_rust_logging() {
 
     INIT.call_once(|| {
         if std::env::var_os("RUST_LOG").is_none() {
-            std::env::set_var("RUST_LOG", "info,rust_lib_coraldesk=debug,zeroclaw=info");
+            // Suppress flutter_rust_bridge "Fail to post message to Dart" warnings.
+            // These occur due to benign race conditions when Dart-side stream closes
+            // slightly before Rust finishes sending (normal during navigation, etc.).
+            std::env::set_var(
+                "RUST_LOG",
+                "info,rust_lib_coraldesk=debug,zeroclaw=info,flutter_rust_bridge::misc::logs=error",
+            );
         }
 
         let _ = fmt()

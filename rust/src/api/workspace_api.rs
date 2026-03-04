@@ -137,37 +137,123 @@ pub async fn get_autonomy_config() -> AutonomyConfig {
 
 /// Update autonomy level
 pub async fn update_autonomy_level(level: String) -> String {
+    let new_level = match serde_json::from_value(serde_json::Value::String(level.clone())) {
+        Ok(l) => l,
+        Err(_) => return format!("error: unknown level: {level}"),
+    };
+    // Update both global_config and legacy config_state
+    {
+        let mut gc = super::agent_api::global_config().write().await;
+        if let Some(config) = gc.config.as_mut() {
+            config.autonomy.level = new_level;
+        }
+    }
     {
         let mut cs = super::agent_api::config_state().write().await;
-        let config = match cs.config.as_mut() {
-            Some(c) => c,
-            None => return "error: not initialized".into(),
-        };
-
-        let new_level = match serde_json::from_value(serde_json::Value::String(level.clone())) {
-            Ok(l) => l,
-            Err(_) => return format!("error: unknown level: {level}"),
-        };
-        config.autonomy.level = new_level;
+        if let Some(config) = cs.config.as_mut() {
+            config.autonomy.level = new_level;
+        } else {
+            return "error: not initialized".into();
+        }
     }
-    *super::agent_api::agent_handle().lock().await = None;
+    super::agent_api::invalidate_all_agents().await;
     "ok".into()
 }
 
 /// Toggle trust-me mode. When enabled, all security checks are bypassed
 /// and tool calls are auto-approved without user confirmation.
 pub async fn update_trust_me(enabled: bool) -> String {
+    // Update both global_config and legacy config_state
+    {
+        let mut gc = super::agent_api::global_config().write().await;
+        if let Some(config) = gc.config.as_mut() {
+            config.autonomy.trust_me = enabled;
+        }
+    }
     {
         let mut cs = super::agent_api::config_state().write().await;
-        let config = match cs.config.as_mut() {
-            Some(c) => c,
-            None => return "error: not initialized".into(),
-        };
-        config.autonomy.trust_me = enabled;
+        if let Some(config) = cs.config.as_mut() {
+            config.autonomy.trust_me = enabled;
+        } else {
+            return "error: not initialized".into();
+        }
     }
     // Invalidate agent so it gets recreated with new security policy
-    *super::agent_api::agent_handle().lock().await = None;
+    super::agent_api::invalidate_all_agents().await;
     "ok".into()
+}
+
+/// Update allowed commands list. Replaces the entire list.
+pub async fn update_allowed_commands(commands: Vec<String>) -> String {
+    // Update both global_config and legacy config_state
+    {
+        let mut gc = super::agent_api::global_config().write().await;
+        if let Some(config) = gc.config.as_mut() {
+            config.autonomy.allowed_commands = commands.clone();
+        }
+    }
+    {
+        let mut cs = super::agent_api::config_state().write().await;
+        if let Some(config) = cs.config.as_mut() {
+            config.autonomy.allowed_commands = commands;
+        } else {
+            return "error: not initialized".into();
+        }
+    }
+    // Invalidate agent so it gets recreated with new security policy
+    super::agent_api::invalidate_all_agents().await;
+    // Persist to disk
+    super::agent_api::save_config_to_disk().await
+}
+
+/// Add a single command to allowed_commands list
+pub async fn add_allowed_command(command: String) -> String {
+    // Update both global_config and legacy config_state
+    {
+        let mut gc = super::agent_api::global_config().write().await;
+        if let Some(config) = gc.config.as_mut() {
+            if !config.autonomy.allowed_commands.contains(&command) {
+                config.autonomy.allowed_commands.push(command.clone());
+            }
+        }
+    }
+    {
+        let mut cs = super::agent_api::config_state().write().await;
+        if let Some(config) = cs.config.as_mut() {
+            if !config.autonomy.allowed_commands.contains(&command) {
+                config.autonomy.allowed_commands.push(command);
+            }
+        } else {
+            return "error: not initialized".into();
+        }
+    }
+    // Invalidate agent so it gets recreated with new security policy
+    super::agent_api::invalidate_all_agents().await;
+    // Persist to disk
+    super::agent_api::save_config_to_disk().await
+}
+
+/// Remove a single command from allowed_commands list
+pub async fn remove_allowed_command(command: String) -> String {
+    // Update both global_config and legacy config_state
+    {
+        let mut gc = super::agent_api::global_config().write().await;
+        if let Some(config) = gc.config.as_mut() {
+            config.autonomy.allowed_commands.retain(|c| c != &command);
+        }
+    }
+    {
+        let mut cs = super::agent_api::config_state().write().await;
+        if let Some(config) = cs.config.as_mut() {
+            config.autonomy.allowed_commands.retain(|c| c != &command);
+        } else {
+            return "error: not initialized".into();
+        }
+    }
+    // Invalidate agent so it gets recreated with new security policy
+    super::agent_api::invalidate_all_agents().await;
+    // Persist to disk
+    super::agent_api::save_config_to_disk().await
 }
 
 /// Get agent config
@@ -200,6 +286,24 @@ pub async fn update_agent_config(
     parallel_tools: Option<bool>,
     compact_context: Option<bool>,
 ) -> String {
+    // Update both global_config and legacy config_state
+    {
+        let mut gc = super::agent_api::global_config().write().await;
+        if let Some(config) = gc.config.as_mut() {
+            if let Some(v) = max_tool_iterations {
+                config.agent.max_tool_iterations = v as usize;
+            }
+            if let Some(v) = max_history_messages {
+                config.agent.max_history_messages = v as usize;
+            }
+            if let Some(v) = parallel_tools {
+                config.agent.parallel_tools = v;
+            }
+            if let Some(v) = compact_context {
+                config.agent.compact_context = v;
+            }
+        }
+    }
     {
         let mut cs = super::agent_api::config_state().write().await;
         let config = match cs.config.as_mut() {
@@ -220,7 +324,7 @@ pub async fn update_agent_config(
             config.agent.compact_context = v;
         }
     }
-    *super::agent_api::agent_handle().lock().await = None;
+    super::agent_api::invalidate_all_agents().await;
     "ok".into()
 }
 
@@ -452,7 +556,7 @@ pub async fn set_tool_approval(tool_name: String, approval: String) -> String {
         }
     }
     // Invalidate agent
-    *super::agent_api::agent_handle().lock().await = None;
+    super::agent_api::invalidate_all_agents().await;
 
     // Persist to disk
     super::agent_api::save_config_to_disk().await
@@ -473,7 +577,7 @@ pub async fn batch_set_tool_approvals(
         config.autonomy.auto_approve = auto_approve;
         config.autonomy.always_ask = always_ask;
     }
-    *super::agent_api::agent_handle().lock().await = None;
+    super::agent_api::invalidate_all_agents().await;
 
     super::agent_api::save_config_to_disk().await
 }
@@ -516,7 +620,7 @@ pub async fn update_feature_toggle(feature: String, enabled: bool) -> String {
             _ => return format!("error: unknown feature: {feature}"),
         }
     }
-    *super::agent_api::agent_handle().lock().await = None;
+    super::agent_api::invalidate_all_agents().await;
     super::agent_api::save_config_to_disk().await
 }
 
@@ -1117,7 +1221,7 @@ pub async fn save_channel_config(channel_type: String, config_json: String) -> S
     }
 
     // Invalidate agent
-    *super::agent_api::agent_handle().lock().await = None;
+    super::agent_api::invalidate_all_agents().await;
 
     // Persist to disk
     save_channel_config_to_disk().await
@@ -1149,7 +1253,7 @@ pub async fn toggle_channel(channel_type: String, enabled: bool) -> String {
                 _ => return format!("error: unknown channel: {channel_type}"),
             }
         }
-        *super::agent_api::agent_handle().lock().await = None;
+        super::agent_api::invalidate_all_agents().await;
         save_channel_config_to_disk().await
     } else {
         // Enable requires configuration — caller should use save_channel_config

@@ -27,6 +27,24 @@ Future<String> updateAutonomyLevel({required String level}) =>
 Future<String> updateTrustMe({required bool enabled}) =>
     RustLib.instance.api.crateApiWorkspaceApiUpdateTrustMe(enabled: enabled);
 
+/// Update allowed commands list. Replaces the entire list.
+Future<String> updateAllowedCommands({required List<String> commands}) =>
+    RustLib.instance.api.crateApiWorkspaceApiUpdateAllowedCommands(
+      commands: commands,
+    );
+
+/// Add a single command to allowed_commands list
+Future<String> addAllowedCommand({required String command}) => RustLib
+    .instance
+    .api
+    .crateApiWorkspaceApiAddAllowedCommand(command: command);
+
+/// Remove a single command from allowed_commands list
+Future<String> removeAllowedCommand({required String command}) => RustLib
+    .instance
+    .api
+    .crateApiWorkspaceApiRemoveAllowedCommand(command: command);
+
 /// Get agent config
 Future<AgentConfigDto> getAgentConfig() =>
     RustLib.instance.api.crateApiWorkspaceApiGetAgentConfig();

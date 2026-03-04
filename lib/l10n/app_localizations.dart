@@ -818,6 +818,24 @@ abstract class AppLocalizations {
   /// **'Allowed Commands'**
   String get allowedCommands;
 
+  /// Add command button
+  ///
+  /// In en, this message translates to:
+  /// **'Add Command'**
+  String get addCommand;
+
+  /// Command name input hint
+  ///
+  /// In en, this message translates to:
+  /// **'Enter command name (e.g., open)'**
+  String get commandNameHint;
+
+  /// No commands configured message
+  ///
+  /// In en, this message translates to:
+  /// **'No commands configured'**
+  String get noCommandsConfigured;
+
   /// Auto-approved tools label
   ///
   /// In en, this message translates to:
@@ -913,6 +931,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get cancel;
+
+  /// Add button
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get add;
 
   /// Delete button
   ///
@@ -2767,6 +2791,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Server-Sent Events'**
   String get mcpTransportSse;
+
+  /// Retry message button tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retryMessage;
 }
 
 class _AppLocalizationsDelegate

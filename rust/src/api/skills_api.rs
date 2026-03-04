@@ -128,7 +128,7 @@ pub async fn toggle_open_skills(enabled: bool) -> String {
         config.skills.open_skills_enabled = enabled;
     }
     // Invalidate agent to pick up change
-    *super::agent_api::agent_handle().lock().await = None;
+    super::agent_api::invalidate_all_agents().await;
 
     // Persist to disk
     let save_result = super::agent_api::save_config_to_disk().await;
@@ -174,7 +174,7 @@ pub async fn update_prompt_injection_mode(mode: String) -> String {
             _ => zeroclaw::config::SkillsPromptInjectionMode::Full,
         };
     }
-    *super::agent_api::agent_handle().lock().await = None;
+    super::agent_api::invalidate_all_agents().await;
 
     super::agent_api::save_config_to_disk().await
 }
@@ -209,7 +209,7 @@ pub async fn install_skill(source: String) -> String {
     match result {
         Ok(Ok(name)) => {
             // Invalidate agent to pick up new skill
-            *super::agent_api::agent_handle().lock().await = None;
+            super::agent_api::invalidate_all_agents().await;
             format!("ok:{name}")
         }
         Ok(Err(e)) => format!("error: {e}"),
@@ -252,7 +252,7 @@ pub async fn remove_skill(name: String) -> String {
     match std::fs::remove_dir_all(&skill_path) {
         Ok(_) => {
             // Invalidate agent to pick up change
-            *super::agent_api::agent_handle().lock().await = None;
+            super::agent_api::invalidate_all_agents().await;
             "ok".into()
         }
         Err(e) => format!("error: failed to remove skill: {e}"),

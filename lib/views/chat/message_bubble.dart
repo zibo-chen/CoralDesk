@@ -9,7 +9,7 @@ import 'package:coraldesk/theme/app_theme.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:coraldesk/src/rust/api/agent_api.dart' as agent_api;
 
-/// Individual message bubble with hover-based action bar (copy / edit).
+/// Individual message bubble with hover-based action bar (copy / edit / retry).
 class MessageBubble extends StatefulWidget {
   final ChatMessage message;
 
@@ -17,7 +17,17 @@ class MessageBubble extends StatefulWidget {
   /// Passes the new text back to the parent (ChatView) for re-send.
   final ValueChanged<String>? onEdit;
 
-  const MessageBubble({super.key, required this.message, this.onEdit});
+  /// Called when the user clicks the retry button.
+  /// For user messages, re-sends the same message.
+  /// For assistant messages, regenerates the response.
+  final VoidCallback? onRetry;
+
+  const MessageBubble({
+    super.key,
+    required this.message,
+    this.onEdit,
+    this.onRetry,
+  });
 
   @override
   State<MessageBubble> createState() => _MessageBubbleState();
@@ -89,8 +99,8 @@ class _MessageBubbleState extends State<MessageBubble> {
       onExit: (_) => setState(() => _hovering = false),
       child: Padding(
         padding: const EdgeInsets.only(bottom: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
+        child: Stack(
+          clipBehavior: Clip.none,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -112,7 +122,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                               16,
                             ).copyWith(bottomRight: const Radius.circular(4)),
                           ),
-                          child: SelectableText(
+                          child: Text(
                             message.content,
                             style: const TextStyle(
                               color: Colors.white,
@@ -129,11 +139,14 @@ class _MessageBubbleState extends State<MessageBubble> {
                 ),
               ],
             ),
-            // Hover action bar
+            // Hover action bar (positioned to avoid layout shift)
             if (_hovering && !_editing)
-              Padding(
-                padding: const EdgeInsets.only(right: 44, top: 4),
-                child: _buildActionBar(c, l10n, isUser: true),
+              Positioned(
+                right: 44,
+                bottom: -28,
+                child: SelectionContainer.disabled(
+                  child: _buildActionBar(c, l10n, isUser: true),
+                ),
               ),
           ],
         ),
@@ -221,8 +234,8 @@ class _MessageBubbleState extends State<MessageBubble> {
       onExit: (_) => setState(() => _hovering = false),
       child: Padding(
         padding: const EdgeInsets.only(bottom: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
+          clipBehavior: Clip.none,
           children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,42 +259,23 @@ class _MessageBubbleState extends State<MessageBubble> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Tool calls if any (expandable)
-                        if (message.toolCalls != null) ...[
-                          for (final tc in message.toolCalls!)
-                            _ToolCallCard(toolCall: tc),
-                          const SizedBox(height: 8),
-                        ],
-
-                        // Message content
-                        if (message.content.isNotEmpty)
-                          MarkdownBody(
-                            data: message.content,
-                            styleSheet: MarkdownStyleSheet(
-                              p: TextStyle(
-                                fontSize: 14,
-                                height: 1.6,
-                                color: c.textPrimary,
-                              ),
-                              code: TextStyle(
-                                fontSize: 13,
-                                backgroundColor: c.inputBg,
-                                color: AppColors.primaryDark,
-                              ),
-                              codeblockDecoration: BoxDecoration(
-                                color: c.inputBg,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              strong: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                              listBullet: TextStyle(
-                                fontSize: 14,
-                                color: c.textPrimary,
-                              ),
+                        // Prefer ordered parts when available
+                        if (message.parts != null && message.parts!.isNotEmpty)
+                          ..._buildPartsWidgets(c)
+                        else ...[
+                          // Fallback: legacy flat layout
+                          if (message.toolCalls != null) ...[
+                            for (final tc in message.toolCalls!)
+                              _ToolCallCard(toolCall: tc),
+                            const SizedBox(height: 8),
+                          ],
+                          if (message.content.isNotEmpty)
+                            MarkdownBody(
+                              data: message.content,
+                              styleSheet: _mdStyle(c),
+                              selectable: false,
                             ),
-                            selectable: true,
-                          ),
+                        ],
 
                         // Streaming indicator
                         if (message.isStreaming)
@@ -296,15 +290,62 @@ class _MessageBubbleState extends State<MessageBubble> {
                 const Spacer(flex: 2),
               ],
             ),
-            // Hover action bar
+            // Hover action bar (positioned to avoid layout shift)
             if (_hovering && !message.isStreaming)
-              Padding(
-                padding: const EdgeInsets.only(left: 44, top: 4),
-                child: _buildActionBar(c, l10n, isUser: false),
+              Positioned(
+                left: 44,
+                bottom: -28,
+                child: SelectionContainer.disabled(
+                  child: _buildActionBar(c, l10n, isUser: false),
+                ),
               ),
           ],
         ),
       ),
+    );
+  }
+
+  // ── Parts rendering ────────────────────────────────────
+
+  /// Render an ordered list of TextPart / ToolCallPart widgets.
+  List<Widget> _buildPartsWidgets(CoralDeskColors c) {
+    final widgets = <Widget>[];
+    for (final part in message.parts!) {
+      switch (part) {
+        case TextPart(:final text):
+          if (text.isNotEmpty) {
+            if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 8));
+            widgets.add(
+              MarkdownBody(
+                data: text,
+                styleSheet: _mdStyle(c),
+                selectable: false,
+              ),
+            );
+          }
+        case ToolCallPart(:final toolCall):
+          if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 4));
+          widgets.add(_ToolCallCard(toolCall: toolCall));
+      }
+    }
+    return widgets;
+  }
+
+  /// Shared markdown style sheet.
+  MarkdownStyleSheet _mdStyle(CoralDeskColors c) {
+    return MarkdownStyleSheet(
+      p: TextStyle(fontSize: 14, height: 1.6, color: c.textPrimary),
+      code: TextStyle(
+        fontSize: 13,
+        backgroundColor: c.inputBg,
+        color: AppColors.primaryDark,
+      ),
+      codeblockDecoration: BoxDecoration(
+        color: c.inputBg,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      strong: const TextStyle(fontWeight: FontWeight.w600),
+      listBullet: TextStyle(fontSize: 14, color: c.textPrimary),
     );
   }
 
@@ -343,6 +384,13 @@ class _MessageBubbleState extends State<MessageBubble> {
               icon: Icons.edit_outlined,
               tooltip: l10n.editMessage,
               onTap: _startEditing,
+              c: c,
+            ),
+          if (widget.onRetry != null)
+            _actionButton(
+              icon: Icons.refresh_outlined,
+              tooltip: l10n.retryMessage,
+              onTap: widget.onRetry!,
               c: c,
             ),
         ],

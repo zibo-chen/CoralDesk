@@ -9,17 +9,32 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'agent_api.freezed.dart';
 
-// These functions are ignored because they are not marked as `pub`: `agent_handle`, `config_state`, `ensure_agent`, `pending_approval`, `truncate_str`
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ChatMessageDto`, `ConfigState`, `PendingApproval`, `ToolCallDto`
+// These functions are ignored because they are not marked as `pub`: `config_state`, `ensure_session_agent`, `evict_oldest_agent_if_needed`, `global_config`, `invalidate_all_agents`, `legacy_pending_approval`, `pending_approvals`, `session_agents`, `truncate_str`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ChatMessageDto`, `ConfigState`, `GlobalConfig`, `PendingApproval`, `SessionAgent`, `ToolCallDto`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// Respond to a pending tool approval request from Flutter UI.
+/// This is the FRB-compatible single-argument version.
+/// When multiple approval requests are pending, responds to the most recent one.
 ///
-/// `approved` values: "yes", "no", "always"
+/// `decision` values: "yes", "no", "always"
 Future<String> respondToToolApproval({required String decision}) => RustLib
     .instance
     .api
     .crateApiAgentApiRespondToToolApproval(decision: decision);
+
+/// Respond to a specific pending tool approval request by request_id.
+/// Use this when the UI tracks which request to respond to.
+///
+/// `request_id`: the unique ID sent with ToolApprovalRequest
+/// `decision` values: "yes", "no", "always"
+Future<String> respondToToolApprovalById({
+  required String requestId,
+  required String decision,
+}) => RustLib.instance.api.crateApiAgentApiRespondToToolApprovalById(
+  requestId: requestId,
+  decision: decision,
+);
 
 /// Initialize the agent runtime: load zeroclaw config from ~/.zeroclaw/config.toml.
 /// Returns a status string describing what was loaded.
@@ -30,8 +45,8 @@ Future<String> initRuntime() =>
 Future<RuntimeStatus> getRuntimeStatus() =>
     RustLib.instance.api.crateApiAgentApiGetRuntimeStatus();
 
-/// Update configuration fields. Invalidates the current agent so the next
-/// message will create a fresh agent with the new settings.
+/// Update configuration fields. Invalidates all session agents so they
+/// will be recreated with the new settings on next use.
 Future<String> updateConfig({
   String? provider,
   String? model,
@@ -59,16 +74,33 @@ Future<AppConfig> getCurrentConfig() =>
 ChatSessionInfo createSession() =>
     RustLib.instance.api.crateApiAgentApiCreateSession();
 
-/// Clear the current session (resets agent conversation history)
+/// Clear a session's agent conversation history.
+/// In the new multi-session architecture, this clears only the specified session.
+Future<void> clearSessionAgent({required String sessionId}) => RustLib
+    .instance
+    .api
+    .crateApiAgentApiClearSessionAgent(sessionId: sessionId);
+
+/// Clear the current/active session (legacy compatibility).
+/// Now a no-op since sessions are independent.
 Future<void> clearSession() =>
     RustLib.instance.api.crateApiAgentApiClearSession();
 
-/// Switch to a different session — clears agent history for the new context
+/// Switch to a different session.
+/// In the new architecture, this is mostly a no-op since each session has
+/// its own agent. We just update the active_session_id for UI tracking.
 Future<void> switchSession({required String sessionId}) =>
     RustLib.instance.api.crateApiAgentApiSwitchSession(sessionId: sessionId);
 
+/// Remove a session's cached agent (e.g., when session is deleted).
+Future<void> removeSessionAgent({required String sessionId}) => RustLib
+    .instance
+    .api
+    .crateApiAgentApiRemoveSessionAgent(sessionId: sessionId);
+
 /// Send a message to the zeroclaw agent and get response events.
 /// This calls the real LLM provider and executes tools as needed.
+/// Each session has its own agent, allowing concurrent requests.
 Future<List<AgentEvent>> sendMessage({
   required String sessionId,
   required String message,
@@ -83,6 +115,9 @@ Future<List<AgentEvent>> sendMessage({
 /// `run_tool_call_loop` with an `on_delta` channel.  Tool-start / tool-end /
 /// thinking events are streamed **as they happen**, not after the full turn
 /// completes.
+///
+/// Each session has its own agent, allowing concurrent streaming requests
+/// across different sessions.
 Stream<AgentEvent> sendMessageStream({
   required String sessionId,
   required String message,
@@ -91,11 +126,11 @@ Stream<AgentEvent> sendMessageStream({
   message: message,
 );
 
-/// List available tools dynamically from the agent's registered tool specs.
+/// List available tools dynamically from any agent's registered tool specs.
 /// Falls back to a minimal static list if no agent is currently initialized.
 ///
 /// Note: kept as sync (#[frb(sync)]) to match the existing FRB generated binding.
-/// Uses `try_lock` to avoid blocking if agent is mid-turn.
+/// Uses `try_lock` to avoid blocking if agents are busy.
 List<ToolSpecDto> listTools() =>
     RustLib.instance.api.crateApiAgentApiListTools();
 
@@ -131,6 +166,11 @@ sealed class AgentEvent with _$AgentEvent {
   /// Incremental text token from LLM
   const factory AgentEvent.textDelta({required String text}) =
       AgentEvent_TextDelta;
+
+  /// Clear any previously streamed content (e.g., when tool calls are detected
+  /// after streaming partial response that included raw tool_call tags)
+  const factory AgentEvent.clearStreamedContent() =
+      AgentEvent_ClearStreamedContent;
 
   /// LLM started calling a tool
   const factory AgentEvent.toolCallStart({

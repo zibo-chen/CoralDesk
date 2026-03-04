@@ -380,6 +380,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get allowedCommands => 'Allowed Commands';
 
   @override
+  String get addCommand => 'Add Command';
+
+  @override
+  String get commandNameHint => 'Enter command name (e.g., open)';
+
+  @override
+  String get noCommandsConfigured => 'No commands configured';
+
+  @override
   String get autoApprovedTools => 'Auto-Approved Tools';
 
   @override
@@ -429,6 +438,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cancel => 'Cancel';
+
+  @override
+  String get add => 'Add';
 
   @override
   String get delete => 'Delete';
@@ -1470,4 +1482,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mcpTransportSse => 'Server-Sent Events';
+
+  @override
+  String get retryMessage => 'Retry';
 }

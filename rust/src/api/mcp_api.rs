@@ -132,7 +132,7 @@ pub async fn set_mcp_enabled(enabled: bool) -> String {
         config.mcp.enabled = enabled;
     }
     // Invalidate agent so it rebuilds with updated MCP tools
-    *super::agent_api::agent_handle().lock().await = None;
+    super::agent_api::invalidate_all_agents().await;
     super::agent_api::save_config_to_disk().await
 }
 
@@ -154,7 +154,7 @@ pub async fn add_mcp_server(server: McpServerDto) -> String {
         }
         config.mcp.servers.push(dto_to_server(&server));
     }
-    *super::agent_api::agent_handle().lock().await = None;
+    super::agent_api::invalidate_all_agents().await;
     super::agent_api::save_config_to_disk().await
 }
 
@@ -175,7 +175,7 @@ pub async fn update_mcp_server(server: McpServerDto) -> String {
             None => return format!("error: server '{}' not found", name),
         }
     }
-    *super::agent_api::agent_handle().lock().await = None;
+    super::agent_api::invalidate_all_agents().await;
     super::agent_api::save_config_to_disk().await
 }
 
@@ -194,6 +194,6 @@ pub async fn remove_mcp_server(name: String) -> String {
             return format!("error: server '{}' not found", name);
         }
     }
-    *super::agent_api::agent_handle().lock().await = None;
+    super::agent_api::invalidate_all_agents().await;
     super::agent_api::save_config_to_disk().await
 }

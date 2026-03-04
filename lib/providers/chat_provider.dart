@@ -186,6 +186,7 @@ class MessagesNotifier extends StateNotifier<List<ChatMessage>> {
     String content, {
     bool? isStreaming,
     List<ToolCallInfo>? toolCalls,
+    List<MessagePart>? parts,
   }) {
     final messages = _cache[sessionId];
     if (messages != null && messages.isNotEmpty && messages.last.isAssistant) {
@@ -193,6 +194,7 @@ class MessagesNotifier extends StateNotifier<List<ChatMessage>> {
         content: content,
         isStreaming: isStreaming ?? messages.last.isStreaming,
         toolCalls: toolCalls ?? messages.last.toolCalls,
+        parts: parts,
       );
     }
     if (sessionId == _activeSessionId) {

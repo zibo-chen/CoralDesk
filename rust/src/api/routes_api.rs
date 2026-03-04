@@ -93,7 +93,7 @@ pub async fn upsert_model_route(route: ModelRouteDto) -> String {
         }
     }
 
-    *super::agent_api::agent_handle().lock().await = None;
+    super::agent_api::invalidate_all_agents().await;
     super::agent_api::save_config_to_disk().await
 }
 
@@ -112,7 +112,7 @@ pub async fn remove_model_route(hint: String) -> String {
         }
     }
 
-    *super::agent_api::agent_handle().lock().await = None;
+    super::agent_api::invalidate_all_agents().await;
     super::agent_api::save_config_to_disk().await
 }
 
@@ -179,7 +179,7 @@ pub async fn upsert_embedding_route(route: EmbeddingRouteDto) -> String {
         }
     }
 
-    *super::agent_api::agent_handle().lock().await = None;
+    super::agent_api::invalidate_all_agents().await;
     super::agent_api::save_config_to_disk().await
 }
 
@@ -198,7 +198,7 @@ pub async fn remove_embedding_route(hint: String) -> String {
         }
     }
 
-    *super::agent_api::agent_handle().lock().await = None;
+    super::agent_api::invalidate_all_agents().await;
     super::agent_api::save_config_to_disk().await
 }
 
@@ -246,6 +246,6 @@ pub async fn update_embedding_config(config: EmbeddingConfigDto) -> String {
         cfg.memory.min_relevance_score = config.min_relevance_score;
     }
 
-    *super::agent_api::agent_handle().lock().await = None;
+    super::agent_api::invalidate_all_agents().await;
     super::agent_api::save_config_to_disk().await
 }

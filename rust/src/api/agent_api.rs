@@ -1,6 +1,8 @@
 use crate::frb_generated::StreamSink;
 use flutter_rust_bridge::frb;
+use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
+use std::time::Instant;
 use tokio::sync::{Mutex as TokioMutex, RwLock};
 use tokio::time::{timeout, Duration};
 
@@ -14,6 +16,9 @@ pub enum AgentEvent {
     Thinking,
     /// Incremental text token from LLM
     TextDelta { text: String },
+    /// Clear any previously streamed content (e.g., when tool calls are detected
+    /// after streaming partial response that included raw tool_call tags)
+    ClearStreamedContent,
     /// LLM started calling a tool
     ToolCallStart { name: String, args: String },
     /// Tool call completed
@@ -92,15 +97,48 @@ pub struct RuntimeStatus {
 
 // ──────────────────────── Runtime State ───────────────────────
 //
-// Split into two separate locks to reduce contention:
-//   - `ConfigState` (RwLock): config + session id — short reads, rare writes
-//   - `AgentHandle` (Arc<TokioMutex>): the Agent itself — held only during turn()
+// Multi-session architecture: each session has its own Agent instance,
+// allowing concurrent requests across different sessions.
+//
+//   - `GlobalConfig` (RwLock): shared zeroclaw config
+//   - `SessionAgentMap` (RwLock): session_id -> SessionAgent mapping
+//   - `PendingApprovals` (TokioMutex): request_id -> approval channel mapping
+
+/// Maximum number of cached session agents (LRU eviction when exceeded)
+const MAX_SESSION_AGENTS: usize = 10;
+
+/// Session-specific agent with metadata
+pub(crate) struct SessionAgent {
+    pub(crate) agent: zeroclaw::agent::Agent,
+    pub(crate) last_used: Instant,
+    /// Tracks which files were injected into allowed_roots for this session.
+    pub(crate) injected_allowed_roots: Vec<String>,
+}
+
+/// Global configuration (shared across all sessions)
+pub(crate) struct GlobalConfig {
+    pub(crate) config: Option<zeroclaw::Config>,
+}
+
+pub(crate) fn global_config() -> &'static RwLock<GlobalConfig> {
+    static STATE: OnceLock<RwLock<GlobalConfig>> = OnceLock::new();
+    STATE.get_or_init(|| RwLock::new(GlobalConfig { config: None }))
+}
+
+/// Session agents map: each session has its own independent Agent
+type SessionAgentMap = HashMap<String, Arc<TokioMutex<SessionAgent>>>;
+
+pub(crate) fn session_agents() -> &'static RwLock<SessionAgentMap> {
+    static AGENTS: OnceLock<RwLock<SessionAgentMap>> = OnceLock::new();
+    AGENTS.get_or_init(|| RwLock::new(HashMap::new()))
+}
+
+// ──────────────────── Deprecated Compatibility ────────────────
+// These are kept for backward compatibility but delegate to new architecture
 
 pub(crate) struct ConfigState {
     pub(crate) config: Option<zeroclaw::Config>,
     pub(crate) active_session_id: Option<String>,
-    /// Tracks which files were injected into allowed_roots for the current agent.
-    /// Used to detect when session files change and agent needs recreation.
     pub(crate) injected_allowed_roots: Vec<String>,
 }
 
@@ -115,35 +153,46 @@ pub(crate) fn config_state() -> &'static RwLock<ConfigState> {
     })
 }
 
-/// The Agent is behind its own Arc<Mutex> so that config reads don't block on
-/// an in-flight LLM call, and vice-versa.
-pub(crate) fn agent_handle() -> &'static TokioMutex<Option<zeroclaw::agent::Agent>> {
-    static AGENT: OnceLock<TokioMutex<Option<zeroclaw::agent::Agent>>> = OnceLock::new();
-    AGENT.get_or_init(|| TokioMutex::new(None))
+/// Invalidate all cached session agents (e.g., when config changes).
+/// Other modules should call this instead of the old agent_handle().
+pub(crate) async fn invalidate_all_agents() {
+    let mut agents = session_agents().write().await;
+    agents.clear();
 }
 
 // ──────────────── Desktop Tool Approval ──────────────────────
 //
-// When trust_me is OFF and the agent needs approval for a tool call,
-// the Rust side sends `AgentEvent::ToolApprovalRequest` through the
-// stream and then waits on a oneshot channel. Flutter displays a
-// confirmation dialog and calls `respond_to_tool_approval()` which
-// sends the user's answer back through the oneshot.
+// Supports multiple concurrent approval requests (one per session).
+// Each request has a unique request_id that maps to its oneshot channel.
 
 /// Pending approval request waiting for Flutter's response.
 struct PendingApproval {
     response_tx: tokio::sync::oneshot::Sender<zeroclaw::approval::ApprovalResponse>,
 }
 
-/// Global slot for at-most-one pending approval request at a time.
-fn pending_approval() -> &'static TokioMutex<Option<PendingApproval>> {
-    static SLOT: OnceLock<TokioMutex<Option<PendingApproval>>> = OnceLock::new();
-    SLOT.get_or_init(|| TokioMutex::new(None))
+/// Map of pending approval requests: request_id -> PendingApproval
+/// Supports multiple concurrent approvals across different sessions.
+type PendingApprovalsMap = HashMap<String, PendingApproval>;
+
+/// Slot for the most recent pending approval (legacy compatibility).
+/// New code should use pending_approvals() HashMap instead.
+static LEGACY_PENDING_APPROVAL: OnceLock<TokioMutex<Option<(String, PendingApproval)>>> =
+    OnceLock::new();
+
+fn legacy_pending_approval() -> &'static TokioMutex<Option<(String, PendingApproval)>> {
+    LEGACY_PENDING_APPROVAL.get_or_init(|| TokioMutex::new(None))
+}
+
+fn pending_approvals() -> &'static TokioMutex<PendingApprovalsMap> {
+    static APPROVALS: OnceLock<TokioMutex<PendingApprovalsMap>> = OnceLock::new();
+    APPROVALS.get_or_init(|| TokioMutex::new(HashMap::new()))
 }
 
 /// Respond to a pending tool approval request from Flutter UI.
+/// This is the FRB-compatible single-argument version.
+/// When multiple approval requests are pending, responds to the most recent one.
 ///
-/// `approved` values: "yes", "no", "always"
+/// `decision` values: "yes", "no", "always"
 pub async fn respond_to_tool_approval(decision: String) -> String {
     let response = match decision.to_lowercase().as_str() {
         "yes" | "y" => zeroclaw::approval::ApprovalResponse::Yes,
@@ -151,12 +200,57 @@ pub async fn respond_to_tool_approval(decision: String) -> String {
         _ => zeroclaw::approval::ApprovalResponse::No,
     };
 
-    let mut slot = pending_approval().lock().await;
-    if let Some(pending) = slot.take() {
+    // First try the legacy slot (most recent request)
+    let mut legacy = legacy_pending_approval().lock().await;
+    if let Some((_request_id, pending)) = legacy.take() {
+        let _ = pending.response_tx.send(response);
+        return "ok".into();
+    }
+    drop(legacy);
+
+    // Fallback: try any pending request from the HashMap
+    let mut approvals = pending_approvals().lock().await;
+    if let Some(request_id) = approvals.keys().next().cloned() {
+        if let Some(pending) = approvals.remove(&request_id) {
+            let _ = pending.response_tx.send(response);
+            return "ok".into();
+        }
+    }
+
+    "error: no pending approval request".into()
+}
+
+/// Respond to a specific pending tool approval request by request_id.
+/// Use this when the UI tracks which request to respond to.
+///
+/// `request_id`: the unique ID sent with ToolApprovalRequest
+/// `decision` values: "yes", "no", "always"
+pub async fn respond_to_tool_approval_by_id(request_id: String, decision: String) -> String {
+    let response = match decision.to_lowercase().as_str() {
+        "yes" | "y" => zeroclaw::approval::ApprovalResponse::Yes,
+        "always" | "a" => zeroclaw::approval::ApprovalResponse::Always,
+        _ => zeroclaw::approval::ApprovalResponse::No,
+    };
+
+    // Check legacy slot first
+    let mut legacy = legacy_pending_approval().lock().await;
+    if let Some((ref stored_id, _)) = *legacy {
+        if stored_id == &request_id {
+            if let Some((_, pending)) = legacy.take() {
+                let _ = pending.response_tx.send(response);
+                return "ok".into();
+            }
+        }
+    }
+    drop(legacy);
+
+    // Then check HashMap
+    let mut approvals = pending_approvals().lock().await;
+    if let Some(pending) = approvals.remove(&request_id) {
         let _ = pending.response_tx.send(response);
         "ok".into()
     } else {
-        "error: no pending approval request".into()
+        format!("error: no pending approval request with id {request_id}")
     }
 }
 
@@ -168,20 +262,43 @@ pub async fn init_runtime() -> String {
     crate::logging::init_rust_logging();
 
     match zeroclaw::Config::load_or_init().await {
-        Ok(config) => {
+        Ok(mut config) => {
+            // ── Browser auto-setup: ensure agent-browser is installed ──
+            let agent_browser_path = crate::api::browser_bootstrap::ensure_agent_browser().await;
+            crate::api::browser_bootstrap::apply_browser_defaults(&mut config, &agent_browser_path);
+            tracing::info!(
+                browser_enabled = config.browser.enabled,
+                browser_backend = %config.browser.backend,
+                agent_browser_cmd = %config.browser.agent_browser_command,
+                "Browser defaults applied"
+            );
+
             let info = format!(
                 "provider={}, model={}, has_key={}",
                 config.default_provider.as_deref().unwrap_or("(none)"),
                 config.default_model.as_deref().unwrap_or("(none)"),
                 config.api_key.is_some(),
             );
+
+            // Update global config
+            {
+                let mut gc = global_config().write().await;
+                gc.config = Some(config.clone());
+            }
+
+            // Also update legacy config_state for backward compatibility
             {
                 let mut cs = config_state().write().await;
                 cs.config = Some(config);
                 cs.active_session_id = None;
             }
-            // Invalidate any existing agent
-            *agent_handle().lock().await = None;
+
+            // Clear all cached session agents (they need to be recreated with new config)
+            {
+                let mut agents = session_agents().write().await;
+                agents.clear();
+            }
+
             tracing::info!("CoralDesk runtime initialized: {info}");
             info
         }
@@ -219,8 +336,8 @@ pub async fn get_runtime_status() -> RuntimeStatus {
 
 // ──────────────────── Config Management ───────────────────────
 
-/// Update configuration fields. Invalidates the current agent so the next
-/// message will create a fresh agent with the new settings.
+/// Update configuration fields. Invalidates all session agents so they
+/// will be recreated with the new settings on next use.
 pub async fn update_config(
     provider: Option<String>,
     model: Option<String>,
@@ -228,8 +345,11 @@ pub async fn update_config(
     api_base: Option<String>,
     temperature: Option<f64>,
 ) -> String {
+    // Update both global_config and legacy config_state
+    let mut gc = global_config().write().await;
     let mut cs = config_state().write().await;
-    let config = match cs.config.as_mut() {
+
+    let config = match gc.config.as_mut() {
         Some(c) => c,
         None => return "error: runtime not initialized".into(),
     };
@@ -265,10 +385,17 @@ pub async fn update_config(
         config.default_temperature = t;
     }
 
-    // Invalidate agent so it gets recreated with new config
+    // Sync to legacy config_state
+    cs.config = Some(config.clone());
     cs.active_session_id = None;
+    drop(gc);
     drop(cs);
-    *agent_handle().lock().await = None;
+
+    // Invalidate ALL session agents so they get recreated with new config
+    {
+        let mut agents = session_agents().write().await;
+        agents.clear();
+    }
 
     "ok".into()
 }
@@ -339,7 +466,7 @@ pub async fn save_config_to_disk() -> String {
     );
     table.insert("web_fetch".into(), toml::Value::Table(wf_table));
 
-    // [browser]
+    // [browser] — persist full browser config for out-of-box experience
     let mut br_table = table
         .get("browser")
         .and_then(|v| v.as_table())
@@ -349,6 +476,27 @@ pub async fn save_config_to_disk() -> String {
         "enabled".into(),
         toml::Value::Boolean(config.browser.enabled),
     );
+    br_table.insert(
+        "backend".into(),
+        toml::Value::String(config.browser.backend.clone()),
+    );
+    br_table.insert(
+        "agent_browser_command".into(),
+        toml::Value::String(config.browser.agent_browser_command.clone()),
+    );
+    if !config.browser.allowed_domains.is_empty() {
+        br_table.insert(
+            "allowed_domains".into(),
+            toml::Value::Array(
+                config
+                    .browser
+                    .allowed_domains
+                    .iter()
+                    .map(|d| toml::Value::String(d.clone()))
+                    .collect(),
+            ),
+        );
+    }
     table.insert("browser".into(), toml::Value::Table(br_table));
 
     // [http_request]
@@ -500,6 +648,17 @@ pub async fn save_config_to_disk() -> String {
             config
                 .autonomy
                 .always_ask
+                .iter()
+                .map(|s| toml::Value::String(s.clone()))
+                .collect(),
+        ),
+    );
+    autonomy_table.insert(
+        "allowed_commands".into(),
+        toml::Value::Array(
+            config
+                .autonomy
+                .allowed_commands
                 .iter()
                 .map(|s| toml::Value::String(s.clone()))
                 .collect(),
@@ -677,41 +836,71 @@ pub fn create_session() -> ChatSessionInfo {
     }
 }
 
-/// Clear the current session (resets agent conversation history)
-pub async fn clear_session() {
-    {
-        let mut agent = agent_handle().lock().await;
-        if let Some(a) = agent.as_mut() {
-            a.clear_history();
-        }
+/// Clear a session's agent conversation history.
+/// In the new multi-session architecture, this clears only the specified session.
+pub async fn clear_session_agent(session_id: String) {
+    let agents = session_agents().read().await;
+    if let Some(agent_arc) = agents.get(&session_id) {
+        let mut agent_guard = agent_arc.lock().await;
+        agent_guard.agent.clear_history();
     }
+}
+
+/// Clear the current/active session (legacy compatibility).
+/// Now a no-op since sessions are independent.
+pub async fn clear_session() {
+    // Legacy: just update config_state for backward compatibility
     config_state().write().await.active_session_id = None;
 }
 
-/// Switch to a different session — clears agent history for the new context
+/// Switch to a different session.
+/// In the new architecture, this is mostly a no-op since each session has
+/// its own agent. We just update the active_session_id for UI tracking.
 pub async fn switch_session(session_id: String) {
-    let mut cs = config_state().write().await;
-    if cs.active_session_id.as_ref() != Some(&session_id) {
-        // Release config lock before touching agent
-        cs.active_session_id = Some(session_id);
-        drop(cs);
-        let mut agent = agent_handle().lock().await;
-        if let Some(a) = agent.as_mut() {
-            a.clear_history();
-        }
-    }
+    // Update legacy config_state for UI tracking
+    config_state().write().await.active_session_id = Some(session_id);
+    // No agent manipulation needed — each session has independent agent
+}
+
+/// Remove a session's cached agent (e.g., when session is deleted).
+pub async fn remove_session_agent(session_id: String) {
+    let mut agents = session_agents().write().await;
+    agents.remove(&session_id);
 }
 
 // ──────────────────── Message Handling ────────────────────────
 
-/// Helper: ensure agent is created and session is current.
-/// Takes a short config read-lock, then a separate agent lock.
-/// Returns an error string if something goes wrong.
-async fn ensure_agent(session_id: &str) -> Result<(), String> {
-    // 1. Read config (short-lived RwLock read)
+/// Helper: LRU eviction — remove oldest agent when we exceed MAX_SESSION_AGENTS.
+async fn evict_oldest_agent_if_needed() {
+    let mut agents = session_agents().write().await;
+    if agents.len() >= MAX_SESSION_AGENTS {
+        // Find the oldest (least recently used) session
+        let mut oldest: Option<(String, Instant)> = None;
+        for (sid, agent_arc) in agents.iter() {
+            if let Ok(agent) = agent_arc.try_lock() {
+                match &oldest {
+                    None => oldest = Some((sid.clone(), agent.last_used)),
+                    Some((_, oldest_time)) if agent.last_used < *oldest_time => {
+                        oldest = Some((sid.clone(), agent.last_used));
+                    }
+                    _ => {}
+                }
+            }
+        }
+        if let Some((oldest_sid, _)) = oldest {
+            tracing::info!("Evicting oldest session agent: {oldest_sid}");
+            agents.remove(&oldest_sid);
+        }
+    }
+}
+
+/// Helper: ensure agent exists for a session, creating if needed.
+/// Returns an Arc to the session's agent mutex for concurrent access.
+async fn ensure_session_agent(session_id: &str) -> Result<Arc<TokioMutex<SessionAgent>>, String> {
+    // 1. Read global config
     let mut config = {
-        let cs = config_state().read().await;
-        match &cs.config {
+        let gc = global_config().read().await;
+        match &gc.config {
             Some(c) => c.clone(),
             None => return Err("Runtime not initialized. Call init_runtime() first.".into()),
         }
@@ -724,94 +913,103 @@ async fn ensure_agent(session_id: &str) -> Result<(), String> {
         return Err("No API key configured. Please set your API key in Settings → Models.".into());
     }
 
-    // 3. Get session attached files and inject into allowed_roots
+    // 3. Get session attached files
     let session_files = super::sessions_api::get_session_files(session_id.to_string()).await;
 
-    // 4. Check if we need a new agent
-    // Need new agent if: no agent, different session, OR session files changed
-    let need_new = {
-        let cs = config_state().read().await;
-        let agent = agent_handle().lock().await;
-        if agent.is_none() {
-            true
-        } else if cs.active_session_id.as_deref() != Some(session_id) {
-            true
-        } else {
-            // Check if session files changed since last agent creation
-            let current_injected = cs.injected_allowed_roots.clone();
-            current_injected != session_files
+    // 4. Check if agent exists and is up-to-date
+    {
+        let agents = session_agents().read().await;
+        if let Some(agent_arc) = agents.get(session_id) {
+            let agent = agent_arc.lock().await;
+            // Check if session files changed
+            if agent.injected_allowed_roots == session_files {
+                // Agent is up-to-date, return it
+                drop(agent);
+                return Ok(agent_arc.clone());
+            }
+            // Files changed, need to recreate
+            tracing::info!("Session {session_id} attached files changed, recreating agent");
         }
-    };
-
-    if need_new {
-        tracing::info!(
-            "Creating new agent for session {session_id} with {} attached files",
-            session_files.len()
-        );
-
-        // Override workspace_dir to per-session directory
-        let session_workspace = dirs::home_dir()
-            .unwrap_or_default()
-            .join(".zeroclaw")
-            .join("workspace")
-            .join("session")
-            .join(session_id);
-        // Create the directory if it doesn't exist
-        let _ = std::fs::create_dir_all(&session_workspace);
-
-        // Symlink the shared memory directory into the session workspace
-        // so that brain.db (knowledge base) is shared across all sessions.
-        let global_memory_dir = config.workspace_dir.join("memory");
-        let session_memory_link = session_workspace.join("memory");
-        if !session_memory_link.exists() {
-            let _ = std::fs::create_dir_all(&global_memory_dir);
-            #[cfg(unix)]
-            {
-                let _ = std::os::unix::fs::symlink(&global_memory_dir, &session_memory_link);
-            }
-            #[cfg(windows)]
-            {
-                let _ = std::os::windows::fs::symlink_dir(&global_memory_dir, &session_memory_link);
-            }
-        }
-
-        config.workspace_dir = session_workspace;
-
-        // Inject session files into allowed_roots for security policy
-        for file_path in &session_files {
-            let path_buf = std::path::PathBuf::from(file_path);
-            if !config.autonomy.allowed_roots.contains(file_path) {
-                config.autonomy.allowed_roots.push(file_path.clone());
-            }
-            // Also add parent directory for directory access
-            if let Some(parent) = path_buf.parent() {
-                let parent_str = parent.to_string_lossy().to_string();
-                if !config.autonomy.allowed_roots.contains(&parent_str) {
-                    config.autonomy.allowed_roots.push(parent_str);
-                }
-            }
-        }
-
-        let agent = zeroclaw::agent::Agent::from_config(&config)
-            .map_err(|e| format!("Failed to create agent: {e}"))?;
-        *agent_handle().lock().await = Some(agent);
-
-        // Update state with new session and injected files
-        let mut cs = config_state().write().await;
-        cs.active_session_id = Some(session_id.to_string());
-        cs.injected_allowed_roots = session_files;
     }
 
-    Ok(())
+    // 5. Need to create new agent — evict oldest if at capacity
+    evict_oldest_agent_if_needed().await;
+
+    tracing::info!(
+        "Creating new agent for session {session_id} with {} attached files",
+        session_files.len()
+    );
+
+    // 6. Configure session-specific workspace
+    let session_workspace = dirs::home_dir()
+        .unwrap_or_default()
+        .join(".zeroclaw")
+        .join("workspace")
+        .join("session")
+        .join(session_id);
+    let _ = std::fs::create_dir_all(&session_workspace);
+
+    // Symlink shared memory directory
+    let global_memory_dir = config.workspace_dir.join("memory");
+    let session_memory_link = session_workspace.join("memory");
+    if !session_memory_link.exists() {
+        let _ = std::fs::create_dir_all(&global_memory_dir);
+        #[cfg(unix)]
+        {
+            let _ = std::os::unix::fs::symlink(&global_memory_dir, &session_memory_link);
+        }
+        #[cfg(windows)]
+        {
+            let _ = std::os::windows::fs::symlink_dir(&global_memory_dir, &session_memory_link);
+        }
+    }
+
+    config.workspace_dir = session_workspace;
+
+    // Inject session files into allowed_roots
+    for file_path in &session_files {
+        let path_buf = std::path::PathBuf::from(file_path);
+        if !config.autonomy.allowed_roots.contains(file_path) {
+            config.autonomy.allowed_roots.push(file_path.clone());
+        }
+        if let Some(parent) = path_buf.parent() {
+            let parent_str = parent.to_string_lossy().to_string();
+            if !config.autonomy.allowed_roots.contains(&parent_str) {
+                config.autonomy.allowed_roots.push(parent_str);
+            }
+        }
+    }
+
+    // 7. Create the agent
+    let agent = zeroclaw::agent::Agent::from_config(&config)
+        .map_err(|e| format!("Failed to create agent: {e}"))?;
+
+    let session_agent = SessionAgent {
+        agent,
+        last_used: Instant::now(),
+        injected_allowed_roots: session_files,
+    };
+
+    let agent_arc = Arc::new(TokioMutex::new(session_agent));
+
+    // 8. Store in map
+    {
+        let mut agents = session_agents().write().await;
+        agents.insert(session_id.to_string(), agent_arc.clone());
+    }
+
+    Ok(agent_arc)
 }
 
 /// Send a message to the zeroclaw agent and get response events.
 /// This calls the real LLM provider and executes tools as needed.
+/// Each session has its own agent, allowing concurrent requests.
 pub async fn send_message(session_id: String, message: String) -> Vec<AgentEvent> {
-    // Ensure agent ready — short config lock, released before turn()
-    if let Err(msg) = ensure_agent(&session_id).await {
-        return vec![AgentEvent::Error { message: msg }];
-    }
+    // Get or create session-specific agent
+    let agent_arc = match ensure_session_agent(&session_id).await {
+        Ok(a) => a,
+        Err(msg) => return vec![AgentEvent::Error { message: msg }],
+    };
 
     // Enrich message with session attached files context
     let enriched_message = {
@@ -833,17 +1031,10 @@ pub async fn send_message(session_id: String, message: String) -> Vec<AgentEvent
         }
     };
 
-    // Lock agent only for the actual turn — config_state is NOT locked here,
-    // so other APIs (get_runtime_status, get_current_config, etc.) stay responsive.
-    let mut agent_guard = agent_handle().lock().await;
-    let agent = match agent_guard.as_mut() {
-        Some(a) => a,
-        None => {
-            return vec![AgentEvent::Error {
-                message: "Agent not available".into(),
-            }];
-        }
-    };
+    // Lock only this session's agent — other sessions remain unblocked
+    let mut session_agent = agent_arc.lock().await;
+    session_agent.last_used = Instant::now();
+    let agent = &mut session_agent.agent;
 
     let history_before = agent.history().len();
     let mut events = Vec::new();
@@ -852,8 +1043,7 @@ pub async fn send_message(session_id: String, message: String) -> Vec<AgentEvent
         Ok(response) => {
             // Extract tool call events from conversation history
             let history = agent.history();
-            let mut tool_name_map: std::collections::HashMap<String, String> =
-                std::collections::HashMap::new();
+            let mut tool_name_map: HashMap<String, String> = HashMap::new();
 
             for msg in history.iter().skip(history_before) {
                 match msg {
@@ -909,19 +1099,25 @@ pub async fn send_message(session_id: String, message: String) -> Vec<AgentEvent
 /// `run_tool_call_loop` with an `on_delta` channel.  Tool-start / tool-end /
 /// thinking events are streamed **as they happen**, not after the full turn
 /// completes.
+///
+/// Each session has its own agent, allowing concurrent streaming requests
+/// across different sessions.
 pub async fn send_message_stream(
     session_id: String,
     message: String,
     sink: StreamSink<AgentEvent>,
 ) {
     const TURN_TIMEOUT_SECS: u64 = 180;
-    const RELAY_DRAIN_TIMEOUT_SECS: u64 = 3;
+    const RELAY_DRAIN_TIMEOUT_SECS: u64 = 10;
 
-    // Ensure agent ready — short config lock
-    if let Err(msg) = ensure_agent(&session_id).await {
-        let _ = sink.add(AgentEvent::Error { message: msg });
-        return;
-    }
+    // Get or create session-specific agent
+    let agent_arc = match ensure_session_agent(&session_id).await {
+        Ok(a) => a,
+        Err(msg) => {
+            let _ = sink.add(AgentEvent::Error { message: msg });
+            return;
+        }
+    };
 
     // Enrich message with session attached files context
     let enriched_message = {
@@ -946,7 +1142,8 @@ pub async fn send_message_stream(
     let _ = sink.add(AgentEvent::Thinking);
 
     // Create an mpsc channel for streaming deltas from zeroclaw
-    let (tx, mut rx) = tokio::sync::mpsc::channel::<String>(64);
+    // Use larger buffer to prevent backpressure during high-frequency deltas
+    let (tx, mut rx) = tokio::sync::mpsc::channel::<String>(256);
 
     // Wrap the sink in an Arc so it can be shared with the relay task
     let sink = Arc::new(sink);
@@ -962,12 +1159,23 @@ pub async fn send_message_stream(
     //   - `\x01TOOL_RESULT\x02`   — structured tool result
     //   - plain text              — final answer chunks
     let relay_handle = tokio::spawn(async move {
+        // Helper macro to send events and exit early if sink is closed
+        macro_rules! send_or_break {
+            ($event:expr) => {
+                if sink_clone.add($event).is_err() {
+                    tracing::debug!("Sink closed, relay task exiting early");
+                    break;
+                }
+            };
+        }
+
         while let Some(delta) = rx.recv().await {
             let trimmed = delta.trim();
 
             // Sentinel: clear accumulated progress (final answer coming)
             if trimmed == "\x00CLEAR\x00" {
-                continue; // Flutter handles this differently
+                send_or_break!(AgentEvent::ClearStreamedContent);
+                continue;
             }
 
             // Structured tool result: \x01TOOL_RESULT\x02name\x02success\x02output\x01
@@ -984,7 +1192,7 @@ pub async fn send_message_stream(
                         let name = parts[0].to_string();
                         let success = parts[1] == "true";
                         let result = parts[2].to_string();
-                        let _ = sink_clone.add(AgentEvent::ToolCallEnd {
+                        send_or_break!(AgentEvent::ToolCallEnd {
                             name,
                             result,
                             success,
@@ -997,7 +1205,12 @@ pub async fn send_message_stream(
             // Strip sentinel prefixes added by zeroclaw v0.1.7+.
             // \x00PROGRESS\x00 wraps verbose-only lines (🤔, 💬, ↻, ⚠️)
             // \x00PROGRESS_BLOCK\x00 wraps compact tool lifecycle lines (⏳, ✅, ❌)
-            let effective = if let Some(inner) = trimmed
+            //
+            // A PROGRESS_BLOCK may contain multiple lines (one per tool),
+            // e.g. "⏳ shell: pwd\n⏳ shell: ls".  We split by newline and
+            // process each line individually so every tool gets its own event.
+            let is_progress_block = trimmed.starts_with("\x00PROGRESS_BLOCK\x00");
+            let effective_block = if let Some(inner) = trimmed
                 .strip_prefix("\x00PROGRESS_BLOCK\x00")
                 .or_else(|| trimmed.strip_prefix("\x00PROGRESS\x00"))
             {
@@ -1006,51 +1219,79 @@ pub async fn send_message_stream(
                 trimmed
             };
 
-            // Tool start: "⏳ tool_name: args" or "⏳ tool_name"
-            if effective.starts_with('⏳') {
-                let rest = effective.trim_start_matches('⏳').trim();
-                let (name, args) = if let Some((n, a)) = rest.split_once(':') {
-                    (n.trim().to_string(), a.trim().to_string())
-                } else {
-                    (rest.to_string(), String::new())
-                };
-                let _ = sink_clone.add(AgentEvent::ToolCallStart { name, args });
-                continue;
-            }
+            // Collect lines to process.  For PROGRESS_BLOCK deltas we split
+            // on newlines; for everything else we treat as a single line.
+            let lines: Vec<&str> = if is_progress_block {
+                effective_block
+                    .lines()
+                    .map(|l| l.trim())
+                    .filter(|l| !l.is_empty())
+                    .collect()
+            } else {
+                vec![effective_block]
+            };
 
-            // Tool success: "✅ tool_name (Ns)"
-            // Status-only; the actual result follows in the TOOL_RESULT message.
-            if effective.starts_with('✅') {
-                continue;
-            }
+            // Track whether any line triggered a `continue` (i.e. was handled)
+            let mut handled = false;
 
-            // Tool failure: "❌ tool_name (Ns)"
-            // Status-only; the actual result follows in the TOOL_RESULT message.
-            if effective.starts_with('❌') {
-                continue;
-            }
+            for effective in lines {
+                // Tool start: "⏳ tool_name: args" or "⏳ tool_name"
+                if effective.starts_with('⏳') {
+                    let rest = effective.trim_start_matches('⏳').trim();
+                    let (name, args) = if let Some((n, a)) = rest.split_once(':') {
+                        (n.trim().to_string(), a.trim().to_string())
+                    } else {
+                        (rest.to_string(), String::new())
+                    };
+                    send_or_break!(AgentEvent::ToolCallStart { name, args });
+                    handled = true;
+                    continue;
+                }
 
-            // Thinking progress: "🤔 Thinking..."
-            if effective.starts_with('🤔') {
-                let _ = sink_clone.add(AgentEvent::Thinking);
-                continue;
-            }
+                // Tool success: "✅ tool_name (Ns)"
+                // Status-only; the actual result follows in the TOOL_RESULT message.
+                if effective.starts_with('✅') {
+                    handled = true;
+                    continue;
+                }
 
-            // Tool call count: "💬 Got N tool call(s) ..."
-            if effective.starts_with('💬') {
-                // Informational — skip or treat as thinking
-                continue;
-            }
+                // Tool failure: "❌ tool_name (Ns)"
+                // Status-only; the actual result follows in the TOOL_RESULT message.
+                if effective.starts_with('❌') {
+                    handled = true;
+                    continue;
+                }
 
-            // Retry progress: "↻ Retrying: ..."
-            if effective.starts_with('↻') {
-                // Informational — skip
-                continue;
-            }
+                // Thinking progress: "🤔 Thinking..."
+                if effective.starts_with('🤔') {
+                    send_or_break!(AgentEvent::Thinking);
+                    handled = true;
+                    continue;
+                }
 
-            // Loop detection warning: "⚠️ Loop detected..."
-            if effective.starts_with('⚠') {
-                // Informational — skip
+                // Tool call count: "💬 Got N tool call(s) ..."
+                if effective.starts_with('💬') {
+                    // Informational — skip or treat as thinking
+                    handled = true;
+                    continue;
+                }
+
+                // Retry progress: "↻ Retrying: ..."
+                if effective.starts_with('↻') {
+                    // Informational — skip
+                    handled = true;
+                    continue;
+                }
+
+                // Loop detection warning: "⚠️ Loop detected..."
+                if effective.starts_with('⚠') {
+                    // Informational — skip
+                    handled = true;
+                    continue;
+                }
+            } // end for each line
+
+            if handled {
                 continue;
             }
 
@@ -1063,19 +1304,15 @@ pub async fn send_message_stream(
 
             // Everything else is streamed text content.
             if !delta.is_empty() {
-                let _ = sink_clone.add(AgentEvent::TextDelta { text: delta });
+                send_or_break!(AgentEvent::TextDelta { text: delta });
             }
         }
     });
 
-    // Lock only the agent (not config) for the duration of the LLM turn.
-    // Guard with a timeout so Flutter stream won't hang forever when provider
-    // or tool loop gets stuck.
-
     // Determine whether to enable desktop approval (non-trust-me mode).
     let trust_me = {
-        let cs = config_state().read().await;
-        cs.config
+        let gc = global_config().read().await;
+        gc.config
             .as_ref()
             .map(|c| c.autonomy.trust_me)
             .unwrap_or(false)
@@ -1085,10 +1322,12 @@ pub async fn send_message_stream(
     // a ToolApprovalRequest event to Flutter and waits for the user's decision
     // via `respond_to_tool_approval()`.
     let sink_for_approval = sink.clone();
+    let session_id_for_approval = session_id.clone();
     let on_approval_fn: Option<zeroclaw::agent::loop_::OnApprovalFn> = if !trust_me {
         Some(Box::new(
             move |tool_name: String, tool_args: serde_json::Value| {
                 let sink_inner = sink_for_approval.clone();
+                let _session_id = session_id_for_approval.clone();
                 Box::pin(async move {
                     let request_id = uuid::Uuid::new_v4().to_string();
                     let args_str = serde_json::to_string(&tool_args).unwrap_or_default();
@@ -1100,13 +1339,18 @@ pub async fn send_message_stream(
                         args: args_str,
                     });
 
-                    // Create a oneshot channel and store it in the global slot
+                    // Create a oneshot channel
                     let (resp_tx, resp_rx) = tokio::sync::oneshot::channel();
+
+                    // Store in legacy slot for FRB single-argument respond_to_tool_approval
                     {
-                        let mut slot = pending_approval().lock().await;
-                        *slot = Some(PendingApproval {
-                            response_tx: resp_tx,
-                        });
+                        let mut legacy = legacy_pending_approval().lock().await;
+                        *legacy = Some((
+                            request_id.clone(),
+                            PendingApproval {
+                                response_tx: resp_tx,
+                            },
+                        ));
                     }
 
                     // Wait for Flutter to respond (with a generous timeout)
@@ -1117,7 +1361,11 @@ pub async fn send_message_stream(
                             zeroclaw::approval::ApprovalResponse::No
                         }
                         Err(_) => {
-                            // Timeout — treat as denied
+                            // Timeout — clean up and treat as denied
+                            {
+                                let mut legacy = legacy_pending_approval().lock().await;
+                                *legacy = None;
+                            }
                             tracing::warn!("Tool approval timed out for request {request_id}");
                             zeroclaw::approval::ApprovalResponse::No
                         }
@@ -1128,23 +1376,15 @@ pub async fn send_message_stream(
     } else {
         None
     };
-    let on_approval_arc: Option<zeroclaw::agent::loop_::OnApprovalArc> =
-        on_approval_fn.map(std::sync::Arc::new);
 
+    // Lock only this session's agent — other sessions remain unblocked
     let turn_result = {
-        let mut agent_guard = agent_handle().lock().await;
-        let agent = match agent_guard.as_mut() {
-            Some(a) => a,
-            None => {
-                let _ = sink.add(AgentEvent::Error {
-                    message: "Agent not available".into(),
-                });
-                return;
-            }
-        };
+        let mut session_agent = agent_arc.lock().await;
+        session_agent.last_used = Instant::now();
+        let agent = &mut session_agent.agent;
         timeout(
             Duration::from_secs(TURN_TIMEOUT_SECS),
-            agent.turn_streaming(&enriched_message, tx, on_approval_arc),
+            agent.turn_streaming(&enriched_message, tx, on_approval_fn.as_ref()),
         )
         .await
     };
@@ -1163,12 +1403,21 @@ pub async fn send_message_stream(
 
     match turn_result {
         Ok(Ok(_)) => {
+            tracing::info!(
+                session_id = %session_id,
+                "Agent turn completed successfully"
+            );
             let _ = sink.add(AgentEvent::MessageComplete {
                 input_tokens: None,
                 output_tokens: None,
             });
         }
         Ok(Err(e)) => {
+            tracing::info!(
+                session_id = %session_id,
+                error = %e,
+                "Agent turn encountered an error"
+            );
             tracing::error!("Agent turn error: {e}");
             let _ = sink.add(AgentEvent::Error {
                 message: e.to_string(),
@@ -1187,28 +1436,31 @@ pub async fn send_message_stream(
 
 // ──────────────────── Tool Listing ────────────────────────────
 
-/// List available tools dynamically from the agent's registered tool specs.
+/// List available tools dynamically from any agent's registered tool specs.
 /// Falls back to a minimal static list if no agent is currently initialized.
 ///
 /// Note: kept as sync (#[frb(sync)]) to match the existing FRB generated binding.
-/// Uses `try_lock` to avoid blocking if agent is mid-turn.
+/// Uses `try_lock` to avoid blocking if agents are busy.
 #[frb(sync)]
 pub fn list_tools() -> Vec<ToolSpecDto> {
-    // Try non-blocking lock — if agent is busy (mid-turn), fall back to static list
-    if let Ok(guard) = agent_handle().try_lock() {
-        if let Some(agent) = guard.as_ref() {
-            return agent
-                .tool_specs()
-                .iter()
-                .map(|spec| ToolSpecDto {
-                    name: spec.name.clone(),
-                    description: spec.description.clone(),
-                })
-                .collect();
+    // Try to get tool specs from any available session agent
+    if let Ok(agents) = session_agents().try_read() {
+        for (_session_id, agent_arc) in agents.iter() {
+            if let Ok(session_agent) = agent_arc.try_lock() {
+                return session_agent
+                    .agent
+                    .tool_specs()
+                    .iter()
+                    .map(|spec| ToolSpecDto {
+                        name: spec.name.clone(),
+                        description: spec.description.clone(),
+                    })
+                    .collect();
+            }
         }
     }
 
-    // Fallback: no agent yet or agent is busy
+    // Fallback: no agents yet or all agents are busy
     vec![
         ToolSpecDto {
             name: "shell".into(),

@@ -120,6 +120,9 @@
   "maxActionsPerHour": "每小时最大操作数",
   "maxCostPerDay": "每日最大费用",
   "allowedCommands": "允许的命令",
+  "addCommand": "添加命令",
+  "commandNameHint": "输入命令名称（例如：open）",
+  "noCommandsConfigured": "未配置允许的命令",
   "autoApprovedTools": "自动审批的工具",
   "toolsSection": "工具",
   "toolCountLabel": "{count} 个工具",
@@ -136,6 +139,7 @@
   "deleteSessionTitle": "删除会话",
   "deleteSessionConfirm": "确定删除此会话？此操作不可撤销。",
   "cancel": "取消",
+  "add": "添加",
   "delete": "删除",
   "sessionDeleted": "已删除会话",
   "renameSessionTitle": "重命名会话",
@@ -454,5 +458,7 @@
   "mcpServerDeleted": "MCP 服务器已删除",
   "mcpTransportStdio": "标准 I/O",
   "mcpTransportHttp": "HTTP",
-  "mcpTransportSse": "Server-Sent Events"
+  "mcpTransportSse": "Server-Sent Events",
+
+  "retryMessage": "重试"
 }

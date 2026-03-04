@@ -375,6 +375,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get allowedCommands => '允许的命令';
 
   @override
+  String get addCommand => '添加命令';
+
+  @override
+  String get commandNameHint => '输入命令名称（例如：open）';
+
+  @override
+  String get noCommandsConfigured => '未配置允许的命令';
+
+  @override
   String get autoApprovedTools => '自动审批的工具';
 
   @override
@@ -423,6 +432,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cancel => '取消';
+
+  @override
+  String get add => '添加';
 
   @override
   String get delete => '删除';
@@ -1429,4 +1441,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get mcpTransportSse => 'Server-Sent Events';
+
+  @override
+  String get retryMessage => '重试';
 }

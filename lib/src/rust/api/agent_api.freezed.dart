@@ -55,12 +55,13 @@ extension AgentEventPatterns on AgentEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( AgentEvent_Thinking value)?  thinking,TResult Function( AgentEvent_TextDelta value)?  textDelta,TResult Function( AgentEvent_ToolCallStart value)?  toolCallStart,TResult Function( AgentEvent_ToolCallEnd value)?  toolCallEnd,TResult Function( AgentEvent_ToolApprovalRequest value)?  toolApprovalRequest,TResult Function( AgentEvent_MessageComplete value)?  messageComplete,TResult Function( AgentEvent_Error value)?  error,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( AgentEvent_Thinking value)?  thinking,TResult Function( AgentEvent_TextDelta value)?  textDelta,TResult Function( AgentEvent_ClearStreamedContent value)?  clearStreamedContent,TResult Function( AgentEvent_ToolCallStart value)?  toolCallStart,TResult Function( AgentEvent_ToolCallEnd value)?  toolCallEnd,TResult Function( AgentEvent_ToolApprovalRequest value)?  toolApprovalRequest,TResult Function( AgentEvent_MessageComplete value)?  messageComplete,TResult Function( AgentEvent_Error value)?  error,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case AgentEvent_Thinking() when thinking != null:
 return thinking(_that);case AgentEvent_TextDelta() when textDelta != null:
-return textDelta(_that);case AgentEvent_ToolCallStart() when toolCallStart != null:
+return textDelta(_that);case AgentEvent_ClearStreamedContent() when clearStreamedContent != null:
+return clearStreamedContent(_that);case AgentEvent_ToolCallStart() when toolCallStart != null:
 return toolCallStart(_that);case AgentEvent_ToolCallEnd() when toolCallEnd != null:
 return toolCallEnd(_that);case AgentEvent_ToolApprovalRequest() when toolApprovalRequest != null:
 return toolApprovalRequest(_that);case AgentEvent_MessageComplete() when messageComplete != null:
@@ -83,12 +84,13 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( AgentEvent_Thinking value)  thinking,required TResult Function( AgentEvent_TextDelta value)  textDelta,required TResult Function( AgentEvent_ToolCallStart value)  toolCallStart,required TResult Function( AgentEvent_ToolCallEnd value)  toolCallEnd,required TResult Function( AgentEvent_ToolApprovalRequest value)  toolApprovalRequest,required TResult Function( AgentEvent_MessageComplete value)  messageComplete,required TResult Function( AgentEvent_Error value)  error,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( AgentEvent_Thinking value)  thinking,required TResult Function( AgentEvent_TextDelta value)  textDelta,required TResult Function( AgentEvent_ClearStreamedContent value)  clearStreamedContent,required TResult Function( AgentEvent_ToolCallStart value)  toolCallStart,required TResult Function( AgentEvent_ToolCallEnd value)  toolCallEnd,required TResult Function( AgentEvent_ToolApprovalRequest value)  toolApprovalRequest,required TResult Function( AgentEvent_MessageComplete value)  messageComplete,required TResult Function( AgentEvent_Error value)  error,}){
 final _that = this;
 switch (_that) {
 case AgentEvent_Thinking():
 return thinking(_that);case AgentEvent_TextDelta():
-return textDelta(_that);case AgentEvent_ToolCallStart():
+return textDelta(_that);case AgentEvent_ClearStreamedContent():
+return clearStreamedContent(_that);case AgentEvent_ToolCallStart():
 return toolCallStart(_that);case AgentEvent_ToolCallEnd():
 return toolCallEnd(_that);case AgentEvent_ToolApprovalRequest():
 return toolApprovalRequest(_that);case AgentEvent_MessageComplete():
@@ -107,12 +109,13 @@ return error(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( AgentEvent_Thinking value)?  thinking,TResult? Function( AgentEvent_TextDelta value)?  textDelta,TResult? Function( AgentEvent_ToolCallStart value)?  toolCallStart,TResult? Function( AgentEvent_ToolCallEnd value)?  toolCallEnd,TResult? Function( AgentEvent_ToolApprovalRequest value)?  toolApprovalRequest,TResult? Function( AgentEvent_MessageComplete value)?  messageComplete,TResult? Function( AgentEvent_Error value)?  error,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( AgentEvent_Thinking value)?  thinking,TResult? Function( AgentEvent_TextDelta value)?  textDelta,TResult? Function( AgentEvent_ClearStreamedContent value)?  clearStreamedContent,TResult? Function( AgentEvent_ToolCallStart value)?  toolCallStart,TResult? Function( AgentEvent_ToolCallEnd value)?  toolCallEnd,TResult? Function( AgentEvent_ToolApprovalRequest value)?  toolApprovalRequest,TResult? Function( AgentEvent_MessageComplete value)?  messageComplete,TResult? Function( AgentEvent_Error value)?  error,}){
 final _that = this;
 switch (_that) {
 case AgentEvent_Thinking() when thinking != null:
 return thinking(_that);case AgentEvent_TextDelta() when textDelta != null:
-return textDelta(_that);case AgentEvent_ToolCallStart() when toolCallStart != null:
+return textDelta(_that);case AgentEvent_ClearStreamedContent() when clearStreamedContent != null:
+return clearStreamedContent(_that);case AgentEvent_ToolCallStart() when toolCallStart != null:
 return toolCallStart(_that);case AgentEvent_ToolCallEnd() when toolCallEnd != null:
 return toolCallEnd(_that);case AgentEvent_ToolApprovalRequest() when toolApprovalRequest != null:
 return toolApprovalRequest(_that);case AgentEvent_MessageComplete() when messageComplete != null:
@@ -134,11 +137,12 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  thinking,TResult Function( String text)?  textDelta,TResult Function( String name,  String args)?  toolCallStart,TResult Function( String name,  String result,  bool success)?  toolCallEnd,TResult Function( String requestId,  String name,  String args)?  toolApprovalRequest,TResult Function( BigInt? inputTokens,  BigInt? outputTokens)?  messageComplete,TResult Function( String message)?  error,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  thinking,TResult Function( String text)?  textDelta,TResult Function()?  clearStreamedContent,TResult Function( String name,  String args)?  toolCallStart,TResult Function( String name,  String result,  bool success)?  toolCallEnd,TResult Function( String requestId,  String name,  String args)?  toolApprovalRequest,TResult Function( BigInt? inputTokens,  BigInt? outputTokens)?  messageComplete,TResult Function( String message)?  error,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case AgentEvent_Thinking() when thinking != null:
 return thinking();case AgentEvent_TextDelta() when textDelta != null:
-return textDelta(_that.text);case AgentEvent_ToolCallStart() when toolCallStart != null:
+return textDelta(_that.text);case AgentEvent_ClearStreamedContent() when clearStreamedContent != null:
+return clearStreamedContent();case AgentEvent_ToolCallStart() when toolCallStart != null:
 return toolCallStart(_that.name,_that.args);case AgentEvent_ToolCallEnd() when toolCallEnd != null:
 return toolCallEnd(_that.name,_that.result,_that.success);case AgentEvent_ToolApprovalRequest() when toolApprovalRequest != null:
 return toolApprovalRequest(_that.requestId,_that.name,_that.args);case AgentEvent_MessageComplete() when messageComplete != null:
@@ -161,11 +165,12 @@ return error(_that.message);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  thinking,required TResult Function( String text)  textDelta,required TResult Function( String name,  String args)  toolCallStart,required TResult Function( String name,  String result,  bool success)  toolCallEnd,required TResult Function( String requestId,  String name,  String args)  toolApprovalRequest,required TResult Function( BigInt? inputTokens,  BigInt? outputTokens)  messageComplete,required TResult Function( String message)  error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  thinking,required TResult Function( String text)  textDelta,required TResult Function()  clearStreamedContent,required TResult Function( String name,  String args)  toolCallStart,required TResult Function( String name,  String result,  bool success)  toolCallEnd,required TResult Function( String requestId,  String name,  String args)  toolApprovalRequest,required TResult Function( BigInt? inputTokens,  BigInt? outputTokens)  messageComplete,required TResult Function( String message)  error,}) {final _that = this;
 switch (_that) {
 case AgentEvent_Thinking():
 return thinking();case AgentEvent_TextDelta():
-return textDelta(_that.text);case AgentEvent_ToolCallStart():
+return textDelta(_that.text);case AgentEvent_ClearStreamedContent():
+return clearStreamedContent();case AgentEvent_ToolCallStart():
 return toolCallStart(_that.name,_that.args);case AgentEvent_ToolCallEnd():
 return toolCallEnd(_that.name,_that.result,_that.success);case AgentEvent_ToolApprovalRequest():
 return toolApprovalRequest(_that.requestId,_that.name,_that.args);case AgentEvent_MessageComplete():
@@ -184,11 +189,12 @@ return error(_that.message);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  thinking,TResult? Function( String text)?  textDelta,TResult? Function( String name,  String args)?  toolCallStart,TResult? Function( String name,  String result,  bool success)?  toolCallEnd,TResult? Function( String requestId,  String name,  String args)?  toolApprovalRequest,TResult? Function( BigInt? inputTokens,  BigInt? outputTokens)?  messageComplete,TResult? Function( String message)?  error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  thinking,TResult? Function( String text)?  textDelta,TResult? Function()?  clearStreamedContent,TResult? Function( String name,  String args)?  toolCallStart,TResult? Function( String name,  String result,  bool success)?  toolCallEnd,TResult? Function( String requestId,  String name,  String args)?  toolApprovalRequest,TResult? Function( BigInt? inputTokens,  BigInt? outputTokens)?  messageComplete,TResult? Function( String message)?  error,}) {final _that = this;
 switch (_that) {
 case AgentEvent_Thinking() when thinking != null:
 return thinking();case AgentEvent_TextDelta() when textDelta != null:
-return textDelta(_that.text);case AgentEvent_ToolCallStart() when toolCallStart != null:
+return textDelta(_that.text);case AgentEvent_ClearStreamedContent() when clearStreamedContent != null:
+return clearStreamedContent();case AgentEvent_ToolCallStart() when toolCallStart != null:
 return toolCallStart(_that.name,_that.args);case AgentEvent_ToolCallEnd() when toolCallEnd != null:
 return toolCallEnd(_that.name,_that.result,_that.success);case AgentEvent_ToolApprovalRequest() when toolApprovalRequest != null:
 return toolApprovalRequest(_that.requestId,_that.name,_that.args);case AgentEvent_MessageComplete() when messageComplete != null:
@@ -298,6 +304,38 @@ as String,
 
 
 }
+
+/// @nodoc
+
+
+class AgentEvent_ClearStreamedContent extends AgentEvent {
+  const AgentEvent_ClearStreamedContent(): super._();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AgentEvent_ClearStreamedContent);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'AgentEvent.clearStreamedContent()';
+}
+
+
+}
+
+
+
 
 /// @nodoc
 

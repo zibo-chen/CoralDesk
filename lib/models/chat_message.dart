@@ -1,3 +1,20 @@
+/// A segment of message content, rendered in order.
+sealed class MessagePart {
+  const MessagePart();
+}
+
+/// A text content segment.
+class TextPart extends MessagePart {
+  final String text;
+  const TextPart(this.text);
+}
+
+/// A tool call content segment.
+class ToolCallPart extends MessagePart {
+  final ToolCallInfo toolCall;
+  const ToolCallPart(this.toolCall);
+}
+
 /// Represents a single chat message
 class ChatMessage {
   final String id;
@@ -7,6 +24,11 @@ class ChatMessage {
   final List<ToolCallInfo>? toolCalls;
   final bool isStreaming;
 
+  /// Ordered content parts for assistant messages.
+  /// When non-null the UI renders parts in order instead of the flat
+  /// [toolCalls] + [content] layout.
+  final List<MessagePart>? parts;
+
   const ChatMessage({
     required this.id,
     required this.role,
@@ -14,6 +36,7 @@ class ChatMessage {
     required this.timestamp,
     this.toolCalls,
     this.isStreaming = false,
+    this.parts,
   });
 
   ChatMessage copyWith({
@@ -23,6 +46,7 @@ class ChatMessage {
     DateTime? timestamp,
     List<ToolCallInfo>? toolCalls,
     bool? isStreaming,
+    List<MessagePart>? parts,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -31,6 +55,7 @@ class ChatMessage {
       timestamp: timestamp ?? this.timestamp,
       toolCalls: toolCalls ?? this.toolCalls,
       isStreaming: isStreaming ?? this.isStreaming,
+      parts: parts ?? this.parts,
     );
   }
 

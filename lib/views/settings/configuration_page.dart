@@ -37,6 +37,44 @@ class _ConfigurationPageState extends ConsumerState<ConfigurationPage> {
     }
   }
 
+  Future<void> _removeCommand(String command) async {
+    await ws_api.removeAllowedCommand(command: command);
+    _loadAll();
+  }
+
+  Future<void> _showAddCommandDialog() async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(AppLocalizations.of(context)!.addCommand),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: AppLocalizations.of(context)!.commandNameHint,
+            border: const OutlineInputBorder(),
+          ),
+          onSubmitted: (value) => Navigator.of(ctx).pop(value.trim()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(AppLocalizations.of(context)!.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+            child: Text(AppLocalizations.of(context)!.add),
+          ),
+        ],
+      ),
+    );
+    if (result != null && result.isNotEmpty) {
+      await ws_api.addAllowedCommand(command: result);
+      _loadAll();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SettingsScaffold(
@@ -191,13 +229,30 @@ class _ConfigurationPageState extends ConsumerState<ConfigurationPage> {
 
           if (a.allowedCommands.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Text(
-              AppLocalizations.of(context)!.allowedCommands,
-              style: TextStyle(
-                fontSize: 13,
-                color: c.textSecondary,
-                fontWeight: FontWeight.w500,
-              ),
+            Row(
+              children: [
+                Text(
+                  AppLocalizations.of(context)!.allowedCommands,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: c.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: Icon(
+                    Icons.add_circle_outline,
+                    size: 18,
+                    color: AppColors.primary,
+                  ),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () => _showAddCommandDialog(),
+                  tooltip: AppLocalizations.of(context)!.addCommand,
+                ),
+              ],
             ),
             const SizedBox(height: 6),
             Wrap(
@@ -205,13 +260,51 @@ class _ConfigurationPageState extends ConsumerState<ConfigurationPage> {
               runSpacing: 4,
               children: a.allowedCommands
                   .map(
-                    (c) => Chip(
-                      label: Text(c, style: const TextStyle(fontSize: 11)),
+                    (cmd) => Chip(
+                      label: Text(cmd, style: const TextStyle(fontSize: 11)),
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       visualDensity: VisualDensity.compact,
+                      deleteIcon: const Icon(Icons.close, size: 14),
+                      onDeleted: () => _removeCommand(cmd),
                     ),
                   )
                   .toList(),
+            ),
+          ] else ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Text(
+                  AppLocalizations.of(context)!.allowedCommands,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: c.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: Icon(
+                    Icons.add_circle_outline,
+                    size: 18,
+                    color: AppColors.primary,
+                  ),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () => _showAddCommandDialog(),
+                  tooltip: AppLocalizations.of(context)!.addCommand,
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              AppLocalizations.of(context)!.noCommandsConfigured,
+              style: TextStyle(
+                fontSize: 11,
+                color: c.textSecondary.withValues(alpha: 0.7),
+                fontStyle: FontStyle.italic,
+              ),
             ),
           ],
 
