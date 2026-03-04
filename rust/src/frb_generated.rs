@@ -4807,6 +4807,7 @@ impl SseDecode for crate::api::routes_api::EmbeddingConfigDto {
         let mut var_keywordWeight = <f64>::sse_decode(deserializer);
         let mut var_minRelevanceScore = <f64>::sse_decode(deserializer);
         let mut var_embeddingBaseUrl = <Option<String>>::sse_decode(deserializer);
+        let mut var_embeddingApiKey = <Option<String>>::sse_decode(deserializer);
         return crate::api::routes_api::EmbeddingConfigDto {
             embedding_provider: var_embeddingProvider,
             embedding_model: var_embeddingModel,
@@ -4815,6 +4816,7 @@ impl SseDecode for crate::api::routes_api::EmbeddingConfigDto {
             keyword_weight: var_keywordWeight,
             min_relevance_score: var_minRelevanceScore,
             embedding_base_url: var_embeddingBaseUrl,
+            embedding_api_key: var_embeddingApiKey,
         };
     }
 }
@@ -6586,6 +6588,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::routes_api::EmbeddingConfigDt
             self.keyword_weight.into_into_dart().into_dart(),
             self.min_relevance_score.into_into_dart().into_dart(),
             self.embedding_base_url.into_into_dart().into_dart(),
+            self.embedding_api_key.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -7520,6 +7523,7 @@ impl SseEncode for crate::api::routes_api::EmbeddingConfigDto {
         <f64>::sse_encode(self.keyword_weight, serializer);
         <f64>::sse_encode(self.min_relevance_score, serializer);
         <Option<String>>::sse_encode(self.embedding_base_url, serializer);
+        <Option<String>>::sse_encode(self.embedding_api_key, serializer);
     }
 }
 

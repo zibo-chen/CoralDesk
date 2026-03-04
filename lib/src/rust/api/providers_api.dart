@@ -40,7 +40,8 @@ Future<String> switchActiveModel({
 Future<String> setDefaultProfile({required String id}) =>
     RustLib.instance.api.crateApiProvidersApiSetDefaultProfile(id: id);
 
-/// Get the current default profile ID (returns default_provider value).
+/// Get the current default profile ID.
+/// Returns the stored profile ID if set, otherwise returns empty string.
 Future<String> getDefaultProfileId() =>
     RustLib.instance.api.crateApiProvidersApiGetDefaultProfileId();
 

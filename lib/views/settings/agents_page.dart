@@ -4,6 +4,7 @@ import 'package:coraldesk/l10n/app_localizations.dart';
 import 'package:coraldesk/theme/app_theme.dart';
 import 'package:coraldesk/src/rust/api/agents_api.dart' as agents_api;
 import 'package:coraldesk/src/rust/api/config_api.dart' as config_api;
+import 'package:coraldesk/src/rust/api/providers_api.dart' as providers_api;
 import 'package:coraldesk/views/settings/widgets/settings_scaffold.dart';
 
 /// Sub-agent management page: list, create, edit, delete delegate agents
@@ -470,6 +471,8 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
   bool get _isEdit => widget.existing != null;
 
   late List<config_api.ProviderInfo> _providers;
+  List<providers_api.ModelProviderProfileDto> _providerProfiles = [];
+  String? _selectedProfileId; // Selected provider profile ID
   config_api.AppConfig? _defaultConfig;
 
   @override
@@ -518,10 +521,27 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
   }
 
   Future<void> _loadDefaultConfig() async {
-    final cfg = await config_api.loadConfig();
+    final results = await Future.wait([
+      config_api.loadConfig(),
+      providers_api.listModelProviderProfiles(),
+    ]);
     if (mounted) {
-      setState(() => _defaultConfig = cfg);
+      setState(() {
+        _defaultConfig = results[0] as config_api.AppConfig;
+        _providerProfiles =
+            results[1] as List<providers_api.ModelProviderProfileDto>;
+      });
     }
+  }
+
+  void _applyProfile(providers_api.ModelProviderProfileDto profile) {
+    setState(() {
+      // Use name (provider type) if available, otherwise use the profile id
+      _selectedProvider = profile.name ?? profile.id;
+      _modelCtrl.text = profile.defaultModel ?? '';
+      _apiKeyCtrl.text = profile.apiKey ?? '';
+      _selectedProfileId = profile.id;
+    });
   }
 
   void _applyDefaultConfig() {
@@ -588,26 +608,74 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Use default provider toggle
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(
-                  l10n.agentUseDefault,
-                  style: TextStyle(fontSize: 14, color: c.textPrimary),
+              // Provider Profile Selection (choose from pre-configured profiles)
+              if (_providerProfiles.isNotEmpty) ...[
+                DropdownButtonFormField<String?>(
+                  value: _selectedProfileId,
+                  decoration: InputDecoration(
+                    labelText: l10n.providerProfile,
+                    hintText: l10n.providerProfileSelectHint,
+                    border: const OutlineInputBorder(),
+                  ),
+                  items: [
+                    DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text(
+                        l10n.providerProfileManual,
+                        style: TextStyle(
+                          color: c.textSecondary,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                    ..._providerProfiles.map(
+                      (p) => DropdownMenuItem<String?>(
+                        value: p.id,
+                        child: Text(
+                          '${p.id}${p.name != null ? ' (${p.name})' : ''}',
+                        ),
+                      ),
+                    ),
+                  ],
+                  onChanged: (profileId) {
+                    if (profileId == null) {
+                      setState(() {
+                        _selectedProfileId = null;
+                        _useDefault = false;
+                      });
+                    } else {
+                      final profile = _providerProfiles.firstWhere(
+                        (p) => p.id == profileId,
+                      );
+                      _applyProfile(profile);
+                      setState(() => _useDefault = true);
+                    }
+                  },
                 ),
-                subtitle: Text(
-                  l10n.agentUseDefaultDesc,
-                  style: TextStyle(fontSize: 12, color: c.textSecondary),
+                const SizedBox(height: 12),
+              ],
+
+              // Use default provider toggle (fallback when no profiles configured)
+              if (_providerProfiles.isEmpty)
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    l10n.agentUseDefault,
+                    style: TextStyle(fontSize: 14, color: c.textPrimary),
+                  ),
+                  subtitle: Text(
+                    l10n.agentUseDefaultDesc,
+                    style: TextStyle(fontSize: 12, color: c.textSecondary),
+                  ),
+                  value: _useDefault,
+                  onChanged: (v) {
+                    setState(() {
+                      _useDefault = v;
+                      if (v) _applyDefaultConfig();
+                    });
+                  },
                 ),
-                value: _useDefault,
-                onChanged: (v) {
-                  setState(() {
-                    _useDefault = v;
-                    if (v) _applyDefaultConfig();
-                  });
-                },
-              ),
-              const SizedBox(height: 8),
+              if (_providerProfiles.isEmpty) const SizedBox(height: 8),
 
               // Name
               TextField(
@@ -621,9 +689,9 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
               ),
               const SizedBox(height: 12),
 
-              // Provider
+              // Provider (manual selection, disabled when using profile)
               DropdownButtonFormField<String>(
-                initialValue: _providers.any((p) => p.id == _selectedProvider)
+                value: _providers.any((p) => p.id == _selectedProvider)
                     ? _selectedProvider
                     : _providers.first.id,
                 decoration: InputDecoration(
@@ -635,7 +703,7 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
                       (p) => DropdownMenuItem(value: p.id, child: Text(p.name)),
                     )
                     .toList(),
-                onChanged: _useDefault
+                onChanged: _selectedProfileId != null
                     ? null
                     : (v) {
                         if (v != null) setState(() => _selectedProvider = v);
@@ -646,7 +714,7 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
               // Model
               TextField(
                 controller: _modelCtrl,
-                enabled: !_useDefault,
+                enabled: _selectedProfileId == null,
                 decoration: InputDecoration(
                   labelText: l10n.modelLabel,
                   hintText: l10n.modelNameHint,
@@ -659,7 +727,7 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
               TextField(
                 controller: _apiKeyCtrl,
                 obscureText: true,
-                enabled: !_useDefault,
+                enabled: _selectedProfileId == null,
                 decoration: InputDecoration(
                   labelText: '${l10n.apiKeyLabel} (${l10n.agentOptional})',
                   hintText: l10n.apiKeyHint,

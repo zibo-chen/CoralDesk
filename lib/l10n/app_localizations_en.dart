@@ -1493,6 +1493,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get providerProfiles => 'Provider Profiles';
 
   @override
+  String get providerProfile => 'Provider Profile';
+
+  @override
+  String get providerProfileSelectHint =>
+      'Select a profile or configure manually';
+
+  @override
+  String get providerProfileManual => 'Manual configuration';
+
+  @override
   String get providerProfilesDesc =>
       'Configure multiple provider profiles. Each profile can have its own API key, base URL, and default model. Use them in model routes or select in chat.';
 
@@ -1565,6 +1575,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get embeddingBaseUrlHint => 'e.g. https://api.openai.com';
+
+  @override
+  String get embeddingApiKey => 'Embedding API Key';
+
+  @override
+  String get embeddingApiKeyHint => 'API key for embedding provider';
 
   @override
   String get agentCapabilities => 'Capabilities';

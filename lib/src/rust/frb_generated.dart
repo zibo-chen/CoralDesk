@@ -4389,8 +4389,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   EmbeddingConfigDto dco_decode_embedding_config_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 7)
-      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
     return EmbeddingConfigDto(
       embeddingProvider: dco_decode_String(arr[0]),
       embeddingModel: dco_decode_String(arr[1]),
@@ -4399,6 +4399,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       keywordWeight: dco_decode_f_64(arr[4]),
       minRelevanceScore: dco_decode_f_64(arr[5]),
       embeddingBaseUrl: dco_decode_opt_String(arr[6]),
+      embeddingApiKey: dco_decode_opt_String(arr[7]),
     );
   }
 
@@ -5483,6 +5484,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_keywordWeight = sse_decode_f_64(deserializer);
     var var_minRelevanceScore = sse_decode_f_64(deserializer);
     var var_embeddingBaseUrl = sse_decode_opt_String(deserializer);
+    var var_embeddingApiKey = sse_decode_opt_String(deserializer);
     return EmbeddingConfigDto(
       embeddingProvider: var_embeddingProvider,
       embeddingModel: var_embeddingModel,
@@ -5491,6 +5493,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       keywordWeight: var_keywordWeight,
       minRelevanceScore: var_minRelevanceScore,
       embeddingBaseUrl: var_embeddingBaseUrl,
+      embeddingApiKey: var_embeddingApiKey,
     );
   }
 
@@ -6764,6 +6767,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_f_64(self.keywordWeight, serializer);
     sse_encode_f_64(self.minRelevanceScore, serializer);
     sse_encode_opt_String(self.embeddingBaseUrl, serializer);
+    sse_encode_opt_String(self.embeddingApiKey, serializer);
   }
 
   @protected

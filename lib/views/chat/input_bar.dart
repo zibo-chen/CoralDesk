@@ -237,6 +237,7 @@ class _ModelSelectorButtonState extends ConsumerState<_ModelSelectorButton> {
   void initState() {
     super.initState();
     _loadCurrentModel();
+    _loadProfilesForMenu();
   }
 
   Future<void> _loadCurrentModel() async {

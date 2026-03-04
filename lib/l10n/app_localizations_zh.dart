@@ -1452,6 +1452,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get providerProfiles => '供应商配置';
 
   @override
+  String get providerProfile => '供应商配置';
+
+  @override
+  String get providerProfileSelectHint => '选择配置或手动输入';
+
+  @override
+  String get providerProfileManual => '手动配置';
+
+  @override
   String get providerProfilesDesc =>
       '配置多个供应商。每个配置可拥有独立的 API Key、基础 URL 和默认模型。可在模型路由或聊天中使用。';
 
@@ -1523,6 +1532,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get embeddingBaseUrlHint => '例如 https://api.openai.com';
+
+  @override
+  String get embeddingApiKey => '嵌入 API 密钥';
+
+  @override
+  String get embeddingApiKeyHint => '嵌入供应商的 API 密钥';
 
   @override
   String get agentCapabilities => '能力标签';

@@ -2810,6 +2810,24 @@ abstract class AppLocalizations {
   /// **'Provider Profiles'**
   String get providerProfiles;
 
+  /// Provider profile dropdown label
+  ///
+  /// In en, this message translates to:
+  /// **'Provider Profile'**
+  String get providerProfile;
+
+  /// Provider profile selection hint
+  ///
+  /// In en, this message translates to:
+  /// **'Select a profile or configure manually'**
+  String get providerProfileSelectHint;
+
+  /// Manual configuration option in profile dropdown
+  ///
+  /// In en, this message translates to:
+  /// **'Manual configuration'**
+  String get providerProfileManual;
+
   /// Provider profiles description
   ///
   /// In en, this message translates to:
@@ -2941,6 +2959,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'e.g. https://api.openai.com'**
   String get embeddingBaseUrlHint;
+
+  /// Embedding API key field
+  ///
+  /// In en, this message translates to:
+  /// **'Embedding API Key'**
+  String get embeddingApiKey;
+
+  /// Embedding API key hint
+  ///
+  /// In en, this message translates to:
+  /// **'API key for embedding provider'**
+  String get embeddingApiKeyHint;
 
   /// Agent capabilities field
   ///

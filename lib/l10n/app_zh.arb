@@ -465,6 +465,9 @@
   "stopGenerating": "停止生成",
 
   "providerProfiles": "供应商配置",
+  "providerProfile": "供应商配置",
+  "providerProfileSelectHint": "选择配置或手动输入",
+  "providerProfileManual": "手动配置",
   "providerProfilesDesc": "配置多个供应商。每个配置可拥有独立的 API Key、基础 URL 和默认模型。可在模型路由或聊天中使用。",
   "providerProfileNew": "新建配置",
   "providerProfileEdit": "编辑配置",
@@ -487,6 +490,8 @@
   "chatCurrentModel": "当前: {provider} / {model}",
   "embeddingBaseUrl": "嵌入基础 URL",
   "embeddingBaseUrlHint": "例如 https://api.openai.com",
+  "embeddingApiKey": "嵌入 API 密钥",
+  "embeddingApiKeyHint": "嵌入供应商的 API 密钥",
   "agentCapabilities": "能力标签",
   "agentCapabilitiesHint": "research, coding, summarize",
   "agentPriority": "优先级",

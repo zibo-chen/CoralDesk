@@ -52,6 +52,9 @@ class EmbeddingConfigDto {
   /// Base URL for custom embedding endpoints (extracted from "custom:<url>" provider)
   final String? embeddingBaseUrl;
 
+  /// API key for embedding provider
+  final String? embeddingApiKey;
+
   const EmbeddingConfigDto({
     required this.embeddingProvider,
     required this.embeddingModel,
@@ -60,6 +63,7 @@ class EmbeddingConfigDto {
     required this.keywordWeight,
     required this.minRelevanceScore,
     this.embeddingBaseUrl,
+    this.embeddingApiKey,
   });
 
   @override
@@ -70,7 +74,8 @@ class EmbeddingConfigDto {
       vectorWeight.hashCode ^
       keywordWeight.hashCode ^
       minRelevanceScore.hashCode ^
-      embeddingBaseUrl.hashCode;
+      embeddingBaseUrl.hashCode ^
+      embeddingApiKey.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -83,7 +88,8 @@ class EmbeddingConfigDto {
           vectorWeight == other.vectorWeight &&
           keywordWeight == other.keywordWeight &&
           minRelevanceScore == other.minRelevanceScore &&
-          embeddingBaseUrl == other.embeddingBaseUrl;
+          embeddingBaseUrl == other.embeddingBaseUrl &&
+          embeddingApiKey == other.embeddingApiKey;
 }
 
 /// Embedding route DTO — route an embedding hint to a specific provider + model

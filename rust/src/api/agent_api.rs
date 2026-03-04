@@ -119,11 +119,21 @@ pub(crate) struct SessionAgent {
 /// Global configuration (shared across all sessions)
 pub(crate) struct GlobalConfig {
     pub(crate) config: Option<zeroclaw::Config>,
+    /// Currently selected default profile ID (separate from default_provider)
+    pub(crate) default_profile_id: Option<String>,
+    /// API key for embedding provider (not in zeroclaw::Config)
+    pub(crate) embedding_api_key: Option<String>,
 }
 
 pub(crate) fn global_config() -> &'static RwLock<GlobalConfig> {
     static STATE: OnceLock<RwLock<GlobalConfig>> = OnceLock::new();
-    STATE.get_or_init(|| RwLock::new(GlobalConfig { config: None }))
+    STATE.get_or_init(|| {
+        RwLock::new(GlobalConfig {
+            config: None,
+            default_profile_id: None,
+            embedding_api_key: None,
+        })
+    })
 }
 
 /// Session agents map: each session has its own independent Agent
@@ -285,6 +295,26 @@ pub async fn respond_to_tool_approval_by_id(request_id: String, decision: String
 
 // ──────────────────── Initialization API ──────────────────────
 
+/// Load default_profile_id from config file (custom field not in zeroclaw::Config)
+async fn load_default_profile_id(config_path: &std::path::Path) -> Option<String> {
+    let content = tokio::fs::read_to_string(config_path).await.ok()?;
+    let table: toml::Table = content.parse().ok()?;
+    table
+        .get("default_profile_id")
+        .and_then(|v| v.as_str())
+        .map(String::from)
+}
+
+/// Load embedding_api_key from config file (custom field not in zeroclaw::Config)
+async fn load_embedding_api_key(config_path: &std::path::Path) -> Option<String> {
+    let content = tokio::fs::read_to_string(config_path).await.ok()?;
+    let table: toml::Table = content.parse().ok()?;
+    table
+        .get("embedding_api_key")
+        .and_then(|v| v.as_str())
+        .map(String::from)
+}
+
 /// Initialize the agent runtime: load zeroclaw config from ~/.zeroclaw/config.toml.
 /// Returns a status string describing what was loaded.
 pub async fn init_runtime() -> String {
@@ -309,10 +339,17 @@ pub async fn init_runtime() -> String {
                 config.api_key.is_some(),
             );
 
+            // Load default_profile_id from config file (not part of zeroclaw::Config)
+            let default_profile_id = load_default_profile_id(&config.config_path).await;
+            // Load embedding_api_key from config file (not part of zeroclaw::Config)
+            let embedding_api_key = load_embedding_api_key(&config.config_path).await;
+
             // Update global config
             {
                 let mut gc = global_config().write().await;
                 gc.config = Some(config.clone());
+                gc.default_profile_id = default_profile_id;
+                gc.embedding_api_key = embedding_api_key;
             }
 
             // Also update legacy config_state for backward compatibility
@@ -433,6 +470,7 @@ pub async fn update_config(
 /// Reads the existing file, merges relevant fields, and writes back.
 pub async fn save_config_to_disk() -> String {
     let cs = config_state().read().await;
+    let gc = global_config().read().await;
     let config = match &cs.config {
         Some(c) => c,
         None => return "error: no config loaded".into(),
@@ -448,6 +486,26 @@ pub async fn save_config_to_disk() -> String {
         Ok(content) => content.parse().unwrap_or_default(),
         Err(_) => toml::Table::new(),
     };
+
+    // Persist default_profile_id (UI-selected profile)
+    if let Some(ref profile_id) = gc.default_profile_id {
+        table.insert(
+            "default_profile_id".into(),
+            toml::Value::String(profile_id.clone()),
+        );
+    } else {
+        table.remove("default_profile_id");
+    }
+
+    // Persist embedding_api_key (not in zeroclaw::Config)
+    if let Some(ref api_key) = gc.embedding_api_key {
+        table.insert(
+            "embedding_api_key".into(),
+            toml::Value::String(api_key.clone()),
+        );
+    } else {
+        table.remove("embedding_api_key");
+    }
 
     // Update the user-facing fields
     if let Some(ref provider) = config.default_provider {

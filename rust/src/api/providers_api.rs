@@ -329,6 +329,9 @@ pub async fn set_default_profile(id: String) -> String {
         let mut gc = super::agent_api::global_config().write().await;
         let mut cs = super::agent_api::config_state().write().await;
 
+        // Store the profile ID for UI persistence (do this first to avoid borrow issues)
+        gc.default_profile_id = Some(id.clone());
+
         let config = match gc.config.as_mut() {
             Some(c) => c,
             None => return "error: runtime not initialized".into(),
@@ -360,13 +363,11 @@ pub async fn set_default_profile(id: String) -> String {
     super::agent_api::save_config_to_disk().await
 }
 
-/// Get the current default profile ID (returns default_provider value).
+/// Get the current default profile ID.
+/// Returns the stored profile ID if set, otherwise returns empty string.
 pub async fn get_default_profile_id() -> String {
     let gc = super::agent_api::global_config().read().await;
-    match &gc.config {
-        Some(c) => c.default_provider.clone().unwrap_or_default(),
-        None => String::new(),
-    }
+    gc.default_profile_id.clone().unwrap_or_default()
 }
 
 /// Return the count of configured model provider profiles (sync for quick UI display)

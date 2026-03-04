@@ -30,6 +30,8 @@ pub struct EmbeddingConfigDto {
     pub min_relevance_score: f64,
     /// Base URL for custom embedding endpoints (extracted from "custom:<url>" provider)
     pub embedding_base_url: Option<String>,
+    /// API key for embedding provider
+    pub embedding_api_key: Option<String>,
 }
 
 // ──────────────────── Model Routes API ──────────────────────────
@@ -209,6 +211,7 @@ pub async fn remove_embedding_route(hint: String) -> String {
 /// Get current embedding configuration
 pub async fn get_embedding_config() -> EmbeddingConfigDto {
     let cs = super::agent_api::config_state().read().await;
+    let gc = super::agent_api::global_config().read().await;
     if let Some(config) = &cs.config {
         let m = &config.memory;
         // Extract base_url from "custom:<url>" provider format
@@ -226,6 +229,7 @@ pub async fn get_embedding_config() -> EmbeddingConfigDto {
             keyword_weight: m.keyword_weight,
             min_relevance_score: m.min_relevance_score,
             embedding_base_url: base_url,
+            embedding_api_key: gc.embedding_api_key.clone(),
         }
     } else {
         EmbeddingConfigDto {
@@ -236,6 +240,7 @@ pub async fn get_embedding_config() -> EmbeddingConfigDto {
             keyword_weight: 0.3,
             min_relevance_score: 0.4,
             embedding_base_url: None,
+            embedding_api_key: None,
         }
     }
 }
@@ -244,6 +249,7 @@ pub async fn get_embedding_config() -> EmbeddingConfigDto {
 pub async fn update_embedding_config(config: EmbeddingConfigDto) -> String {
     {
         let mut cs = super::agent_api::config_state().write().await;
+        let mut gc = super::agent_api::global_config().write().await;
         let cfg = match cs.config.as_mut() {
             Some(c) => c,
             None => return "error: runtime not initialized".into(),
@@ -263,6 +269,9 @@ pub async fn update_embedding_config(config: EmbeddingConfigDto) -> String {
         cfg.memory.vector_weight = config.vector_weight;
         cfg.memory.keyword_weight = config.keyword_weight;
         cfg.memory.min_relevance_score = config.min_relevance_score;
+
+        // Store API key in global config (not part of zeroclaw::Config)
+        gc.embedding_api_key = config.embedding_api_key;
     }
 
     super::agent_api::invalidate_all_agents().await;

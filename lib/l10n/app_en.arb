@@ -1460,6 +1460,15 @@
   "providerProfiles": "Provider Profiles",
   "@providerProfiles": { "description": "Provider profiles section title" },
 
+  "providerProfile": "Provider Profile",
+  "@providerProfile": { "description": "Provider profile dropdown label" },
+
+  "providerProfileSelectHint": "Select a profile or configure manually",
+  "@providerProfileSelectHint": { "description": "Provider profile selection hint" },
+
+  "providerProfileManual": "Manual configuration",
+  "@providerProfileManual": { "description": "Manual configuration option in profile dropdown" },
+
   "providerProfilesDesc": "Configure multiple provider profiles. Each profile can have its own API key, base URL, and default model. Use them in model routes or select in chat.",
   "@providerProfilesDesc": { "description": "Provider profiles description" },
 
@@ -1525,6 +1534,12 @@
 
   "embeddingBaseUrlHint": "e.g. https://api.openai.com",
   "@embeddingBaseUrlHint": { "description": "Embedding base URL hint" },
+
+  "embeddingApiKey": "Embedding API Key",
+  "@embeddingApiKey": { "description": "Embedding API key field" },
+
+  "embeddingApiKeyHint": "API key for embedding provider",
+  "@embeddingApiKeyHint": { "description": "Embedding API key hint" },
 
   "agentCapabilities": "Capabilities",
   "@agentCapabilities": { "description": "Agent capabilities field" },
