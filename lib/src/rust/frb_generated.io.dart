@@ -5,11 +5,13 @@
 
 import 'api/agent_api.dart';
 import 'api/agents_api.dart';
+import 'api/browser_bootstrap.dart';
 import 'api/config_api.dart';
 import 'api/cron_api.dart';
 import 'api/cron_notification_api.dart';
 import 'api/knowledge_api.dart';
 import 'api/mcp_api.dart';
+import 'api/providers_api.dart';
 import 'api/proxy_api.dart';
 import 'api/routes_api.dart';
 import 'api/sessions_api.dart';
@@ -85,6 +87,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   McpServerDto dco_decode_box_autoadd_mcp_server_dto(dynamic raw);
+
+  @protected
+  ModelProviderProfileDto dco_decode_box_autoadd_model_provider_profile_dto(
+    dynamic raw,
+  );
 
   @protected
   ModelRouteDto dco_decode_box_autoadd_model_route_dto(dynamic raw);
@@ -183,6 +190,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<McpServerDto> dco_decode_list_mcp_server_dto(dynamic raw);
 
   @protected
+  List<ModelProviderProfileDto> dco_decode_list_model_provider_profile_dto(
+    dynamic raw,
+  );
+
+  @protected
   List<ModelRouteDto> dco_decode_list_model_route_dto(dynamic raw);
 
   @protected
@@ -223,6 +235,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   MemoryConfigDto dco_decode_memory_config_dto(dynamic raw);
+
+  @protected
+  ModelProviderProfileDto dco_decode_model_provider_profile_dto(dynamic raw);
 
   @protected
   ModelRouteDto dco_decode_model_route_dto(dynamic raw);
@@ -386,6 +401,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ModelProviderProfileDto sse_decode_box_autoadd_model_provider_profile_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ModelRouteDto sse_decode_box_autoadd_model_route_dto(
     SseDeserializer deserializer,
   );
@@ -502,6 +522,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<ModelProviderProfileDto> sse_decode_list_model_provider_profile_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<ModelRouteDto> sse_decode_list_model_route_dto(
     SseDeserializer deserializer,
   );
@@ -556,6 +581,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   MemoryConfigDto sse_decode_memory_config_dto(SseDeserializer deserializer);
+
+  @protected
+  ModelProviderProfileDto sse_decode_model_provider_profile_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   ModelRouteDto sse_decode_model_route_dto(SseDeserializer deserializer);
@@ -747,6 +777,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_model_provider_profile_dto(
+    ModelProviderProfileDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_model_route_dto(
     ModelRouteDto self,
     SseSerializer serializer,
@@ -906,6 +942,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_model_provider_profile_dto(
+    List<ModelProviderProfileDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_model_route_dto(
     List<ModelRouteDto> self,
     SseSerializer serializer,
@@ -974,6 +1016,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_memory_config_dto(
     MemoryConfigDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_model_provider_profile_dto(
+    ModelProviderProfileDto self,
     SseSerializer serializer,
   );
 

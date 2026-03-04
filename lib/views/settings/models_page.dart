@@ -5,6 +5,7 @@ import 'package:coraldesk/theme/app_theme.dart';
 import 'package:coraldesk/src/rust/api/config_api.dart' as config_api;
 import 'package:coraldesk/src/rust/api/agent_api.dart' as agent_api;
 import 'package:coraldesk/src/rust/api/routes_api.dart' as routes_api;
+import 'package:coraldesk/src/rust/api/providers_api.dart' as providers_api;
 import 'package:coraldesk/views/settings/widgets/settings_scaffold.dart';
 
 /// Models settings page — default provider, model routes, embedding config
@@ -17,32 +18,26 @@ class ModelsPage extends ConsumerStatefulWidget {
 
 class _ModelsPageState extends ConsumerState<ModelsPage> {
   late List<config_api.ProviderInfo> _providers;
-  String _selectedProviderId = 'openrouter';
-  String _selectedModel = 'anthropic/claude-sonnet-4-20250514';
-  final TextEditingController _apiKeyController = TextEditingController();
-  final TextEditingController _apiBaseController = TextEditingController();
-  final TextEditingController _modelController = TextEditingController();
-  double _temperature = 0.7;
   bool _isLoading = true;
-  bool _isSaving = false;
-  String? _saveMessage;
   CoralDeskColors get c => CoralDeskColors.of(context);
 
   // Model routes
   List<routes_api.ModelRouteDto> _modelRoutes = [];
 
+  // Provider profiles
+  List<providers_api.ModelProviderProfileDto> _providerProfiles = [];
+  String _defaultProfileId = '';
+
   // Embedding config
   String _embeddingProvider = 'none';
   final TextEditingController _embeddingModelCtrl = TextEditingController();
   final TextEditingController _embeddingDimsCtrl = TextEditingController();
+  final TextEditingController _embeddingBaseUrlCtrl = TextEditingController();
   double _vectorWeight = 0.7;
   double _keywordWeight = 0.3;
   double _minRelevanceScore = 0.4;
   bool _isSavingEmbedding = false;
   String? _embeddingSaveMessage;
-
-  /// Providers that allow custom model name input
-  static const _customModelProviders = {'compatible', 'ollama', 'openrouter'};
 
   @override
   void initState() {
@@ -53,87 +48,44 @@ class _ModelsPageState extends ConsumerState<ModelsPage> {
 
   @override
   void dispose() {
-    _apiKeyController.dispose();
-    _apiBaseController.dispose();
-    _modelController.dispose();
     _embeddingModelCtrl.dispose();
     _embeddingDimsCtrl.dispose();
+    _embeddingBaseUrlCtrl.dispose();
     super.dispose();
   }
 
-  bool get _supportsCustomModel =>
-      _customModelProviders.contains(_selectedProviderId);
-
   Future<void> _loadAll() async {
     final results = await Future.wait([
-      config_api.loadConfig(),
       routes_api.listModelRoutes(),
       routes_api.getEmbeddingConfig(),
+      providers_api.listModelProviderProfiles(),
+      providers_api.getDefaultProfileId(),
     ]);
 
-    final config = results[0] as config_api.AppConfig;
-    final routes = results[1] as List<routes_api.ModelRouteDto>;
-    final embedding = results[2] as routes_api.EmbeddingConfigDto;
+    final routes = results[0] as List<routes_api.ModelRouteDto>;
+    final embedding = results[1] as routes_api.EmbeddingConfigDto;
+    final profiles = results[2] as List<providers_api.ModelProviderProfileDto>;
+    final defaultId = results[3] as String;
 
     if (!mounted) return;
     setState(() {
-      // Default provider
-      _selectedProviderId = config.provider;
-      _selectedModel = config.model;
-      _modelController.text = config.model;
-      _apiKeyController.text = config.apiKey;
-      _apiBaseController.text = config.apiBase ?? '';
-      _temperature = config.temperature;
-
       // Routes
       _modelRoutes = routes;
+
+      // Provider profiles
+      _providerProfiles = profiles;
+      _defaultProfileId = defaultId;
 
       // Embedding
       _embeddingProvider = embedding.embeddingProvider;
       _embeddingModelCtrl.text = embedding.embeddingModel;
       _embeddingDimsCtrl.text = embedding.embeddingDimensions.toString();
+      _embeddingBaseUrlCtrl.text = embedding.embeddingBaseUrl ?? '';
       _vectorWeight = embedding.vectorWeight;
       _keywordWeight = embedding.keywordWeight;
       _minRelevanceScore = embedding.minRelevanceScore;
 
       _isLoading = false;
-    });
-  }
-
-  Future<void> _saveConfig() async {
-    setState(() {
-      _isSaving = true;
-      _saveMessage = null;
-    });
-
-    final modelToSave = _supportsCustomModel
-        ? _modelController.text.trim()
-        : _selectedModel;
-
-    final success = await config_api.saveConfig(
-      config: config_api.AppConfig(
-        provider: _selectedProviderId,
-        model: modelToSave,
-        apiKey: _apiKeyController.text.trim(),
-        apiBase: _apiBaseController.text.trim().isEmpty
-            ? null
-            : _apiBaseController.text.trim(),
-        temperature: _temperature,
-        maxToolIterations: 10,
-        language: 'en',
-      ),
-    );
-
-    if (!mounted) return;
-    setState(() {
-      _isSaving = false;
-      _saveMessage = success
-          ? AppLocalizations.of(context)!.configSaved
-          : AppLocalizations.of(context)!.configSaveFailed;
-    });
-
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) setState(() => _saveMessage = null);
     });
   }
 
@@ -152,6 +104,9 @@ class _ModelsPageState extends ConsumerState<ModelsPage> {
         vectorWeight: _vectorWeight,
         keywordWeight: _keywordWeight,
         minRelevanceScore: _minRelevanceScore,
+        embeddingBaseUrl: _embeddingBaseUrlCtrl.text.trim().isEmpty
+            ? null
+            : _embeddingBaseUrlCtrl.text.trim(),
       ),
     );
 
@@ -237,13 +192,6 @@ class _ModelsPageState extends ConsumerState<ModelsPage> {
     );
   }
 
-  config_api.ProviderInfo get _currentProvider {
-    return _providers.firstWhere(
-      (p) => p.id == _selectedProviderId,
-      orElse: () => _providers.first,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -254,10 +202,10 @@ class _ModelsPageState extends ConsumerState<ModelsPage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ─── Section 1: Default Provider ───
+          // ─── Section 1: Provider Profiles ───
           _buildSection(
-            title: l10n.providerConfiguration,
-            child: _buildDefaultProviderSection(),
+            title: l10n.providerProfiles,
+            child: _buildProviderProfilesSection(),
           ),
 
           const SizedBox(height: 24),
@@ -327,10 +275,10 @@ class _ModelsPageState extends ConsumerState<ModelsPage> {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  //  Section 1: Default Provider
+  //  Section 1: Provider Profiles
   // ═══════════════════════════════════════════════════════════════
 
-  Widget _buildDefaultProviderSection() {
+  Widget _buildProviderProfilesSection() {
     final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(20),
@@ -342,128 +290,260 @@ class _ModelsPageState extends ConsumerState<ModelsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Provider dropdown
-          _buildDropdownRow(
-            l10n.providerLabel,
-            _selectedProviderId,
-            _providers.map((p) => p.id).toList(),
-            _providers.map((p) => p.name).toList(),
-            (value) {
-              setState(() {
-                _selectedProviderId = value!;
-                final provider = _currentProvider;
-                if (provider.models.isNotEmpty) {
-                  _selectedModel = provider.models.first;
-                  _modelController.text = _selectedModel;
-                }
-              });
-            },
-          ),
-          const SizedBox(height: 16),
-
-          // Model selector
-          if (_supportsCustomModel)
-            _buildEditableModelRow()
-          else
-            _buildDropdownRow(
-              l10n.modelLabel,
-              _currentProvider.models.contains(_selectedModel)
-                  ? _selectedModel
-                  : _currentProvider.models.first,
-              _currentProvider.models,
-              _currentProvider.models,
-              (value) {
-                setState(() {
-                  _selectedModel = value!;
-                  _modelController.text = value;
-                });
-              },
-            ),
-          const SizedBox(height: 16),
-
-          // API Key
-          if (_currentProvider.requiresApiKey) ...[
-            _buildTextFieldRow(
-              l10n.apiKeyLabel,
-              l10n.apiKeyHint,
-              _apiKeyController,
-              obscure: true,
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          // API Base URL
-          if (_currentProvider.requiresApiBase) ...[
-            _buildTextFieldRow(
-              l10n.apiBaseUrlLabel,
-              _selectedProviderId == 'ollama'
-                  ? 'http://localhost:11434'
-                  : 'https://api.example.com/v1',
-              _apiBaseController,
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          // Temperature
-          _buildSliderRow(
-            l10n.temperatureLabel,
-            _temperature,
-            (value) => setState(() => _temperature = value),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Save button
+          // Description + Add button
           Row(
             children: [
-              ElevatedButton.icon(
-                onPressed: _isSaving ? null : _saveConfig,
-                icon: _isSaving
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.save, size: 18),
-                label: Text(_isSaving ? l10n.saving : l10n.save),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
+              Expanded(
+                child: Text(
+                  l10n.providerProfilesDesc,
+                  style: TextStyle(fontSize: 13, color: c.textSecondary),
+                ),
+              ),
+              const SizedBox(width: 12),
+              FilledButton.icon(
+                icon: const Icon(Icons.add, size: 18),
+                label: Text(l10n.providerProfileNew),
+                onPressed: () => _openProfileEditor(),
+                style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    horizontal: 16,
+                    vertical: 8,
                   ),
                 ),
               ),
-              if (_saveMessage != null) ...[
-                const SizedBox(width: 16),
-                Text(
-                  _saveMessage!,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color:
-                        _saveMessage!.contains('Failed') ||
-                            _saveMessage!.contains('失败')
-                        ? AppColors.error
-                        : AppColors.success,
-                  ),
-                ),
-              ],
             ],
+          ),
+          const SizedBox(height: 16),
+
+          if (_providerProfiles.isEmpty)
+            _buildEmptyProfilesState(l10n)
+          else
+            ..._providerProfiles.map((p) => _buildProfileCard(p, l10n)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyProfilesState(AppLocalizations l10n) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      decoration: BoxDecoration(
+        color: c.surfaceBg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: c.chatListBorder),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.layers_outlined, size: 36, color: c.textHint),
+          const SizedBox(height: 12),
+          Text(
+            l10n.noProviderProfiles,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: c.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            l10n.noProviderProfilesHint,
+            style: TextStyle(fontSize: 12, color: c.textSecondary),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
 
+  Widget _buildProfileCard(
+    providers_api.ModelProviderProfileDto profile,
+    AppLocalizations l10n,
+  ) {
+    final isDefault = profile.id == _defaultProfileId;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: c.surfaceBg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDefault ? AppColors.primary : c.chatListBorder,
+          width: isDefault ? 2 : 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          // ID badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              profile.id,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+            ),
+          ),
+          // Default badge
+          if (isDefault) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.success.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.check_circle, size: 12, color: AppColors.success),
+                  const SizedBox(width: 4),
+                  Text(
+                    l10n.defaultLabel,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.success,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(width: 12),
+          // Info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  [
+                    if (profile.name != null) profile.name!,
+                    if (profile.defaultModel != null) profile.defaultModel!,
+                  ].join(' / '),
+                  style: TextStyle(fontSize: 13, color: c.textPrimary),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (profile.baseUrl != null && profile.baseUrl!.isNotEmpty)
+                  Text(
+                    profile.baseUrl!,
+                    style: TextStyle(fontSize: 11, color: c.textHint),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+          // Set as default (only if not already default)
+          if (!isDefault)
+            IconButton(
+              icon: Icon(Icons.star_outline, size: 18, color: c.textHint),
+              tooltip: l10n.setAsDefault,
+              onPressed: () => _setDefaultProfile(profile.id),
+              visualDensity: VisualDensity.compact,
+            ),
+          // Edit
+          IconButton(
+            icon: Icon(Icons.edit_outlined, size: 18, color: c.textHint),
+            tooltip: l10n.providerProfileEdit,
+            onPressed: () => _openProfileEditor(existing: profile),
+            visualDensity: VisualDensity.compact,
+          ),
+          // Delete
+          IconButton(
+            icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+            tooltip: l10n.delete,
+            onPressed: () => _deleteProfile(profile.id),
+            visualDensity: VisualDensity.compact,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _setDefaultProfile(String id) async {
+    final l10n = AppLocalizations.of(context)!;
+    final result = await providers_api.setDefaultProfile(id: id);
+    if (!mounted) return;
+    if (result == 'ok') {
+      _showSnack(l10n.providerProfileSetDefault(id));
+      setState(() => _defaultProfileId = id);
+    } else {
+      final error = result.startsWith('error: ') ? result.substring(7) : result;
+      _showSnack('${l10n.operationFailed}: $error', isError: true);
+    }
+  }
+
+  Future<void> _deleteProfile(String id) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.providerProfileDeleteTitle),
+        content: Text(l10n.providerProfileDeleteConfirm(id)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final result = await providers_api.removeModelProviderProfile(id: id);
+    if (!mounted) return;
+    if (result == 'ok') {
+      _showSnack(l10n.providerProfileDeleted(id));
+      _refreshProfiles();
+    } else {
+      _showSnack('${l10n.operationFailed}: $result', isError: true);
+    }
+  }
+
+  Future<void> _openProfileEditor({
+    providers_api.ModelProviderProfileDto? existing,
+  }) async {
+    final result = await showDialog<providers_api.ModelProviderProfileDto>(
+      context: context,
+      builder: (ctx) => _ProfileEditorDialog(existing: existing),
+    );
+    if (result == null || !mounted) return;
+
+    final l10n = AppLocalizations.of(context)!;
+    final saveResult = await providers_api.upsertModelProviderProfile(
+      profile: result,
+    );
+    if (!mounted) return;
+    if (saveResult == 'ok') {
+      _showSnack(l10n.providerProfileSaved);
+      _refreshProfiles();
+    } else {
+      final error = saveResult.startsWith('error: ')
+          ? saveResult.substring(7)
+          : saveResult;
+      _showSnack('${l10n.operationFailed}: $error', isError: true);
+    }
+  }
+
+  Future<void> _refreshProfiles() async {
+    final profiles = await providers_api.listModelProviderProfiles();
+    if (mounted) setState(() => _providerProfiles = profiles);
+  }
+
   // ═══════════════════════════════════════════════════════════════
-  //  Section 2: Model Routes
+  //  Section 3: Model Routes
   // ═══════════════════════════════════════════════════════════════
 
   Widget _buildModelRoutesSection() {
@@ -686,6 +766,14 @@ class _ModelsPageState extends ConsumerState<ModelsPage> {
               _embeddingDimsCtrl,
             ),
             const SizedBox(height: 16),
+
+            // Base URL (useful for custom provider or OpenAI-compatible endpoints)
+            _buildTextFieldRow(
+              l10n.embeddingBaseUrl,
+              l10n.embeddingBaseUrlHint,
+              _embeddingBaseUrlCtrl,
+            ),
+            const SizedBox(height: 16),
           ],
 
           // Vector Weight slider
@@ -786,118 +874,6 @@ class _ModelsPageState extends ConsumerState<ModelsPage> {
         ),
         const SizedBox(height: 12),
         child,
-      ],
-    );
-  }
-
-  Widget _buildEditableModelRow() {
-    final suggestions = _currentProvider.models;
-    return Row(
-      children: [
-        SizedBox(
-          width: 140,
-          child: Text(
-            AppLocalizations.of(context)!.modelLabel,
-            style: TextStyle(fontSize: 14, color: c.textSecondary),
-          ),
-        ),
-        Expanded(
-          child: Autocomplete<String>(
-            initialValue: TextEditingValue(text: _modelController.text),
-            optionsBuilder: (TextEditingValue textEditingValue) {
-              if (textEditingValue.text.isEmpty) return suggestions;
-              return suggestions.where(
-                (s) => s.toLowerCase().contains(
-                  textEditingValue.text.toLowerCase(),
-                ),
-              );
-            },
-            onSelected: (String selection) {
-              _modelController.text = selection;
-              setState(() => _selectedModel = selection);
-            },
-            fieldViewBuilder:
-                (
-                  BuildContext context,
-                  TextEditingController fieldController,
-                  FocusNode focusNode,
-                  VoidCallback onFieldSubmitted,
-                ) {
-                  if (fieldController.text != _modelController.text &&
-                      !focusNode.hasFocus) {
-                    fieldController.text = _modelController.text;
-                  }
-                  return TextField(
-                    controller: fieldController,
-                    focusNode: focusNode,
-                    onChanged: (value) {
-                      _modelController.text = value;
-                      _selectedModel = value;
-                    },
-                    decoration: InputDecoration(
-                      hintText: AppLocalizations.of(context)!.modelNameHint,
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      suffixIcon: PopupMenuButton<String>(
-                        icon: const Icon(Icons.arrow_drop_down, size: 20),
-                        padding: EdgeInsets.zero,
-                        tooltip: AppLocalizations.of(context)!.showSuggestions,
-                        onSelected: (value) {
-                          fieldController.text = value;
-                          _modelController.text = value;
-                          setState(() => _selectedModel = value);
-                        },
-                        itemBuilder: (context) => suggestions
-                            .map(
-                              (s) => PopupMenuItem(
-                                value: s,
-                                child: Text(
-                                  s,
-                                  style: const TextStyle(fontSize: 13),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ),
-                  );
-                },
-            optionsViewBuilder: (context, onSelected, options) {
-              return Align(
-                alignment: Alignment.topLeft,
-                child: Material(
-                  elevation: 4,
-                  borderRadius: BorderRadius.circular(8),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxHeight: 200,
-                      maxWidth: 400,
-                    ),
-                    child: ListView.builder(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      itemCount: options.length,
-                      itemBuilder: (context, index) {
-                        final option = options.elementAt(index);
-                        return ListTile(
-                          dense: true,
-                          title: Text(
-                            option,
-                            style: const TextStyle(fontSize: 13),
-                          ),
-                          onTap: () => onSelected(option),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
       ],
     );
   }
@@ -1169,6 +1145,190 @@ class _RouteEditorDialogState extends State<_RouteEditorDialog> {
               ),
             ),
           ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: _submit,
+          child: Text(_isEdit ? l10n.save : l10n.create),
+        ),
+      ],
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Provider Profile Editor Dialog
+// ═══════════════════════════════════════════════════════════════
+
+class _ProfileEditorDialog extends StatefulWidget {
+  final providers_api.ModelProviderProfileDto? existing;
+  const _ProfileEditorDialog({this.existing});
+
+  @override
+  State<_ProfileEditorDialog> createState() => _ProfileEditorDialogState();
+}
+
+class _ProfileEditorDialogState extends State<_ProfileEditorDialog> {
+  late final TextEditingController _idCtrl;
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _baseUrlCtrl;
+  late final TextEditingController _modelCtrl;
+  late final TextEditingController _apiKeyCtrl;
+  late String _wireApi;
+  bool get _isEdit => widget.existing != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.existing;
+    _idCtrl = TextEditingController(text: e?.id ?? '');
+    _nameCtrl = TextEditingController(text: e?.name ?? '');
+    _baseUrlCtrl = TextEditingController(text: e?.baseUrl ?? '');
+    _modelCtrl = TextEditingController(text: e?.defaultModel ?? '');
+    _apiKeyCtrl = TextEditingController(text: e?.apiKey ?? '');
+    _wireApi = e?.wireApi ?? '';
+  }
+
+  @override
+  void dispose() {
+    _idCtrl.dispose();
+    _nameCtrl.dispose();
+    _baseUrlCtrl.dispose();
+    _modelCtrl.dispose();
+    _apiKeyCtrl.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final id = _idCtrl.text.trim();
+    if (id.isEmpty) return;
+
+    // Validation: at least one of name or base_url must be provided
+    final name = _nameCtrl.text.trim();
+    final baseUrl = _baseUrlCtrl.text.trim();
+    if (name.isEmpty && baseUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Profile must have at least one of "Provider Name" or "Base URL"',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final dto = providers_api.ModelProviderProfileDto(
+      id: id,
+      name: name.isEmpty ? null : name,
+      baseUrl: baseUrl.isEmpty ? null : baseUrl,
+      wireApi: _wireApi.isEmpty ? null : _wireApi,
+      defaultModel: _modelCtrl.text.trim().isEmpty
+          ? null
+          : _modelCtrl.text.trim(),
+      apiKey: _apiKeyCtrl.text.trim().isEmpty ? null : _apiKeyCtrl.text.trim(),
+    );
+    Navigator.pop(context, dto);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    final wireApiOptions = [
+      ('', l10n.wireApiAuto),
+      ('chat_completions', l10n.wireApiChatCompletions),
+      ('responses', l10n.wireApiResponses),
+    ];
+
+    return AlertDialog(
+      title: Text(_isEdit ? l10n.providerProfileEdit : l10n.providerProfileNew),
+      content: SizedBox(
+        width: 460,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Profile ID
+              TextField(
+                controller: _idCtrl,
+                enabled: !_isEdit,
+                decoration: InputDecoration(
+                  labelText: l10n.providerProfileId,
+                  hintText: l10n.providerProfileIdHint,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Provider Name
+              TextField(
+                controller: _nameCtrl,
+                decoration: InputDecoration(
+                  labelText: l10n.providerProfileName,
+                  hintText: l10n.providerProfileNameHint,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Base URL
+              TextField(
+                controller: _baseUrlCtrl,
+                decoration: InputDecoration(
+                  labelText: l10n.providerProfileBaseUrl,
+                  hintText: l10n.providerProfileBaseUrlHint,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Wire API Protocol dropdown
+              DropdownButtonFormField<String>(
+                initialValue: _wireApi,
+                decoration: InputDecoration(
+                  labelText: l10n.providerProfileWireApi,
+                  border: const OutlineInputBorder(),
+                ),
+                items: wireApiOptions
+                    .map(
+                      (o) => DropdownMenuItem(value: o.$1, child: Text(o.$2)),
+                    )
+                    .toList(),
+                onChanged: (v) {
+                  if (v != null) setState(() => _wireApi = v);
+                },
+              ),
+              const SizedBox(height: 12),
+
+              // Default Model
+              TextField(
+                controller: _modelCtrl,
+                decoration: InputDecoration(
+                  labelText: l10n.providerProfileModel,
+                  hintText: l10n.providerProfileModelHint,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // API Key
+              TextField(
+                controller: _apiKeyCtrl,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: '${l10n.apiKeyLabel} (${l10n.agentOptional})',
+                  hintText: l10n.apiKeyHint,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
       actions: [

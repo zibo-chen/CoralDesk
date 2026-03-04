@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:desktop_drop/desktop_drop.dart';
@@ -28,6 +29,8 @@ class _ChatViewState extends ConsumerState<ChatView> {
   CoralDeskColors get c => CoralDeskColors.of(context);
   bool _isDragging = false;
   bool _showFilesPanel = false;
+  StreamSubscription<agent_api.AgentEvent>? _activeStreamSubscription;
+  String? _activeStreamSessionId;
 
   static const int _totalSuggestions = 8;
   late List<int> _selectedIndices;
@@ -73,6 +76,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _activeStreamSubscription?.cancel();
     super.dispose();
   }
 
@@ -180,6 +184,24 @@ class _ChatViewState extends ConsumerState<ChatView> {
     );
   }
 
+  /// Cancel the active generation for the current session.
+  void _cancelGeneration() {
+    final sessionId = _activeStreamSessionId;
+    if (sessionId == null) return;
+
+    // Cancel the Dart-side stream subscription
+    _activeStreamSubscription?.cancel();
+    _activeStreamSubscription = null;
+    _activeStreamSessionId = null;
+
+    // Cancel the Rust-side agent turn via the stored CancellationToken
+    agent_api.cancelGeneration(sessionId: sessionId);
+
+    // Finalize the current assistant message with whatever was streamed so far
+    final controller = ref.read(chatControllerProvider);
+    controller.cancelGeneration(sessionId);
+  }
+
   Future<void> _callAgent(
     String sessionId,
     Stream<agent_api.AgentEvent> stream,
@@ -262,9 +284,17 @@ class _ChatViewState extends ConsumerState<ChatView> {
       _scrollToBottomIfActive(sessionId);
     }
 
-    try {
-      await for (final event in stream) {
-        if (!mounted) break;
+    // Use Completer + StreamSubscription so we can cancel mid-stream
+    final completer = Completer<void>();
+
+    final subscription = stream.listen(
+      (event) {
+        if (!mounted) {
+          _activeStreamSubscription?.cancel();
+          _activeStreamSubscription = null;
+          _activeStreamSessionId = null;
+          return;
+        }
         event.when(
           thinking: () {
             if (!mounted) return;
@@ -386,22 +416,40 @@ class _ChatViewState extends ConsumerState<ChatView> {
             ensureTextPart();
           },
         );
-      }
+      },
+      onDone: () {
+        // Mark as complete
+        if (mounted) {
+          controller.finishAgentTurn(
+            sessionId,
+            computeContent(),
+            toolCalls: computeToolCalls(),
+            parts: List<MessagePart>.from(parts),
+          );
+        }
+        _activeStreamSubscription = null;
+        _activeStreamSessionId = null;
+        if (!completer.isCompleted) completer.complete();
+      },
+      onError: (e) {
+        if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
+          controller.handleAgentError(
+            sessionId,
+            l10n.errorGeneric(e.toString()),
+          );
+        }
+        _activeStreamSubscription = null;
+        _activeStreamSessionId = null;
+        if (!completer.isCompleted) completer.complete();
+      },
+    );
 
-      // Mark as complete
-      if (mounted) {
-        controller.finishAgentTurn(
-          sessionId,
-          computeContent(),
-          toolCalls: computeToolCalls(),
-          parts: List<MessagePart>.from(parts),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        final l10n = AppLocalizations.of(context)!;
-        controller.handleAgentError(sessionId, l10n.errorGeneric(e.toString()));
-      }
+    _activeStreamSubscription = subscription;
+    _activeStreamSessionId = sessionId;
+
+    try {
+      await completer.future;
     } finally {
       if (mounted) _scrollToBottomIfActive(sessionId);
     }
@@ -492,7 +540,10 @@ class _ChatViewState extends ConsumerState<ChatView> {
                     const FileAttachmentBar(),
 
                     // Input bar
-                    ChatInputBar(onSend: _handleSend),
+                    ChatInputBar(
+                      onSend: _handleSend,
+                      onCancel: _cancelGeneration,
+                    ),
                   ],
                 ),
               ),

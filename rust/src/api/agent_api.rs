@@ -5,6 +5,7 @@ use std::sync::{Arc, OnceLock};
 use std::time::Instant;
 use tokio::sync::{Mutex as TokioMutex, RwLock};
 use tokio::time::{timeout, Duration};
+use tokio_util::sync::CancellationToken;
 
 // ──────────────────────────── DTOs ────────────────────────────
 
@@ -158,6 +159,34 @@ pub(crate) fn config_state() -> &'static RwLock<ConfigState> {
 pub(crate) async fn invalidate_all_agents() {
     let mut agents = session_agents().write().await;
     agents.clear();
+}
+
+// ──────────── Active Stream Cancellation Tokens ──────────────
+//
+// When a session is actively streaming, its CancellationToken is stored here
+// so that Flutter can explicitly cancel a generation via `cancel_generation()`.
+
+type ActiveStreamTokens = HashMap<String, CancellationToken>;
+
+fn active_stream_tokens() -> &'static TokioMutex<ActiveStreamTokens> {
+    static TOKENS: OnceLock<TokioMutex<ActiveStreamTokens>> = OnceLock::new();
+    TOKENS.get_or_init(|| TokioMutex::new(HashMap::new()))
+}
+
+/// Cancel an active generation for the given session.
+///
+/// If the session has an active streaming request, its CancellationToken is
+/// triggered, causing the agent turn and relay to stop gracefully.
+/// Returns "ok" if cancelled, or an informational message if nothing was active.
+pub async fn cancel_generation(session_id: String) -> String {
+    let mut tokens = active_stream_tokens().lock().await;
+    if let Some(token) = tokens.remove(&session_id) {
+        token.cancel();
+        tracing::info!(session_id = %session_id, "Generation cancelled by user");
+        "ok".into()
+    } else {
+        "no active generation".into()
+    }
 }
 
 // ──────────────── Desktop Tool Approval ──────────────────────
@@ -666,6 +695,48 @@ pub async fn save_config_to_disk() -> String {
     );
     table.insert("autonomy".into(), toml::Value::Table(autonomy_table));
 
+    // ── Persist model provider profiles [model_providers.<id>] ───
+    let mut mp_table = toml::Table::new();
+    for (id, profile) in &config.model_providers {
+        // Skip invalid profiles (must have at least name or base_url)
+        let has_name = profile
+            .name
+            .as_deref()
+            .map(str::trim)
+            .is_some_and(|v| !v.is_empty());
+        let has_base_url = profile
+            .base_url
+            .as_deref()
+            .map(str::trim)
+            .is_some_and(|v| !v.is_empty());
+        if !has_name && !has_base_url {
+            continue;
+        }
+
+        let mut entry = toml::Table::new();
+        if let Some(ref name) = profile.name {
+            entry.insert("name".into(), toml::Value::String(name.clone()));
+        }
+        if let Some(ref base_url) = profile.base_url {
+            entry.insert("base_url".into(), toml::Value::String(base_url.clone()));
+        }
+        if let Some(ref wire_api) = profile.wire_api {
+            entry.insert("wire_api".into(), toml::Value::String(wire_api.clone()));
+        }
+        if let Some(ref model) = profile.default_model {
+            entry.insert("default_model".into(), toml::Value::String(model.clone()));
+        }
+        if let Some(ref key) = profile.api_key {
+            entry.insert("api_key".into(), toml::Value::String(key.clone()));
+        }
+        mp_table.insert(id.clone(), toml::Value::Table(entry));
+    }
+    if !mp_table.is_empty() {
+        table.insert("model_providers".into(), toml::Value::Table(mp_table));
+    } else {
+        table.remove("model_providers");
+    }
+
     // ── Persist delegate agents [agents.<name>] ─────────────
     let mut agents_table = toml::Table::new();
     for (name, agent_cfg) in &config.agents {
@@ -688,6 +759,27 @@ pub async fn save_config_to_disk() -> String {
             "max_depth".into(),
             toml::Value::Integer(agent_cfg.max_depth as i64),
         );
+        if !agent_cfg.enabled {
+            entry.insert("enabled".into(), toml::Value::Boolean(false));
+        }
+        if !agent_cfg.capabilities.is_empty() {
+            entry.insert(
+                "capabilities".into(),
+                toml::Value::Array(
+                    agent_cfg
+                        .capabilities
+                        .iter()
+                        .map(|s| toml::Value::String(s.clone()))
+                        .collect(),
+                ),
+            );
+        }
+        if agent_cfg.priority != 0 {
+            entry.insert(
+                "priority".into(),
+                toml::Value::Integer(agent_cfg.priority as i64),
+            );
+        }
         if agent_cfg.agentic {
             entry.insert("agentic".into(), toml::Value::Boolean(true));
             entry.insert(
@@ -1148,6 +1240,14 @@ pub async fn send_message_stream(
     // Wrap the sink in an Arc so it can be shared with the relay task
     let sink = Arc::new(sink);
     let sink_clone = sink.clone();
+    let stream_cancel_token = CancellationToken::new();
+    let relay_cancel_token = stream_cancel_token.clone();
+
+    // Store the token so Flutter can cancel via cancel_generation()
+    {
+        let mut tokens = active_stream_tokens().lock().await;
+        tokens.insert(session_id.clone(), stream_cancel_token.clone());
+    }
 
     // Spawn a relay task that converts zeroclaw's string-based delta protocol
     // into typed AgentEvent messages for Flutter.
@@ -1163,6 +1263,7 @@ pub async fn send_message_stream(
         macro_rules! send_or_break {
             ($event:expr) => {
                 if sink_clone.add($event).is_err() {
+                    relay_cancel_token.cancel();
                     tracing::debug!("Sink closed, relay task exiting early");
                     break;
                 }
@@ -1384,7 +1485,12 @@ pub async fn send_message_stream(
         let agent = &mut session_agent.agent;
         timeout(
             Duration::from_secs(TURN_TIMEOUT_SECS),
-            agent.turn_streaming(&enriched_message, tx, on_approval_fn.as_ref()),
+            agent.turn_streaming(
+                &enriched_message,
+                tx,
+                Some(stream_cancel_token.clone()),
+                on_approval_fn.as_ref(),
+            ),
         )
         .await
     };
@@ -1395,10 +1501,30 @@ pub async fn send_message_stream(
         .await
         .is_err()
     {
+        stream_cancel_token.cancel();
         relay_abort.abort();
         tracing::warn!(
             "send_message_stream relay drain timed out for session {session_id}; aborting relay"
         );
+    }
+
+    if stream_cancel_token.is_cancelled() {
+        tracing::info!(
+            session_id = %session_id,
+            "send_message_stream cancelled because Dart sink/relay closed"
+        );
+        // Clean up stored token
+        {
+            let mut tokens = active_stream_tokens().lock().await;
+            tokens.remove(&session_id);
+        }
+        return;
+    }
+
+    // Clean up stored token (normal completion)
+    {
+        let mut tokens = active_stream_tokens().lock().await;
+        tokens.remove(&session_id);
     }
 
     match turn_result {

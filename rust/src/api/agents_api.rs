@@ -15,6 +15,12 @@ pub struct DelegateAgentDto {
     pub agentic: bool,
     pub allowed_tools: Vec<String>,
     pub max_iterations: u32,
+    /// Capability tags for automatic agent selection
+    pub capabilities: Vec<String>,
+    /// Priority hint for auto-selection (higher wins on ties)
+    pub priority: i32,
+    /// Whether this agent profile is enabled
+    pub enabled: bool,
 }
 
 // ──────────────────── API Functions ──────────────────────────
@@ -41,6 +47,9 @@ pub async fn list_delegate_agents() -> Vec<DelegateAgentDto> {
             agentic: cfg.agentic,
             allowed_tools: cfg.allowed_tools.clone(),
             max_iterations: cfg.max_iterations as u32,
+            capabilities: cfg.capabilities.clone(),
+            priority: cfg.priority,
+            enabled: cfg.enabled,
         })
         .collect();
 
@@ -67,6 +76,9 @@ pub async fn get_delegate_agent(name: String) -> Option<DelegateAgentDto> {
         agentic: cfg.agentic,
         allowed_tools: cfg.allowed_tools.clone(),
         max_iterations: cfg.max_iterations as u32,
+        capabilities: cfg.capabilities.clone(),
+        priority: cfg.priority,
+        enabled: cfg.enabled,
     })
 }
 
@@ -109,9 +121,14 @@ pub async fn upsert_delegate_agent(agent: DelegateAgentDto) -> String {
             .map(str::trim)
             .filter(|s| !s.is_empty())
             .map(String::from),
-        enabled: true,
-        capabilities: Vec::new(),
-        priority: 0,
+        enabled: agent.enabled,
+        capabilities: agent
+            .capabilities
+            .iter()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect(),
+        priority: agent.priority,
         temperature: agent.temperature,
         max_depth: agent.max_depth,
         agentic: agent.agentic,

@@ -202,6 +202,20 @@ class MessagesNotifier extends StateNotifier<List<ChatMessage>> {
     }
   }
 
+  /// Stop streaming for the last assistant message in a specific session.
+  /// Keeps whatever content has been accumulated so far.
+  void stopStreaming(String sessionId) {
+    final messages = _cache[sessionId];
+    if (messages != null && messages.isNotEmpty && messages.last.isAssistant) {
+      messages[messages.length - 1] = messages.last.copyWith(
+        isStreaming: false,
+      );
+    }
+    if (sessionId == _activeSessionId) {
+      state = List.from(_cache[sessionId] ?? []);
+    }
+  }
+
   // ── Read helpers ───────────────────────────────────────
 
   /// Get all messages for a session (used for persistence).

@@ -9,9 +9,17 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'agent_api.freezed.dart';
 
-// These functions are ignored because they are not marked as `pub`: `config_state`, `ensure_session_agent`, `evict_oldest_agent_if_needed`, `global_config`, `invalidate_all_agents`, `legacy_pending_approval`, `pending_approvals`, `session_agents`, `truncate_str`
+// These functions are ignored because they are not marked as `pub`: `active_stream_tokens`, `config_state`, `ensure_session_agent`, `evict_oldest_agent_if_needed`, `global_config`, `invalidate_all_agents`, `legacy_pending_approval`, `pending_approvals`, `session_agents`, `truncate_str`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ChatMessageDto`, `ConfigState`, `GlobalConfig`, `PendingApproval`, `SessionAgent`, `ToolCallDto`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+
+/// Cancel an active generation for the given session.
+///
+/// If the session has an active streaming request, its CancellationToken is
+/// triggered, causing the agent turn and relay to stop gracefully.
+/// Returns "ok" if cancelled, or an informational message if nothing was active.
+Future<String> cancelGeneration({required String sessionId}) =>
+    RustLib.instance.api.crateApiAgentApiCancelGeneration(sessionId: sessionId);
 
 /// Respond to a pending tool approval request from Flutter UI.
 /// This is the FRB-compatible single-argument version.

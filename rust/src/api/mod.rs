@@ -6,6 +6,7 @@ pub mod cron_api;
 pub mod cron_notification_api;
 pub mod knowledge_api;
 pub mod mcp_api;
+pub mod providers_api;
 pub mod proxy_api;
 pub mod routes_api;
 pub mod sessions_api;

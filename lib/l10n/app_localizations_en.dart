@@ -1485,4 +1485,120 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get retryMessage => 'Retry';
+
+  @override
+  String get stopGenerating => 'Stop generating';
+
+  @override
+  String get providerProfiles => 'Provider Profiles';
+
+  @override
+  String get providerProfilesDesc =>
+      'Configure multiple provider profiles. Each profile can have its own API key, base URL, and default model. Use them in model routes or select in chat.';
+
+  @override
+  String get providerProfileNew => 'New Profile';
+
+  @override
+  String get providerProfileEdit => 'Edit Profile';
+
+  @override
+  String get providerProfileId => 'Profile ID';
+
+  @override
+  String get providerProfileIdHint => 'e.g. my-openai, local-ollama';
+
+  @override
+  String get providerProfileName => 'Provider Name';
+
+  @override
+  String get providerProfileNameHint => 'e.g. openai, anthropic, ollama';
+
+  @override
+  String get providerProfileBaseUrl => 'Base URL';
+
+  @override
+  String get providerProfileBaseUrlHint => 'e.g. https://api.openai.com/v1';
+
+  @override
+  String get providerProfileWireApi => 'Wire API Protocol';
+
+  @override
+  String get providerProfileModel => 'Default Model';
+
+  @override
+  String get providerProfileModelHint => 'e.g. gpt-4o, claude-sonnet-4-6';
+
+  @override
+  String providerProfileDeleted(String id) {
+    return 'Profile \'\'$id\'\' deleted';
+  }
+
+  @override
+  String get providerProfileSaved => 'Profile saved';
+
+  @override
+  String get providerProfileDeleteTitle => 'Delete Profile';
+
+  @override
+  String providerProfileDeleteConfirm(String id) {
+    return 'Are you sure you want to delete profile \'\'$id\'\'?';
+  }
+
+  @override
+  String get noProviderProfiles => 'No provider profiles configured';
+
+  @override
+  String get noProviderProfilesHint =>
+      'Add profiles to use multiple providers with different API keys or endpoints.';
+
+  @override
+  String get chatModelSelector => 'Switch Model';
+
+  @override
+  String chatCurrentModel(String provider, String model) {
+    return 'Current: $provider / $model';
+  }
+
+  @override
+  String get embeddingBaseUrl => 'Embedding Base URL';
+
+  @override
+  String get embeddingBaseUrlHint => 'e.g. https://api.openai.com';
+
+  @override
+  String get agentCapabilities => 'Capabilities';
+
+  @override
+  String get agentCapabilitiesHint => 'research, coding, summarize';
+
+  @override
+  String get agentPriority => 'Priority';
+
+  @override
+  String get agentEnabled => 'Enabled';
+
+  @override
+  String get agentEnabledDesc =>
+      'Whether this agent is active for selection and invocation.';
+
+  @override
+  String get wireApiChatCompletions => 'Chat Completions';
+
+  @override
+  String get wireApiResponses => 'Responses';
+
+  @override
+  String get wireApiAuto => 'Auto';
+
+  @override
+  String get defaultLabel => 'Default';
+
+  @override
+  String get setAsDefault => 'Set as Default';
+
+  @override
+  String providerProfileSetDefault(String id) {
+    return 'Profile \'\'$id\'\' set as default';
+  }
 }

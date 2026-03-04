@@ -210,6 +210,16 @@ class ChatController {
     persistSession(sessionId);
   }
 
+  /// Cancel an active generation: mark the assistant message as complete
+  /// with whatever content has been streamed so far.
+  void cancelGeneration(String sessionId) {
+    _ref
+        .read(messagesProvider.notifier)
+        .stopStreaming(sessionId);
+    _clearProcessing(sessionId);
+    persistSession(sessionId);
+  }
+
   void _clearProcessing(String sessionId) {
     final current = _ref.read(processingSessionsProvider);
     _ref.read(processingSessionsProvider.notifier).state = {...current}

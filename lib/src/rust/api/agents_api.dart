@@ -41,6 +41,15 @@ class DelegateAgentDto {
   final List<String> allowedTools;
   final int maxIterations;
 
+  /// Capability tags for automatic agent selection
+  final List<String> capabilities;
+
+  /// Priority hint for auto-selection (higher wins on ties)
+  final int priority;
+
+  /// Whether this agent profile is enabled
+  final bool enabled;
+
   const DelegateAgentDto({
     required this.name,
     required this.provider,
@@ -52,6 +61,9 @@ class DelegateAgentDto {
     required this.agentic,
     required this.allowedTools,
     required this.maxIterations,
+    required this.capabilities,
+    required this.priority,
+    required this.enabled,
   });
 
   @override
@@ -65,7 +77,10 @@ class DelegateAgentDto {
       maxDepth.hashCode ^
       agentic.hashCode ^
       allowedTools.hashCode ^
-      maxIterations.hashCode;
+      maxIterations.hashCode ^
+      capabilities.hashCode ^
+      priority.hashCode ^
+      enabled.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -81,5 +96,8 @@ class DelegateAgentDto {
           maxDepth == other.maxDepth &&
           agentic == other.agentic &&
           allowedTools == other.allowedTools &&
-          maxIterations == other.maxIterations;
+          maxIterations == other.maxIterations &&
+          capabilities == other.capabilities &&
+          priority == other.priority &&
+          enabled == other.enabled;
 }

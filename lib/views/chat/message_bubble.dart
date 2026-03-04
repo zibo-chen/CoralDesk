@@ -98,9 +98,9 @@ class _MessageBubbleState extends State<MessageBubble> {
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: Stack(
-          clipBehavior: Clip.none,
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -139,15 +139,20 @@ class _MessageBubbleState extends State<MessageBubble> {
                 ),
               ],
             ),
-            // Hover action bar (positioned to avoid layout shift)
-            if (_hovering && !_editing)
-              Positioned(
-                right: 44,
-                bottom: -28,
-                child: SelectionContainer.disabled(
-                  child: _buildActionBar(c, l10n, isUser: true),
+            // Action bar: always reserve space, show on hover
+            IgnorePointer(
+              ignoring: !_hovering || _editing,
+              child: AnimatedOpacity(
+                opacity: _hovering && !_editing ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 150),
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 44, top: 4),
+                  child: SelectionContainer.disabled(
+                    child: _buildActionBar(c, l10n, isUser: true),
+                  ),
                 ),
               ),
+            ),
           ],
         ),
       ),
@@ -233,9 +238,9 @@ class _MessageBubbleState extends State<MessageBubble> {
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: Stack(
-          clipBehavior: Clip.none,
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,15 +295,20 @@ class _MessageBubbleState extends State<MessageBubble> {
                 const Spacer(flex: 2),
               ],
             ),
-            // Hover action bar (positioned to avoid layout shift)
-            if (_hovering && !message.isStreaming)
-              Positioned(
-                left: 44,
-                bottom: -28,
-                child: SelectionContainer.disabled(
-                  child: _buildActionBar(c, l10n, isUser: false),
+            // Action bar: always reserve space, show on hover (not during streaming)
+            IgnorePointer(
+              ignoring: !_hovering || message.isStreaming,
+              child: AnimatedOpacity(
+                opacity: _hovering && !message.isStreaming ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 150),
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 44, top: 4),
+                  child: SelectionContainer.disabled(
+                    child: _buildActionBar(c, l10n, isUser: false),
+                  ),
                 ),
               ),
+            ),
           ],
         ),
       ),

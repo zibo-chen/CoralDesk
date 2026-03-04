@@ -275,7 +275,9 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
               Icon(
                 agent.agentic ? Icons.smart_toy : Icons.assistant,
                 size: 20,
-                color: agent.agentic ? Colors.orange : AppColors.primary,
+                color: agent.enabled
+                    ? (agent.agentic ? Colors.orange : AppColors.primary)
+                    : c.textHint,
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -284,10 +286,29 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: c.textPrimary,
+                    color: agent.enabled ? c.textPrimary : c.textHint,
                   ),
                 ),
               ),
+              if (!agent.enabled)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'Disabled',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: c.textHint,
+                    ),
+                  ),
+                ),
               if (agent.agentic)
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -388,6 +409,30 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
                   .toList(),
             ),
           ],
+
+          // Capabilities
+          if (agent.capabilities.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: agent.capabilities
+                  .map(
+                    (cap) => Chip(
+                      avatar: Icon(
+                        Icons.star_outline,
+                        size: 14,
+                        color: AppColors.primary,
+                      ),
+                      label: Text(cap, style: const TextStyle(fontSize: 11)),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
         ],
       ),
     );
@@ -415,10 +460,13 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
   late final TextEditingController _maxDepthCtrl;
   late final TextEditingController _maxIterCtrl;
   late final TextEditingController _allowedToolsCtrl;
+  late final TextEditingController _capabilitiesCtrl;
+  late final TextEditingController _priorityCtrl;
 
   late String _selectedProvider;
   late bool _agentic;
   late bool _useDefault;
+  late bool _enabled;
   bool get _isEdit => widget.existing != null;
 
   late List<config_api.ProviderInfo> _providers;
@@ -431,6 +479,7 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
     final e = widget.existing;
     _selectedProvider = e?.provider ?? 'openrouter';
     _agentic = e?.agentic ?? false;
+    _enabled = e?.enabled ?? true;
     // Detect if the existing agent uses the default provider
     _useDefault = false;
     _nameCtrl = TextEditingController(text: e?.name ?? '');
@@ -445,6 +494,10 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
     _allowedToolsCtrl = TextEditingController(
       text: e?.allowedTools.join(', ') ?? '',
     );
+    _capabilitiesCtrl = TextEditingController(
+      text: e?.capabilities.join(', ') ?? '',
+    );
+    _priorityCtrl = TextEditingController(text: '${e?.priority ?? 0}');
     // Load default config for the toggle
     _loadDefaultConfig();
   }
@@ -459,6 +512,8 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
     _maxDepthCtrl.dispose();
     _maxIterCtrl.dispose();
     _allowedToolsCtrl.dispose();
+    _capabilitiesCtrl.dispose();
+    _priorityCtrl.dispose();
     super.dispose();
   }
 
@@ -493,6 +548,12 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
         .where((s) => s.isNotEmpty)
         .toList();
 
+    final capabilities = _capabilitiesCtrl.text
+        .split(RegExp(r'[,\s]+'))
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+
     final dto = agents_api.DelegateAgentDto(
       name: name,
       provider: _selectedProvider,
@@ -506,6 +567,9 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
       agentic: _agentic,
       allowedTools: allowedTools,
       maxIterations: int.tryParse(_maxIterCtrl.text.trim()) ?? 10,
+      capabilities: capabilities,
+      priority: int.tryParse(_priorityCtrl.text.trim()) ?? 0,
+      enabled: _enabled,
     );
 
     Navigator.pop(context, dto);
@@ -644,6 +708,47 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
                   border: const OutlineInputBorder(),
                   alignLabelWithHint: true,
                 ),
+              ),
+              const SizedBox(height: 12),
+
+              // Capabilities (comma-separated tags)
+              TextField(
+                controller: _capabilitiesCtrl,
+                decoration: InputDecoration(
+                  labelText: l10n.agentCapabilities,
+                  hintText: l10n.agentCapabilitiesHint,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Priority + Enabled row
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _priorityCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: l10n.agentPriority,
+                        hintText: '0',
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        l10n.agentEnabled,
+                        style: TextStyle(fontSize: 14, color: c.textPrimary),
+                      ),
+                      value: _enabled,
+                      onChanged: (v) => setState(() => _enabled = v),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
 

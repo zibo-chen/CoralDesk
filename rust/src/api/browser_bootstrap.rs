@@ -113,7 +113,7 @@ pub async fn ensure_agent_browser() -> String {
 /// Only applies defaults when the user hasn't explicitly configured browser
 /// settings in their config.toml (detected by checking if `allowed_domains`
 /// is still empty, which is the zeroclaw default).
-pub fn apply_browser_defaults(config: &mut zeroclaw::Config, agent_browser_path: &str) {
+pub(crate) fn apply_browser_defaults(config: &mut zeroclaw::Config, agent_browser_path: &str) {
     // Only override if the user hasn't customized browser config.
     // The zeroclaw default is enabled=false + empty allowed_domains.
     // If user has explicitly set anything, respect it.

@@ -6,12 +6,15 @@ import 'package:coraldesk/constants.dart';
 import 'package:coraldesk/l10n/app_localizations.dart';
 import 'package:coraldesk/providers/providers.dart';
 import 'package:coraldesk/theme/app_theme.dart';
+import 'package:coraldesk/src/rust/api/agent_api.dart' as agent_api;
+import 'package:coraldesk/src/rust/api/providers_api.dart' as providers_api;
 
 /// Chat input bar at the bottom of the chat view
 class ChatInputBar extends ConsumerStatefulWidget {
   final Function(String) onSend;
+  final VoidCallback? onCancel;
 
-  const ChatInputBar({super.key, required this.onSend});
+  const ChatInputBar({super.key, required this.onSend, this.onCancel});
 
   @override
   ConsumerState<ChatInputBar> createState() => _ChatInputBarState();
@@ -145,6 +148,9 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
                       const SizedBox(width: 4),
                       // File attachment button
                       _AttachmentButton(),
+                      const SizedBox(width: 4),
+                      // Model selector button
+                      _ModelSelectorButton(),
                       const Spacer(),
                       // Character count
                       Text(
@@ -152,34 +158,52 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
                         style: TextStyle(fontSize: 12, color: c.textHint),
                       ),
                       const SizedBox(width: 12),
-                      // Send button
-                      InkWell(
-                        onTap:
-                            _controller.text.trim().isNotEmpty && !isProcessing
-                            ? _send
-                            : null,
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
+                      // Send or Stop button
+                      if (isProcessing)
+                        // Stop generation button
+                        Tooltip(
+                          message: l10n.stopGenerating,
+                          child: InkWell(
+                            onTap: widget.onCancel,
                             borderRadius: BorderRadius.circular(8),
-                            color:
-                                _controller.text.trim().isNotEmpty &&
-                                    !isProcessing
-                                ? AppColors.primary
-                                : c.inputBg,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                color: Colors.red.shade400,
+                              ),
+                              child: const Icon(
+                                Icons.stop,
+                                size: 18,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
-                          child: Icon(
-                            Icons.arrow_upward,
-                            size: 18,
-                            color:
-                                _controller.text.trim().isNotEmpty &&
-                                    !isProcessing
-                                ? Colors.white
-                                : c.textHint,
+                        )
+                      else
+                        // Send button
+                        InkWell(
+                          onTap: _controller.text.trim().isNotEmpty
+                              ? _send
+                              : null,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              color: _controller.text.trim().isNotEmpty
+                                  ? AppColors.primary
+                                  : c.inputBg,
+                            ),
+                            child: Icon(
+                              Icons.arrow_upward,
+                              size: 18,
+                              color: _controller.text.trim().isNotEmpty
+                                  ? Colors.white
+                                  : c.textHint,
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -196,6 +220,198 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
       ),
     );
   }
+}
+
+/// Model selector button — shows current model and allows switching
+class _ModelSelectorButton extends ConsumerStatefulWidget {
+  @override
+  ConsumerState<_ModelSelectorButton> createState() =>
+      _ModelSelectorButtonState();
+}
+
+class _ModelSelectorButtonState extends ConsumerState<_ModelSelectorButton> {
+  String? _currentProvider;
+  String? _currentModel;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentModel();
+  }
+
+  Future<void> _loadCurrentModel() async {
+    final status = await agent_api.getRuntimeStatus();
+    if (mounted) {
+      setState(() {
+        _currentProvider = status.provider;
+        _currentModel = status.model;
+      });
+    }
+  }
+
+  Future<void> _switchModel(String provider, String model) async {
+    final result = await providers_api.switchActiveModel(
+      provider: provider,
+      model: model,
+    );
+    if (result == 'ok' && mounted) {
+      setState(() {
+        _currentProvider = provider;
+        _currentModel = model;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = CoralDeskColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    // Short display: show only model name (truncated)
+    final displayModel = _currentModel ?? '...';
+    final truncated = displayModel.length > 24
+        ? '${displayModel.substring(0, 22)}…'
+        : displayModel;
+
+    return PopupMenuButton<_ModelChoice>(
+      tooltip: l10n.chatModelSelector,
+      offset: const Offset(0, -200),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: c.surfaceBg,
+      onSelected: (choice) {
+        _switchModel(choice.provider, choice.model);
+      },
+      itemBuilder: (context) {
+        // We'll build items asynchronously; for now use a FutureBuilder approach
+        // Since PopupMenuButton needs sync items, we preload in initState
+        return _buildMenuItems(context);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(6),
+          color: c.inputBg,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.model_training, size: 14, color: c.textHint),
+            const SizedBox(width: 4),
+            Text(
+              truncated,
+              style: TextStyle(fontSize: 11, color: c.textSecondary),
+            ),
+            Icon(Icons.arrow_drop_down, size: 14, color: c.textHint),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<PopupMenuEntry<_ModelChoice>> _buildMenuItems(BuildContext context) {
+    final c = CoralDeskColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final items = <PopupMenuEntry<_ModelChoice>>[];
+
+    // Current model header
+    if (_currentProvider != null && _currentModel != null) {
+      items.add(
+        PopupMenuItem<_ModelChoice>(
+          enabled: false,
+          child: Text(
+            l10n.chatCurrentModel(_currentProvider!, _currentModel!),
+            style: TextStyle(fontSize: 12, color: c.textHint),
+          ),
+        ),
+      );
+      items.add(const PopupMenuDivider());
+    }
+
+    // Load profiles synchronously (count is sync, but we need the list)
+    // We'll use a cached approach - load profiles when menu opens
+    // For now, use synchronous profile count to know if we have profiles
+    final profileCount = providers_api.modelProviderProfileCount();
+    if (profileCount > 0) {
+      // We can't async inside itemBuilder, but we can load eagerly
+      // and cache. For simplicity, show a "switch" hint with profiles
+      // loaded at build time via initState
+      _loadProfilesForMenu();
+      if (_cachedProfiles != null) {
+        for (final profile in _cachedProfiles!) {
+          final model = profile.defaultModel ?? 'default';
+          final displayName = profile.name ?? profile.id;
+          final isCurrent =
+              _currentProvider == profile.id && _currentModel == model;
+          items.add(
+            PopupMenuItem<_ModelChoice>(
+              value: _ModelChoice(provider: profile.id, model: model),
+              child: Row(
+                children: [
+                  if (isCurrent)
+                    const Icon(Icons.check, size: 16, color: AppColors.primary)
+                  else
+                    const SizedBox(width: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          displayName,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: isCurrent
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                            color: c.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          model,
+                          style: TextStyle(fontSize: 11, color: c.textHint),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+      }
+    }
+
+    if (items.isEmpty) {
+      items.add(
+        PopupMenuItem<_ModelChoice>(
+          enabled: false,
+          child: Text(
+            l10n.noProviderProfiles,
+            style: TextStyle(fontSize: 12, color: c.textHint),
+          ),
+        ),
+      );
+    }
+
+    return items;
+  }
+
+  List<providers_api.ModelProviderProfileDto>? _cachedProfiles;
+
+  void _loadProfilesForMenu() {
+    // Eagerly load profiles
+    providers_api.listModelProviderProfiles().then((profiles) {
+      if (mounted) {
+        setState(() => _cachedProfiles = profiles);
+      }
+    });
+  }
+}
+
+class _ModelChoice {
+  final String provider;
+  final String model;
+  const _ModelChoice({required this.provider, required this.model});
 }
 
 /// Attachment button with popup menu for adding files or folders

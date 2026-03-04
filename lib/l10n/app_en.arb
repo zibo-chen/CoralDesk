@@ -1452,5 +1452,110 @@
   "@mcpTransportSse": { "description": "SSE transport option" },
 
   "retryMessage": "Retry",
-  "@retryMessage": { "description": "Retry message button tooltip" }
+  "@retryMessage": { "description": "Retry message button tooltip" },
+
+  "stopGenerating": "Stop generating",
+  "@stopGenerating": { "description": "Stop generation button tooltip" },
+
+  "providerProfiles": "Provider Profiles",
+  "@providerProfiles": { "description": "Provider profiles section title" },
+
+  "providerProfilesDesc": "Configure multiple provider profiles. Each profile can have its own API key, base URL, and default model. Use them in model routes or select in chat.",
+  "@providerProfilesDesc": { "description": "Provider profiles description" },
+
+  "providerProfileNew": "New Profile",
+  "@providerProfileNew": { "description": "New provider profile button" },
+
+  "providerProfileEdit": "Edit Profile",
+  "@providerProfileEdit": { "description": "Edit provider profile dialog title" },
+
+  "providerProfileId": "Profile ID",
+  "@providerProfileId": { "description": "Profile ID field label" },
+
+  "providerProfileIdHint": "e.g. my-openai, local-ollama",
+  "@providerProfileIdHint": { "description": "Profile ID hint" },
+
+  "providerProfileName": "Provider Name",
+  "@providerProfileName": { "description": "Provider name override field" },
+
+  "providerProfileNameHint": "e.g. openai, anthropic, ollama",
+  "@providerProfileNameHint": { "description": "Provider name hint" },
+
+  "providerProfileBaseUrl": "Base URL",
+  "@providerProfileBaseUrl": { "description": "Base URL field" },
+
+  "providerProfileBaseUrlHint": "e.g. https://api.openai.com/v1",
+  "@providerProfileBaseUrlHint": { "description": "Base URL hint" },
+
+  "providerProfileWireApi": "Wire API Protocol",
+  "@providerProfileWireApi": { "description": "Wire API protocol field" },
+
+  "providerProfileModel": "Default Model",
+  "@providerProfileModel": { "description": "Profile default model" },
+
+  "providerProfileModelHint": "e.g. gpt-4o, claude-sonnet-4-6",
+  "@providerProfileModelHint": { "description": "Profile model hint" },
+
+  "providerProfileDeleted": "Profile ''{id}'' deleted",
+  "@providerProfileDeleted": { "description": "Profile deleted message", "placeholders": { "id": { "type": "String" } } },
+
+  "providerProfileSaved": "Profile saved",
+  "@providerProfileSaved": { "description": "Profile saved message" },
+
+  "providerProfileDeleteTitle": "Delete Profile",
+  "@providerProfileDeleteTitle": { "description": "Delete profile dialog title" },
+
+  "providerProfileDeleteConfirm": "Are you sure you want to delete profile ''{id}''?",
+  "@providerProfileDeleteConfirm": { "description": "Delete profile confirmation", "placeholders": { "id": { "type": "String" } } },
+
+  "noProviderProfiles": "No provider profiles configured",
+  "@noProviderProfiles": { "description": "Empty state for profiles" },
+
+  "noProviderProfilesHint": "Add profiles to use multiple providers with different API keys or endpoints.",
+  "@noProviderProfilesHint": { "description": "Empty state hint for profiles" },
+
+  "chatModelSelector": "Switch Model",
+  "@chatModelSelector": { "description": "Chat model selector tooltip" },
+
+  "chatCurrentModel": "Current: {provider} / {model}",
+  "@chatCurrentModel": { "description": "Current model display", "placeholders": { "provider": { "type": "String" }, "model": { "type": "String" } } },
+
+  "embeddingBaseUrl": "Embedding Base URL",
+  "@embeddingBaseUrl": { "description": "Embedding base URL field" },
+
+  "embeddingBaseUrlHint": "e.g. https://api.openai.com",
+  "@embeddingBaseUrlHint": { "description": "Embedding base URL hint" },
+
+  "agentCapabilities": "Capabilities",
+  "@agentCapabilities": { "description": "Agent capabilities field" },
+
+  "agentCapabilitiesHint": "research, coding, summarize",
+  "@agentCapabilitiesHint": { "description": "Agent capabilities hint" },
+
+  "agentPriority": "Priority",
+  "@agentPriority": { "description": "Agent priority field" },
+
+  "agentEnabled": "Enabled",
+  "@agentEnabled": { "description": "Agent enabled toggle" },
+
+  "agentEnabledDesc": "Whether this agent is active for selection and invocation.",
+  "@agentEnabledDesc": { "description": "Agent enabled description" },
+
+  "wireApiChatCompletions": "Chat Completions",
+  "@wireApiChatCompletions": { "description": "Chat completions wire API" },
+
+  "wireApiResponses": "Responses",
+  "@wireApiResponses": { "description": "Responses wire API" },
+
+  "wireApiAuto": "Auto",
+  "@wireApiAuto": { "description": "Auto wire API" },
+
+  "defaultLabel": "Default",
+  "@defaultLabel": { "description": "Default badge label" },
+
+  "setAsDefault": "Set as Default",
+  "@setAsDefault": { "description": "Set as default button tooltip" },
+
+  "providerProfileSetDefault": "Profile ''{id}'' set as default",
+  "@providerProfileSetDefault": { "description": "Profile set as default message", "placeholders": { "id": { "type": "String" } } }
 }

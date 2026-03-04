@@ -2797,6 +2797,216 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Retry'**
   String get retryMessage;
+
+  /// Stop generation button tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Stop generating'**
+  String get stopGenerating;
+
+  /// Provider profiles section title
+  ///
+  /// In en, this message translates to:
+  /// **'Provider Profiles'**
+  String get providerProfiles;
+
+  /// Provider profiles description
+  ///
+  /// In en, this message translates to:
+  /// **'Configure multiple provider profiles. Each profile can have its own API key, base URL, and default model. Use them in model routes or select in chat.'**
+  String get providerProfilesDesc;
+
+  /// New provider profile button
+  ///
+  /// In en, this message translates to:
+  /// **'New Profile'**
+  String get providerProfileNew;
+
+  /// Edit provider profile dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Profile'**
+  String get providerProfileEdit;
+
+  /// Profile ID field label
+  ///
+  /// In en, this message translates to:
+  /// **'Profile ID'**
+  String get providerProfileId;
+
+  /// Profile ID hint
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. my-openai, local-ollama'**
+  String get providerProfileIdHint;
+
+  /// Provider name override field
+  ///
+  /// In en, this message translates to:
+  /// **'Provider Name'**
+  String get providerProfileName;
+
+  /// Provider name hint
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. openai, anthropic, ollama'**
+  String get providerProfileNameHint;
+
+  /// Base URL field
+  ///
+  /// In en, this message translates to:
+  /// **'Base URL'**
+  String get providerProfileBaseUrl;
+
+  /// Base URL hint
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. https://api.openai.com/v1'**
+  String get providerProfileBaseUrlHint;
+
+  /// Wire API protocol field
+  ///
+  /// In en, this message translates to:
+  /// **'Wire API Protocol'**
+  String get providerProfileWireApi;
+
+  /// Profile default model
+  ///
+  /// In en, this message translates to:
+  /// **'Default Model'**
+  String get providerProfileModel;
+
+  /// Profile model hint
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. gpt-4o, claude-sonnet-4-6'**
+  String get providerProfileModelHint;
+
+  /// Profile deleted message
+  ///
+  /// In en, this message translates to:
+  /// **'Profile \'\'{id}\'\' deleted'**
+  String providerProfileDeleted(String id);
+
+  /// Profile saved message
+  ///
+  /// In en, this message translates to:
+  /// **'Profile saved'**
+  String get providerProfileSaved;
+
+  /// Delete profile dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Profile'**
+  String get providerProfileDeleteTitle;
+
+  /// Delete profile confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete profile \'\'{id}\'\'?'**
+  String providerProfileDeleteConfirm(String id);
+
+  /// Empty state for profiles
+  ///
+  /// In en, this message translates to:
+  /// **'No provider profiles configured'**
+  String get noProviderProfiles;
+
+  /// Empty state hint for profiles
+  ///
+  /// In en, this message translates to:
+  /// **'Add profiles to use multiple providers with different API keys or endpoints.'**
+  String get noProviderProfilesHint;
+
+  /// Chat model selector tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Switch Model'**
+  String get chatModelSelector;
+
+  /// Current model display
+  ///
+  /// In en, this message translates to:
+  /// **'Current: {provider} / {model}'**
+  String chatCurrentModel(String provider, String model);
+
+  /// Embedding base URL field
+  ///
+  /// In en, this message translates to:
+  /// **'Embedding Base URL'**
+  String get embeddingBaseUrl;
+
+  /// Embedding base URL hint
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. https://api.openai.com'**
+  String get embeddingBaseUrlHint;
+
+  /// Agent capabilities field
+  ///
+  /// In en, this message translates to:
+  /// **'Capabilities'**
+  String get agentCapabilities;
+
+  /// Agent capabilities hint
+  ///
+  /// In en, this message translates to:
+  /// **'research, coding, summarize'**
+  String get agentCapabilitiesHint;
+
+  /// Agent priority field
+  ///
+  /// In en, this message translates to:
+  /// **'Priority'**
+  String get agentPriority;
+
+  /// Agent enabled toggle
+  ///
+  /// In en, this message translates to:
+  /// **'Enabled'**
+  String get agentEnabled;
+
+  /// Agent enabled description
+  ///
+  /// In en, this message translates to:
+  /// **'Whether this agent is active for selection and invocation.'**
+  String get agentEnabledDesc;
+
+  /// Chat completions wire API
+  ///
+  /// In en, this message translates to:
+  /// **'Chat Completions'**
+  String get wireApiChatCompletions;
+
+  /// Responses wire API
+  ///
+  /// In en, this message translates to:
+  /// **'Responses'**
+  String get wireApiResponses;
+
+  /// Auto wire API
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get wireApiAuto;
+
+  /// Default badge label
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get defaultLabel;
+
+  /// Set as default button tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Set as Default'**
+  String get setAsDefault;
+
+  /// Profile set as default message
+  ///
+  /// In en, this message translates to:
+  /// **'Profile \'\'{id}\'\' set as default'**
+  String providerProfileSetDefault(String id);
 }
 
 class _AppLocalizationsDelegate

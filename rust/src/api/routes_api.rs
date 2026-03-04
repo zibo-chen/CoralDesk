@@ -28,6 +28,8 @@ pub struct EmbeddingConfigDto {
     pub vector_weight: f64,
     pub keyword_weight: f64,
     pub min_relevance_score: f64,
+    /// Base URL for custom embedding endpoints (extracted from "custom:<url>" provider)
+    pub embedding_base_url: Option<String>,
 }
 
 // ──────────────────── Model Routes API ──────────────────────────
@@ -209,13 +211,21 @@ pub async fn get_embedding_config() -> EmbeddingConfigDto {
     let cs = super::agent_api::config_state().read().await;
     if let Some(config) = &cs.config {
         let m = &config.memory;
+        // Extract base_url from "custom:<url>" provider format
+        let (ui_provider, base_url) = if m.embedding_provider.starts_with("custom:") {
+            let url = m.embedding_provider.strip_prefix("custom:").unwrap_or("").to_string();
+            ("custom".to_string(), if url.is_empty() { None } else { Some(url) })
+        } else {
+            (m.embedding_provider.clone(), None)
+        };
         EmbeddingConfigDto {
-            embedding_provider: m.embedding_provider.clone(),
+            embedding_provider: ui_provider,
             embedding_model: m.embedding_model.clone(),
             embedding_dimensions: m.embedding_dimensions as u32,
             vector_weight: m.vector_weight,
             keyword_weight: m.keyword_weight,
             min_relevance_score: m.min_relevance_score,
+            embedding_base_url: base_url,
         }
     } else {
         EmbeddingConfigDto {
@@ -225,6 +235,7 @@ pub async fn get_embedding_config() -> EmbeddingConfigDto {
             vector_weight: 0.7,
             keyword_weight: 0.3,
             min_relevance_score: 0.4,
+            embedding_base_url: None,
         }
     }
 }
@@ -238,7 +249,15 @@ pub async fn update_embedding_config(config: EmbeddingConfigDto) -> String {
             None => return "error: runtime not initialized".into(),
         };
 
-        cfg.memory.embedding_provider = config.embedding_provider;
+        // Reconstruct internal provider string: "custom:<url>" for custom providers
+        let internal_provider = if config.embedding_provider == "custom" {
+            let base_url = config.embedding_base_url.as_deref().unwrap_or("");
+            format!("custom:{base_url}")
+        } else {
+            config.embedding_provider
+        };
+
+        cfg.memory.embedding_provider = internal_provider;
         cfg.memory.embedding_model = config.embedding_model;
         cfg.memory.embedding_dimensions = config.embedding_dimensions as usize;
         cfg.memory.vector_weight = config.vector_weight;

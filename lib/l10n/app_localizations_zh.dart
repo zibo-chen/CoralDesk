@@ -1444,4 +1444,118 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get retryMessage => '重试';
+
+  @override
+  String get stopGenerating => '停止生成';
+
+  @override
+  String get providerProfiles => '供应商配置';
+
+  @override
+  String get providerProfilesDesc =>
+      '配置多个供应商。每个配置可拥有独立的 API Key、基础 URL 和默认模型。可在模型路由或聊天中使用。';
+
+  @override
+  String get providerProfileNew => '新建配置';
+
+  @override
+  String get providerProfileEdit => '编辑配置';
+
+  @override
+  String get providerProfileId => '配置 ID';
+
+  @override
+  String get providerProfileIdHint => '例如 my-openai, local-ollama';
+
+  @override
+  String get providerProfileName => '供应商名称';
+
+  @override
+  String get providerProfileNameHint => '例如 openai, anthropic, ollama';
+
+  @override
+  String get providerProfileBaseUrl => '基础 URL';
+
+  @override
+  String get providerProfileBaseUrlHint => '例如 https://api.openai.com/v1';
+
+  @override
+  String get providerProfileWireApi => 'API 协议';
+
+  @override
+  String get providerProfileModel => '默认模型';
+
+  @override
+  String get providerProfileModelHint => '例如 gpt-4o, claude-sonnet-4-6';
+
+  @override
+  String providerProfileDeleted(String id) {
+    return '配置 \'\'$id\'\' 已删除';
+  }
+
+  @override
+  String get providerProfileSaved => '配置已保存';
+
+  @override
+  String get providerProfileDeleteTitle => '删除配置';
+
+  @override
+  String providerProfileDeleteConfirm(String id) {
+    return '确定要删除配置 \'\'$id\'\' 吗？';
+  }
+
+  @override
+  String get noProviderProfiles => '未配置供应商';
+
+  @override
+  String get noProviderProfilesHint => '添加供应商配置以使用多个不同 API Key 或端点的供应商。';
+
+  @override
+  String get chatModelSelector => '切换模型';
+
+  @override
+  String chatCurrentModel(String provider, String model) {
+    return '当前: $provider / $model';
+  }
+
+  @override
+  String get embeddingBaseUrl => '嵌入基础 URL';
+
+  @override
+  String get embeddingBaseUrlHint => '例如 https://api.openai.com';
+
+  @override
+  String get agentCapabilities => '能力标签';
+
+  @override
+  String get agentCapabilitiesHint => 'research, coding, summarize';
+
+  @override
+  String get agentPriority => '优先级';
+
+  @override
+  String get agentEnabled => '启用';
+
+  @override
+  String get agentEnabledDesc => '是否启用此代理进行选择和调用。';
+
+  @override
+  String get wireApiChatCompletions => 'Chat Completions';
+
+  @override
+  String get wireApiResponses => 'Responses';
+
+  @override
+  String get wireApiAuto => '自动';
+
+  @override
+  String get defaultLabel => '默认';
+
+  @override
+  String get setAsDefault => '设为默认';
+
+  @override
+  String providerProfileSetDefault(String id) {
+    return '配置 \'\'$id\'\' 已设为默认';
+  }
 }
