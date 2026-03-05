@@ -4,6 +4,7 @@ import 'package:coraldesk/src/rust/frb_generated.dart';
 import 'package:coraldesk/src/rust/api/agent_api.dart' as agent_api;
 import 'package:coraldesk/src/rust/api/sessions_api.dart' as sessions_api;
 import 'package:coraldesk/src/rust/api/cron_api.dart' as cron_api;
+import 'package:coraldesk/src/rust/api/channel_runtime_api.dart' as channel_rt;
 import 'package:coraldesk/services/settings_service.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -63,6 +64,14 @@ class AppBootstrapper {
       debugPrint('CoralDesk cron scheduler: $cronStatus');
     } catch (e) {
       debugPrint('CoralDesk cron scheduler failed: $e');
+    }
+
+    // Channel listeners (Telegram, Discord, etc. — non-critical)
+    try {
+      final channelStatus = await channel_rt.startChannelListeners();
+      debugPrint('CoralDesk channel listeners: $channelStatus');
+    } catch (e) {
+      debugPrint('CoralDesk channel listeners failed: $e');
     }
 
     _initialized = true;

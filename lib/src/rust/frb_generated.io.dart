@@ -6,6 +6,7 @@
 import 'api/agent_api.dart';
 import 'api/agents_api.dart';
 import 'api/browser_bootstrap.dart';
+import 'api/channel_runtime_api.dart';
 import 'api/config_api.dart';
 import 'api/cron_api.dart';
 import 'api/cron_notification_api.dart';

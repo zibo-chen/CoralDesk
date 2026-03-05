@@ -1,6 +1,7 @@
 pub mod agent_api;
 pub mod agents_api;
 pub mod browser_bootstrap;
+pub mod channel_runtime_api;
 pub mod config_api;
 pub mod cron_api;
 pub mod cron_notification_api;

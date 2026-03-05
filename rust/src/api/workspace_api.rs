@@ -1224,7 +1224,14 @@ pub async fn save_channel_config(channel_type: String, config_json: String) -> S
     super::agent_api::invalidate_all_agents().await;
 
     // Persist to disk
-    save_channel_config_to_disk().await
+    let result = save_channel_config_to_disk().await;
+
+    // Restart channel listeners so the new config takes effect
+    if result == "ok" {
+        let _ = super::channel_runtime_api::restart_channel_listeners().await;
+    }
+
+    result
 }
 
 /// Toggle a channel on/off. If disabling, removes config. If enabling, needs save_channel_config.
@@ -1254,7 +1261,14 @@ pub async fn toggle_channel(channel_type: String, enabled: bool) -> String {
             }
         }
         super::agent_api::invalidate_all_agents().await;
-        save_channel_config_to_disk().await
+        let result = save_channel_config_to_disk().await;
+
+        // Restart channel listeners to reflect the disabled channel
+        if result == "ok" {
+            let _ = super::channel_runtime_api::restart_channel_listeners().await;
+        }
+
+        result
     } else {
         // Enable requires configuration — caller should use save_channel_config
         "error: use save_channel_config to enable with configuration".into()

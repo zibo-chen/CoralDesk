@@ -5,6 +5,7 @@ import 'package:coraldesk/l10n/app_localizations.dart';
 import 'package:coraldesk/theme/app_theme.dart';
 import 'package:coraldesk/views/settings/widgets/settings_scaffold.dart';
 import 'package:coraldesk/src/rust/api/workspace_api.dart' as ws_api;
+import 'package:coraldesk/src/rust/api/channel_runtime_api.dart' as channel_rt;
 
 /// Channels configuration page — shows all available communication channels
 /// with GUI configuration support
@@ -19,6 +20,7 @@ class _ChannelsPageState extends ConsumerState<ChannelsPage> {
   List<ws_api.ChannelSummary>? _channels;
   bool _loading = true;
   String? _message;
+  bool _listenersRunning = false;
   CoralDeskColors get c => CoralDeskColors.of(context);
 
   @override
@@ -29,9 +31,11 @@ class _ChannelsPageState extends ConsumerState<ChannelsPage> {
 
   Future<void> _loadChannels() async {
     final channels = await ws_api.listChannels();
+    final running = await channel_rt.isChannelListenersRunning();
     if (mounted) {
       setState(() {
         _channels = channels;
+        _listenersRunning = running;
         _loading = false;
       });
     }
@@ -141,6 +145,58 @@ class _ChannelsPageState extends ConsumerState<ChannelsPage> {
             ),
           ),
         const SizedBox(width: 12),
+        // Channel listeners running indicator
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: _listenersRunning
+                ? AppColors.success.withValues(alpha: 0.1)
+                : c.inputBg,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _listenersRunning
+                    ? Icons.cell_tower
+                    : Icons.signal_cellular_off,
+                size: 14,
+                color: _listenersRunning ? AppColors.success : c.textHint,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                _listenersRunning ? '监听中' : '已停止',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: _listenersRunning ? AppColors.success : c.textHint,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        // Start / Stop button
+        IconButton(
+          icon: Icon(
+            _listenersRunning
+                ? Icons.stop_circle_outlined
+                : Icons.play_circle_outlined,
+            size: 22,
+          ),
+          color: _listenersRunning ? AppColors.error : AppColors.primary,
+          tooltip: _listenersRunning ? '停止频道监听' : '启动频道监听',
+          onPressed: () async {
+            if (_listenersRunning) {
+              await channel_rt.stopChannelListeners();
+            } else {
+              await channel_rt.startChannelListeners();
+            }
+            _loadChannels();
+          },
+        ),
+        const SizedBox(width: 8),
         if (_channels != null)
           Text(
             AppLocalizations.of(
