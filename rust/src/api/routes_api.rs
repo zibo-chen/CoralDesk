@@ -216,8 +216,15 @@ pub async fn get_embedding_config() -> EmbeddingConfigDto {
         let m = &config.memory;
         // Extract base_url from "custom:<url>" provider format
         let (ui_provider, base_url) = if m.embedding_provider.starts_with("custom:") {
-            let url = m.embedding_provider.strip_prefix("custom:").unwrap_or("").to_string();
-            ("custom".to_string(), if url.is_empty() { None } else { Some(url) })
+            let url = m
+                .embedding_provider
+                .strip_prefix("custom:")
+                .unwrap_or("")
+                .to_string();
+            (
+                "custom".to_string(),
+                if url.is_empty() { None } else { Some(url) },
+            )
         } else {
             (m.embedding_provider.clone(), None)
         };
@@ -250,27 +257,43 @@ pub async fn update_embedding_config(config: EmbeddingConfigDto) -> String {
     {
         let mut cs = super::agent_api::config_state().write().await;
         let mut gc = super::agent_api::global_config().write().await;
-        let cfg = match cs.config.as_mut() {
-            Some(c) => c,
-            None => return "error: runtime not initialized".into(),
-        };
+
+        // Ensure runtime is initialized
+        if gc.config.is_none() {
+            return "error: runtime not initialized".into();
+        }
 
         // Reconstruct internal provider string: "custom:<url>" for custom providers
         let internal_provider = if config.embedding_provider == "custom" {
             let base_url = config.embedding_base_url.as_deref().unwrap_or("");
             format!("custom:{base_url}")
         } else {
-            config.embedding_provider
+            config.embedding_provider.clone()
         };
 
-        cfg.memory.embedding_provider = internal_provider;
-        cfg.memory.embedding_model = config.embedding_model;
-        cfg.memory.embedding_dimensions = config.embedding_dimensions as usize;
-        cfg.memory.vector_weight = config.vector_weight;
-        cfg.memory.keyword_weight = config.keyword_weight;
-        cfg.memory.min_relevance_score = config.min_relevance_score;
+        // Update config_state (legacy)
+        if let Some(cfg) = cs.config.as_mut() {
+            cfg.memory.embedding_provider = internal_provider.clone();
+            cfg.memory.embedding_model = config.embedding_model.clone();
+            cfg.memory.embedding_dimensions = config.embedding_dimensions as usize;
+            cfg.memory.vector_weight = config.vector_weight;
+            cfg.memory.keyword_weight = config.keyword_weight;
+            cfg.memory.min_relevance_score = config.min_relevance_score;
+            cfg.memory.embedding_api_key = config.embedding_api_key.clone();
+        }
 
-        // Store API key in global config (not part of zeroclaw::Config)
+        // Update global_config (used by agent creation)
+        if let Some(cfg) = gc.config.as_mut() {
+            cfg.memory.embedding_provider = internal_provider;
+            cfg.memory.embedding_model = config.embedding_model;
+            cfg.memory.embedding_dimensions = config.embedding_dimensions as usize;
+            cfg.memory.vector_weight = config.vector_weight;
+            cfg.memory.keyword_weight = config.keyword_weight;
+            cfg.memory.min_relevance_score = config.min_relevance_score;
+            cfg.memory.embedding_api_key = config.embedding_api_key.clone();
+        }
+
+        // Store API key reference for UI access
         gc.embedding_api_key = config.embedding_api_key;
     }
 

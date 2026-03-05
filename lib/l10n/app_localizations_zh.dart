@@ -1585,4 +1585,148 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get trayTooltip => 'CoralDesk – 后台运行中';
+
+  @override
+  String get proxyServiceCategoryProvider => 'AI 供应商';
+
+  @override
+  String get proxyServiceCategoryChannel => '通道';
+
+  @override
+  String get proxyServiceCategoryTool => '工具';
+
+  @override
+  String get proxyServiceCategoryMemory => '记忆';
+
+  @override
+  String get proxyServiceCategoryTunnel => '隧道';
+
+  @override
+  String get proxyServiceCategoryTranscription => '语音转写';
+
+  @override
+  String get proxyServiceProviderAnthropic => 'Anthropic (Claude)';
+
+  @override
+  String get proxyServiceProviderCompatible => 'OpenAI 兼容';
+
+  @override
+  String get proxyServiceProviderCopilot => 'GitHub Copilot';
+
+  @override
+  String get proxyServiceProviderGemini => 'Google Gemini';
+
+  @override
+  String get proxyServiceProviderGlm => '智谱 GLM';
+
+  @override
+  String get proxyServiceProviderOllama => 'Ollama (本地)';
+
+  @override
+  String get proxyServiceProviderOpenai => 'OpenAI';
+
+  @override
+  String get proxyServiceProviderOpenrouter => 'OpenRouter';
+
+  @override
+  String get proxyServiceChannelBluebubbles => 'BlueBubbles';
+
+  @override
+  String get proxyServiceChannelDingtalk => '钉钉';
+
+  @override
+  String get proxyServiceChannelDiscord => 'Discord';
+
+  @override
+  String get proxyServiceChannelFeishu => '飞书';
+
+  @override
+  String get proxyServiceChannelGithub => 'GitHub';
+
+  @override
+  String get proxyServiceChannelLark => 'Lark';
+
+  @override
+  String get proxyServiceChannelMatrix => 'Matrix';
+
+  @override
+  String get proxyServiceChannelMattermost => 'Mattermost';
+
+  @override
+  String get proxyServiceChannelNextcloudTalk => 'Nextcloud Talk';
+
+  @override
+  String get proxyServiceChannelNapcat => 'NapCat (QQ)';
+
+  @override
+  String get proxyServiceChannelQq => 'QQ';
+
+  @override
+  String get proxyServiceChannelSignal => 'Signal';
+
+  @override
+  String get proxyServiceChannelSlack => 'Slack';
+
+  @override
+  String get proxyServiceChannelTelegram => 'Telegram';
+
+  @override
+  String get proxyServiceChannelWati => 'WATI (WhatsApp)';
+
+  @override
+  String get proxyServiceChannelWhatsapp => 'WhatsApp';
+
+  @override
+  String get proxyServiceToolBrowser => '浏览器自动化';
+
+  @override
+  String get proxyServiceToolComposio => 'Composio';
+
+  @override
+  String get proxyServiceToolHttpRequest => 'HTTP 请求';
+
+  @override
+  String get proxyServiceToolMultimodal => '多模态';
+
+  @override
+  String get proxyServiceToolPushover => 'Pushover 通知';
+
+  @override
+  String get proxyServiceMemoryEmbeddings => '嵌入向量';
+
+  @override
+  String get proxyServiceTunnelCustom => '自定义隧道';
+
+  @override
+  String get proxyServiceTranscriptionGroq => 'Groq 语音转写';
+
+  @override
+  String get proxyServiceWildcardProvider => '所有供应商';
+
+  @override
+  String get proxyServiceWildcardChannel => '所有通道';
+
+  @override
+  String get proxyServiceWildcardTool => '所有工具';
+
+  @override
+  String get proxyServiceWildcardMemory => '所有记忆服务';
+
+  @override
+  String get proxyServiceWildcardTunnel => '所有隧道';
+
+  @override
+  String get proxyServiceWildcardTranscription => '所有语音转写';
+
+  @override
+  String get proxyResetButton => '重置';
+
+  @override
+  String get proxyResetConfirmTitle => '重置代理设置？';
+
+  @override
+  String get proxyResetConfirmBody => '这将清除所有代理设置并禁用代理。确定要继续吗？';
+
+  @override
+  String get proxyResetSuccess => '代理设置已重置';
 }

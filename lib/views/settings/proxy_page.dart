@@ -26,11 +26,123 @@ class _ProxyPageState extends ConsumerState<ProxyPage> {
   bool _isLoading = true;
   bool _isSaving = false;
   bool _saveQueued = false;
+  bool _isResetting = false;
   Timer? _autoSaveTimer;
   String? _httpError;
   String? _httpsError;
   String? _allError;
   CoralDeskColors get c => CoralDeskColors.of(context);
+
+  /// Get localized display name for a service key
+  String _getLocalizedServiceName(String key, AppLocalizations l10n) {
+    // Handle wildcard selectors
+    switch (key) {
+      case 'provider.*':
+        return l10n.proxyServiceWildcardProvider;
+      case 'channel.*':
+        return l10n.proxyServiceWildcardChannel;
+      case 'tool.*':
+        return l10n.proxyServiceWildcardTool;
+      case 'memory.*':
+        return l10n.proxyServiceWildcardMemory;
+      case 'tunnel.*':
+        return l10n.proxyServiceWildcardTunnel;
+      case 'transcription.*':
+        return l10n.proxyServiceWildcardTranscription;
+      // Provider keys
+      case 'provider.anthropic':
+        return l10n.proxyServiceProviderAnthropic;
+      case 'provider.compatible':
+        return l10n.proxyServiceProviderCompatible;
+      case 'provider.copilot':
+        return l10n.proxyServiceProviderCopilot;
+      case 'provider.gemini':
+        return l10n.proxyServiceProviderGemini;
+      case 'provider.glm':
+        return l10n.proxyServiceProviderGlm;
+      case 'provider.ollama':
+        return l10n.proxyServiceProviderOllama;
+      case 'provider.openai':
+        return l10n.proxyServiceProviderOpenai;
+      case 'provider.openrouter':
+        return l10n.proxyServiceProviderOpenrouter;
+      // Channel keys
+      case 'channel.bluebubbles':
+        return l10n.proxyServiceChannelBluebubbles;
+      case 'channel.dingtalk':
+        return l10n.proxyServiceChannelDingtalk;
+      case 'channel.discord':
+        return l10n.proxyServiceChannelDiscord;
+      case 'channel.feishu':
+        return l10n.proxyServiceChannelFeishu;
+      case 'channel.github':
+        return l10n.proxyServiceChannelGithub;
+      case 'channel.lark':
+        return l10n.proxyServiceChannelLark;
+      case 'channel.matrix':
+        return l10n.proxyServiceChannelMatrix;
+      case 'channel.mattermost':
+        return l10n.proxyServiceChannelMattermost;
+      case 'channel.nextcloud_talk':
+        return l10n.proxyServiceChannelNextcloudTalk;
+      case 'channel.napcat':
+        return l10n.proxyServiceChannelNapcat;
+      case 'channel.qq':
+        return l10n.proxyServiceChannelQq;
+      case 'channel.signal':
+        return l10n.proxyServiceChannelSignal;
+      case 'channel.slack':
+        return l10n.proxyServiceChannelSlack;
+      case 'channel.telegram':
+        return l10n.proxyServiceChannelTelegram;
+      case 'channel.wati':
+        return l10n.proxyServiceChannelWati;
+      case 'channel.whatsapp':
+        return l10n.proxyServiceChannelWhatsapp;
+      // Tool keys
+      case 'tool.browser':
+        return l10n.proxyServiceToolBrowser;
+      case 'tool.composio':
+        return l10n.proxyServiceToolComposio;
+      case 'tool.http_request':
+        return l10n.proxyServiceToolHttpRequest;
+      case 'tool.multimodal':
+        return l10n.proxyServiceToolMultimodal;
+      case 'tool.pushover':
+        return l10n.proxyServiceToolPushover;
+      // Memory keys
+      case 'memory.embeddings':
+        return l10n.proxyServiceMemoryEmbeddings;
+      // Tunnel keys
+      case 'tunnel.custom':
+        return l10n.proxyServiceTunnelCustom;
+      // Transcription keys
+      case 'transcription.groq':
+        return l10n.proxyServiceTranscriptionGroq;
+      default:
+        return key; // Fallback to key if no translation
+    }
+  }
+
+  /// Get localized category name
+  String _getLocalizedCategoryName(String category, AppLocalizations l10n) {
+    switch (category) {
+      case 'provider':
+        return l10n.proxyServiceCategoryProvider;
+      case 'channel':
+        return l10n.proxyServiceCategoryChannel;
+      case 'tool':
+        return l10n.proxyServiceCategoryTool;
+      case 'memory':
+        return l10n.proxyServiceCategoryMemory;
+      case 'tunnel':
+        return l10n.proxyServiceCategoryTunnel;
+      case 'transcription':
+        return l10n.proxyServiceCategoryTranscription;
+      default:
+        return category.toUpperCase();
+    }
+  }
 
   @override
   void initState() {
@@ -141,6 +253,68 @@ class _ProxyPageState extends ConsumerState<ProxyPage> {
     }
   }
 
+  Future<void> _resetProxy() async {
+    final l10n = AppLocalizations.of(context)!;
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.proxyResetConfirmTitle),
+        content: Text(l10n.proxyResetConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(l10n.proxyResetButton),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() {
+      _isResetting = true;
+    });
+
+    final result = await proxy_api.resetProxyConfig();
+
+    if (!mounted) return;
+
+    if (result == 'ok') {
+      // Clear all local state
+      setState(() {
+        _enabled = false;
+        _scope = proxy_api.ProxyScopeDto.zeroclaw;
+        _httpProxyController.clear();
+        _httpsProxyController.clear();
+        _allProxyController.clear();
+        _noProxyController.clear();
+        _servicesController.clear();
+        _httpError = null;
+        _httpsError = null;
+        _allError = null;
+        _isResetting = false;
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.proxyResetSuccess)));
+    } else {
+      setState(() {
+        _isResetting = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(result)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -178,7 +352,7 @@ class _ProxyPageState extends ConsumerState<ProxyPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Enable toggle
+          // Enable toggle with reset button
           Row(
             children: [
               Icon(Icons.shield_outlined, size: 18, color: AppColors.primary),
@@ -192,6 +366,33 @@ class _ProxyPageState extends ConsumerState<ProxyPage> {
                 ),
               ),
               const Spacer(),
+              // Reset button
+              TextButton.icon(
+                onPressed: _isResetting ? null : _resetProxy,
+                icon: _isResetting
+                    ? SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: c.textHint,
+                        ),
+                      )
+                    : Icon(Icons.refresh, size: 14, color: c.textHint),
+                label: Text(
+                  l10n.proxyResetButton,
+                  style: TextStyle(fontSize: 12, color: c.textHint),
+                ),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+              const SizedBox(width: 8),
               Switch(
                 value: _enabled,
                 activeTrackColor: AppColors.primary,
@@ -493,7 +694,7 @@ class _ProxyPageState extends ConsumerState<ProxyPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    entry.key.toUpperCase(),
+                    _getLocalizedCategoryName(entry.key, l10n),
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -512,34 +713,38 @@ class _ProxyPageState extends ConsumerState<ProxyPage> {
                           .where((e) => e.isNotEmpty)
                           .toSet();
                       final isActive = current.contains(s.key);
-                      return FilterChip(
-                        label: Text(
-                          s.key,
-                          style: const TextStyle(fontSize: 11),
+                      return Tooltip(
+                        message: s.key, // Show original key on hover
+                        child: FilterChip(
+                          label: Text(
+                            _getLocalizedServiceName(s.key, l10n),
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          selected: isActive,
+                          selectedColor: AppColors.primary.withValues(
+                            alpha: 0.15,
+                          ),
+                          checkmarkColor: AppColors.primary,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                          onSelected: (selected) {
+                            final items = _servicesController.text
+                                .split(',')
+                                .map((e) => e.trim())
+                                .where((e) => e.isNotEmpty)
+                                .toSet();
+                            if (selected) {
+                              items.add(s.key);
+                            } else {
+                              items.remove(s.key);
+                            }
+                            setState(() {
+                              _servicesController.text = items.join(', ');
+                            });
+                            _scheduleAutoSave(immediate: true);
+                          },
                         ),
-                        selected: isActive,
-                        selectedColor: AppColors.primary.withValues(
-                          alpha: 0.15,
-                        ),
-                        checkmarkColor: AppColors.primary,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        visualDensity: VisualDensity.compact,
-                        onSelected: (selected) {
-                          final items = _servicesController.text
-                              .split(',')
-                              .map((e) => e.trim())
-                              .where((e) => e.isNotEmpty)
-                              .toSet();
-                          if (selected) {
-                            items.add(s.key);
-                          } else {
-                            items.remove(s.key);
-                          }
-                          setState(() {
-                            _servicesController.text = items.join(', ');
-                          });
-                          _scheduleAutoSave(immediate: true);
-                        },
                       );
                     }).toList(),
                   ),

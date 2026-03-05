@@ -151,8 +151,6 @@ class _AppShellState extends ConsumerState<AppShell> with WindowListener {
       _showCronNotification(prev?.latest, next.latest);
     });
 
-    final l10n = AppLocalizations.of(context);
-
     return Scaffold(
       body: Stack(
         children: [
@@ -166,24 +164,11 @@ class _AppShellState extends ConsumerState<AppShell> with WindowListener {
 
               // Main content area
               Expanded(
-                child: Column(
+                child: Stack(
                   children: [
-                    // Integrated drag header — blends with content background
-                    if (_isDesktop &&
-                        l10n != null &&
-                        currentNav != NavSection.chat)
-                      _ContentDragHeader(
-                        title: _titleForSection(currentNav, l10n),
-                      ),
-                    Expanded(
-                      child: Stack(
-                        children: [
-                          _buildMainContent(context, currentNav),
-                          // Notification panel slide-in from right
-                          _buildNotificationOverlay(ref),
-                        ],
-                      ),
-                    ),
+                    _buildMainContent(context, currentNav),
+                    // Notification panel slide-in from right
+                    _buildNotificationOverlay(ref),
                   ],
                 ),
               ),
@@ -199,23 +184,6 @@ class _AppShellState extends ConsumerState<AppShell> with WindowListener {
         ],
       ),
     );
-  }
-
-  String _titleForSection(NavSection section, AppLocalizations l10n) {
-    return switch (section) {
-      NavSection.chat => l10n.navChat,
-      NavSection.models => l10n.navModels,
-      NavSection.channels => l10n.navChannels,
-      NavSection.workspace => l10n.navWorkspace,
-      NavSection.configuration => l10n.navConfiguration,
-      NavSection.sessions => l10n.navSessions,
-      NavSection.cronJobs => l10n.navCronJobs,
-      NavSection.knowledge => l10n.navKnowledge,
-      NavSection.skills => l10n.navSkills,
-      NavSection.mcp => l10n.navMcp,
-      NavSection.agents => l10n.navAgents,
-      NavSection.proxy => l10n.navProxy,
-    };
   }
 
   bool get _isDesktop {
@@ -274,43 +242,8 @@ class _AppShellState extends ConsumerState<AppShell> with WindowListener {
   }
 }
 
-/// Lightweight drag header for the content area.
-/// On macOS includes extra top inset for traffic-light buttons.
-class _ContentDragHeader extends StatelessWidget {
-  const _ContentDragHeader({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = CoralDeskColors.of(context);
-    final isMacOS = AppConstants.isMacOS;
-
-    return DragToMoveArea(
-      child: Container(
-        height: isMacOS ? AppConstants.macOSTopInset + 20 : 38,
-        color: c.mainBg,
-        padding: EdgeInsets.only(
-          left: 20,
-          right: isMacOS ? 20 : 150,
-          top: isMacOS ? AppConstants.macOSTopInset : 0,
-        ),
-        alignment: Alignment.centerLeft,
-        child: Text(
-          title,
-          style: TextStyle(
-            fontSize: 12,
-            color: c.textHint,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0.3,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// Window controls for Windows & Linux (minimize, maximize/restore, close).
+/// Features smooth hover animations and modern Windows 11 style design.
 class _WindowControls extends StatelessWidget {
   const _WindowControls({required this.isMaximized});
 
@@ -320,21 +253,27 @@ class _WindowControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = CoralDeskColors.of(context);
     return Container(
-      height: 38,
-      color: c.mainBg,
+      height: AppConstants.windowControlHeight,
+      decoration: BoxDecoration(color: c.mainBg),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           _WindowControlButton(
-            icon: Icons.remove,
-            color: c.textSecondary,
-            hoverColor: c.inputBg,
+            icon: Icons.horizontal_rule_rounded,
+            tooltip: 'Minimize',
+            defaultColor: c.textSecondary,
+            hoverBgColor: c.inputBg,
+            hoverIconColor: c.textPrimary,
             onTap: () => windowManager.minimize(),
           ),
           _WindowControlButton(
-            icon: isMaximized ? Icons.filter_none : Icons.crop_square,
-            color: c.textSecondary,
-            hoverColor: c.inputBg,
+            icon: isMaximized
+                ? Icons.filter_none_rounded
+                : Icons.crop_square_rounded,
+            tooltip: isMaximized ? 'Restore' : 'Maximize',
+            defaultColor: c.textSecondary,
+            hoverBgColor: c.inputBg,
+            hoverIconColor: c.textPrimary,
             onTap: () async {
               if (await windowManager.isMaximized()) {
                 await windowManager.unmaximize();
@@ -344,10 +283,12 @@ class _WindowControls extends StatelessWidget {
             },
           ),
           _WindowControlButton(
-            icon: Icons.close,
-            color: c.textSecondary,
-            hoverColor: AppColors.error.withValues(alpha: 0.15),
+            icon: Icons.close_rounded,
+            tooltip: 'Close',
+            defaultColor: c.textSecondary,
+            hoverBgColor: AppColors.error,
             hoverIconColor: Colors.white,
+            isClose: true,
             onTap: () => windowManager.close(),
           ),
         ],
@@ -356,47 +297,104 @@ class _WindowControls extends StatelessWidget {
   }
 }
 
+/// Individual window control button with smooth hover animation.
 class _WindowControlButton extends StatefulWidget {
   const _WindowControlButton({
     required this.icon,
-    required this.color,
-    required this.hoverColor,
+    required this.tooltip,
+    required this.defaultColor,
+    required this.hoverBgColor,
+    required this.hoverIconColor,
     required this.onTap,
-    this.hoverIconColor,
+    this.isClose = false,
   });
 
   final IconData icon;
-  final Color color;
-  final Color hoverColor;
+  final String tooltip;
+  final Color defaultColor;
+  final Color hoverBgColor;
+  final Color hoverIconColor;
   final VoidCallback onTap;
-  final Color? hoverIconColor;
+  final bool isClose;
 
   @override
   State<_WindowControlButton> createState() => _WindowControlButtonState();
 }
 
-class _WindowControlButtonState extends State<_WindowControlButton> {
-  bool _hovered = false;
+class _WindowControlButtonState extends State<_WindowControlButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onEnter() {
+    _controller.forward();
+  }
+
+  void _onExit() {
+    _controller.reverse();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        child: Container(
-          width: 46,
-          height: double.infinity,
-          color: _hovered ? widget.hoverColor : Colors.transparent,
-          alignment: Alignment.center,
-          child: Icon(
-            widget.icon,
-            size: 16,
-            color: _hovered && widget.hoverIconColor != null
-                ? widget.hoverIconColor
-                : widget.color,
+      onEnter: (_) => _onEnter(),
+      onExit: (_) => _onExit(),
+      child: Tooltip(
+        message: widget.tooltip,
+        waitDuration: const Duration(milliseconds: 500),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onTap,
+          child: AnimatedBuilder(
+            animation: _animation,
+            builder: (context, child) {
+              final bgColor = Color.lerp(
+                Colors.transparent,
+                widget.hoverBgColor,
+                _animation.value,
+              )!;
+              final iconColor = Color.lerp(
+                widget.defaultColor,
+                widget.hoverIconColor,
+                _animation.value,
+              )!;
+
+              return Container(
+                width: AppConstants.windowControlWidth,
+                height: double.infinity,
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: widget.isClose
+                      ? const BorderRadius.only(bottomLeft: Radius.circular(8))
+                      : null,
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  widget.icon,
+                  size: widget.isClose ? 18 : 16,
+                  color: iconColor,
+                ),
+              );
+            },
           ),
         ),
       ),

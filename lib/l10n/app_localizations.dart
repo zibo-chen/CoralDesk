@@ -3061,6 +3061,294 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'CoralDesk – Running in background'**
   String get trayTooltip;
+
+  /// Provider category for proxy services
+  ///
+  /// In en, this message translates to:
+  /// **'AI Providers'**
+  String get proxyServiceCategoryProvider;
+
+  /// Channel category for proxy services
+  ///
+  /// In en, this message translates to:
+  /// **'Channels'**
+  String get proxyServiceCategoryChannel;
+
+  /// Tool category for proxy services
+  ///
+  /// In en, this message translates to:
+  /// **'Tools'**
+  String get proxyServiceCategoryTool;
+
+  /// Memory category for proxy services
+  ///
+  /// In en, this message translates to:
+  /// **'Memory'**
+  String get proxyServiceCategoryMemory;
+
+  /// Tunnel category for proxy services
+  ///
+  /// In en, this message translates to:
+  /// **'Tunnel'**
+  String get proxyServiceCategoryTunnel;
+
+  /// Transcription category for proxy services
+  ///
+  /// In en, this message translates to:
+  /// **'Transcription'**
+  String get proxyServiceCategoryTranscription;
+
+  /// Anthropic provider
+  ///
+  /// In en, this message translates to:
+  /// **'Anthropic (Claude)'**
+  String get proxyServiceProviderAnthropic;
+
+  /// OpenAI compatible provider
+  ///
+  /// In en, this message translates to:
+  /// **'OpenAI Compatible'**
+  String get proxyServiceProviderCompatible;
+
+  /// GitHub Copilot provider
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub Copilot'**
+  String get proxyServiceProviderCopilot;
+
+  /// Google Gemini provider
+  ///
+  /// In en, this message translates to:
+  /// **'Google Gemini'**
+  String get proxyServiceProviderGemini;
+
+  /// GLM/Zhipu provider
+  ///
+  /// In en, this message translates to:
+  /// **'GLM (Zhipu)'**
+  String get proxyServiceProviderGlm;
+
+  /// Ollama local provider
+  ///
+  /// In en, this message translates to:
+  /// **'Ollama (Local)'**
+  String get proxyServiceProviderOllama;
+
+  /// OpenAI provider
+  ///
+  /// In en, this message translates to:
+  /// **'OpenAI'**
+  String get proxyServiceProviderOpenai;
+
+  /// OpenRouter provider
+  ///
+  /// In en, this message translates to:
+  /// **'OpenRouter'**
+  String get proxyServiceProviderOpenrouter;
+
+  /// BlueBubbles channel
+  ///
+  /// In en, this message translates to:
+  /// **'BlueBubbles'**
+  String get proxyServiceChannelBluebubbles;
+
+  /// DingTalk channel
+  ///
+  /// In en, this message translates to:
+  /// **'DingTalk'**
+  String get proxyServiceChannelDingtalk;
+
+  /// Discord channel
+  ///
+  /// In en, this message translates to:
+  /// **'Discord'**
+  String get proxyServiceChannelDiscord;
+
+  /// Feishu channel
+  ///
+  /// In en, this message translates to:
+  /// **'Feishu'**
+  String get proxyServiceChannelFeishu;
+
+  /// GitHub channel
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub'**
+  String get proxyServiceChannelGithub;
+
+  /// Lark channel
+  ///
+  /// In en, this message translates to:
+  /// **'Lark'**
+  String get proxyServiceChannelLark;
+
+  /// Matrix channel
+  ///
+  /// In en, this message translates to:
+  /// **'Matrix'**
+  String get proxyServiceChannelMatrix;
+
+  /// Mattermost channel
+  ///
+  /// In en, this message translates to:
+  /// **'Mattermost'**
+  String get proxyServiceChannelMattermost;
+
+  /// Nextcloud Talk channel
+  ///
+  /// In en, this message translates to:
+  /// **'Nextcloud Talk'**
+  String get proxyServiceChannelNextcloudTalk;
+
+  /// NapCat QQ channel
+  ///
+  /// In en, this message translates to:
+  /// **'NapCat (QQ)'**
+  String get proxyServiceChannelNapcat;
+
+  /// QQ channel
+  ///
+  /// In en, this message translates to:
+  /// **'QQ'**
+  String get proxyServiceChannelQq;
+
+  /// Signal channel
+  ///
+  /// In en, this message translates to:
+  /// **'Signal'**
+  String get proxyServiceChannelSignal;
+
+  /// Slack channel
+  ///
+  /// In en, this message translates to:
+  /// **'Slack'**
+  String get proxyServiceChannelSlack;
+
+  /// Telegram channel
+  ///
+  /// In en, this message translates to:
+  /// **'Telegram'**
+  String get proxyServiceChannelTelegram;
+
+  /// WATI WhatsApp channel
+  ///
+  /// In en, this message translates to:
+  /// **'WATI (WhatsApp)'**
+  String get proxyServiceChannelWati;
+
+  /// WhatsApp channel
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp'**
+  String get proxyServiceChannelWhatsapp;
+
+  /// Browser automation tool
+  ///
+  /// In en, this message translates to:
+  /// **'Browser Automation'**
+  String get proxyServiceToolBrowser;
+
+  /// Composio tool
+  ///
+  /// In en, this message translates to:
+  /// **'Composio'**
+  String get proxyServiceToolComposio;
+
+  /// HTTP request tool
+  ///
+  /// In en, this message translates to:
+  /// **'HTTP Request'**
+  String get proxyServiceToolHttpRequest;
+
+  /// Multimodal tool
+  ///
+  /// In en, this message translates to:
+  /// **'Multimodal'**
+  String get proxyServiceToolMultimodal;
+
+  /// Pushover notification tool
+  ///
+  /// In en, this message translates to:
+  /// **'Pushover'**
+  String get proxyServiceToolPushover;
+
+  /// Memory embeddings service
+  ///
+  /// In en, this message translates to:
+  /// **'Embeddings'**
+  String get proxyServiceMemoryEmbeddings;
+
+  /// Custom tunnel service
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Tunnel'**
+  String get proxyServiceTunnelCustom;
+
+  /// Groq transcription service
+  ///
+  /// In en, this message translates to:
+  /// **'Groq Transcription'**
+  String get proxyServiceTranscriptionGroq;
+
+  /// Wildcard for all providers
+  ///
+  /// In en, this message translates to:
+  /// **'All Providers'**
+  String get proxyServiceWildcardProvider;
+
+  /// Wildcard for all channels
+  ///
+  /// In en, this message translates to:
+  /// **'All Channels'**
+  String get proxyServiceWildcardChannel;
+
+  /// Wildcard for all tools
+  ///
+  /// In en, this message translates to:
+  /// **'All Tools'**
+  String get proxyServiceWildcardTool;
+
+  /// Wildcard for all memory services
+  ///
+  /// In en, this message translates to:
+  /// **'All Memory'**
+  String get proxyServiceWildcardMemory;
+
+  /// Wildcard for all tunnel services
+  ///
+  /// In en, this message translates to:
+  /// **'All Tunnels'**
+  String get proxyServiceWildcardTunnel;
+
+  /// Wildcard for all transcription services
+  ///
+  /// In en, this message translates to:
+  /// **'All Transcription'**
+  String get proxyServiceWildcardTranscription;
+
+  /// Reset proxy settings button
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get proxyResetButton;
+
+  /// Reset proxy confirmation title
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Proxy Settings?'**
+  String get proxyResetConfirmTitle;
+
+  /// Reset proxy confirmation body
+  ///
+  /// In en, this message translates to:
+  /// **'This will clear all proxy settings and disable the proxy. Are you sure?'**
+  String get proxyResetConfirmBody;
+
+  /// Proxy reset success message
+  ///
+  /// In en, this message translates to:
+  /// **'Proxy settings have been reset'**
+  String get proxyResetSuccess;
 }
 
 class _AppLocalizationsDelegate

@@ -42,6 +42,17 @@ class AppConstants {
   static bool get isMacOS =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS;
 
-  /// Extra top padding on macOS for native traffic-light window controls.
-  static const double macOSTopInset = 28.0;
+  static bool get isWindows =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
+
+  static bool get isLinux =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.linux;
+
+  /// Compact top padding on macOS for native traffic-light window controls.
+  /// Reduced from 28 to 20 for a more space-efficient layout.
+  static const double macOSTopInset = 20.0;
+
+  /// Window control button dimensions for Windows/Linux
+  static const double windowControlWidth = 46.0;
+  static const double windowControlHeight = 32.0;
 }

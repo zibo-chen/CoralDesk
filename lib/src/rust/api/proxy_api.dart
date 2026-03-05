@@ -25,7 +25,18 @@ Future<String> updateProxyConfig({required ProxyConfigDto config}) =>
 Future<String> saveProxyToDisk() =>
     RustLib.instance.api.crateApiProxyApiSaveProxyToDisk();
 
+/// Reset proxy configuration to defaults (disabled, no URLs).
+/// This clears all proxy settings and syncs to both runtime and disk.
+Future<String> resetProxyConfig() =>
+    RustLib.instance.api.crateApiProxyApiResetProxyConfig();
+
+/// Get the current runtime proxy configuration status.
+/// This returns the actual state from zeroclaw runtime, useful for debugging sync issues.
+ProxyConfigDto getRuntimeProxyStatus() =>
+    RustLib.instance.api.crateApiProxyApiGetRuntimeProxyStatus();
+
 /// List supported service keys for scope = Services.
+/// Includes both specific keys and wildcard selectors.
 List<ProxyServiceInfo> listProxyServices() =>
     RustLib.instance.api.crateApiProxyApiListProxyServices();
 

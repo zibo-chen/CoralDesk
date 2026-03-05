@@ -9,7 +9,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'agent_api.freezed.dart';
 
-// These functions are ignored because they are not marked as `pub`: `active_stream_tokens`, `config_state`, `ensure_session_agent`, `evict_oldest_agent_if_needed`, `global_config`, `invalidate_all_agents`, `legacy_pending_approval`, `load_default_profile_id`, `load_embedding_api_key`, `pending_approvals`, `session_agents`, `truncate_str`
+// These functions are ignored because they are not marked as `pub`: `active_stream_tokens`, `config_state`, `ensure_session_agent`, `evict_oldest_agent_if_needed`, `global_config`, `invalidate_all_agents`, `legacy_pending_approval`, `load_default_profile_id`, `load_embedding_api_key`, `pending_approvals`, `resolve_delegate_providers`, `session_agents`, `truncate_str`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ChatMessageDto`, `ConfigState`, `GlobalConfig`, `PendingApproval`, `SessionAgent`, `ToolCallDto`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
@@ -52,6 +52,13 @@ Future<String> initRuntime() =>
 /// Check if the runtime has a loaded config with an API key
 Future<RuntimeStatus> getRuntimeStatus() =>
     RustLib.instance.api.crateApiAgentApiGetRuntimeStatus();
+
+/// Reload configuration from disk into memory.
+/// This is useful when the config file has been modified externally
+/// (e.g., by AI tool calls like model_routing_config upsert_agent).
+/// Returns "ok" on success, or an error message.
+Future<String> reloadConfigFromDisk() =>
+    RustLib.instance.api.crateApiAgentApiReloadConfigFromDisk();
 
 /// Update configuration fields. Invalidates all session agents so they
 /// will be recreated with the new settings on next use.

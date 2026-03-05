@@ -261,7 +261,7 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
           child: Padding(
             padding: EdgeInsets.fromLTRB(
               11,
-              AppConstants.isMacOS ? 48 : 20,
+              AppConstants.isMacOS ? 32 : 12,
               11,
               8,
             ),
@@ -484,9 +484,11 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
 
   Widget _buildLogo(CoralDeskColors c, WidgetRef ref) {
     final l10n = AppLocalizations.of(ref.context)!;
+    // Reduced top padding: macOS only needs space for traffic lights
+    final topPadding = AppConstants.isMacOS ? 32.0 : 12.0;
     return DragToMoveArea(
       child: Padding(
-        padding: EdgeInsets.fromLTRB(16, AppConstants.isMacOS ? 48 : 20, 8, 8),
+        padding: EdgeInsets.fromLTRB(16, topPadding, 8, 8),
         child: Row(
           children: [
             // Logo icon - claw paw

@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1647244090;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -124393872;
 
 // Section: executor
 
@@ -1394,6 +1394,36 @@ fn wire__crate__api__proxy_api__get_proxy_config_impl(
         },
     )
 }
+fn wire__crate__api__proxy_api__get_runtime_proxy_status_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "get_runtime_proxy_status",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let output_ok =
+                    Result::<_, ()>::Ok(crate::api::proxy_api::get_runtime_proxy_status())?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
 fn wire__crate__api__agent_api__get_runtime_status_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -2591,6 +2621,43 @@ fn wire__crate__api__proxy_api__proxy_config_dto_default_impl(
         },
     )
 }
+fn wire__crate__api__agent_api__reload_config_from_disk_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "reload_config_from_disk",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, ()>(
+                    (move || async move {
+                        let output_ok = Result::<_, ()>::Ok(
+                            crate::api::agent_api::reload_config_from_disk().await,
+                        )?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__workspace_api__remove_allowed_command_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -3004,6 +3071,42 @@ fn wire__crate__api__sessions_api__rename_session_impl(
                             crate::api::sessions_api::rename_session(api_session_id, api_new_title)
                                 .await,
                         )?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__proxy_api__reset_proxy_config_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "reset_proxy_config",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, ()>(
+                    (move || async move {
+                        let output_ok =
+                            Result::<_, ()>::Ok(crate::api::proxy_api::reset_proxy_config().await)?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -6086,313 +6189,322 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         36 => wire__crate__api__proxy_api__get_proxy_config_impl(port, ptr, rust_vec_len, data_len),
-        37 => {
+        38 => {
             wire__crate__api__agent_api__get_runtime_status_impl(port, ptr, rust_vec_len, data_len)
         }
-        38 => wire__crate__api__sessions_api__get_session_detail_impl(
+        39 => wire__crate__api__sessions_api__get_session_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        39 => wire__crate__api__sessions_api__get_session_files_impl(
+        40 => wire__crate__api__sessions_api__get_session_files_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        40 => wire__crate__api__sessions_api__get_session_stats_impl(
+        41 => wire__crate__api__sessions_api__get_session_stats_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        41 => wire__crate__api__agent_api__get_session_workspace_dir_impl(
+        42 => wire__crate__api__agent_api__get_session_workspace_dir_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        42 => {
+        43 => {
             wire__crate__api__skills_api__get_skills_config_impl(port, ptr, rust_vec_len, data_len)
         }
-        43 => wire__crate__api__workspace_api__get_workspace_config_impl(
+        44 => wire__crate__api__workspace_api__get_workspace_config_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        45 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
-        46 => wire__crate__api__agent_api__init_runtime_impl(port, ptr, rust_vec_len, data_len),
-        47 => wire__crate__api__sessions_api__init_session_store_impl(
+        46 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
+        47 => wire__crate__api__agent_api__init_runtime_impl(port, ptr, rust_vec_len, data_len),
+        48 => wire__crate__api__sessions_api__init_session_store_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        48 => wire__crate__api__skills_api__install_skill_impl(port, ptr, rust_vec_len, data_len),
-        49 => wire__crate__api__channel_runtime_api__is_channel_listeners_running_impl(
+        49 => wire__crate__api__skills_api__install_skill_impl(port, ptr, rust_vec_len, data_len),
+        50 => wire__crate__api__channel_runtime_api__is_channel_listeners_running_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        50 => {
+        51 => {
             wire__crate__api__workspace_api__list_channels_impl(port, ptr, rust_vec_len, data_len)
         }
-        51 => wire__crate__api__cron_api__list_cron_jobs_impl(port, ptr, rust_vec_len, data_len),
-        52 => wire__crate__api__cron_api__list_cron_runs_impl(port, ptr, rust_vec_len, data_len),
-        53 => wire__crate__api__agents_api__list_delegate_agents_impl(
+        52 => wire__crate__api__cron_api__list_cron_jobs_impl(port, ptr, rust_vec_len, data_len),
+        53 => wire__crate__api__cron_api__list_cron_runs_impl(port, ptr, rust_vec_len, data_len),
+        54 => wire__crate__api__agents_api__list_delegate_agents_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        54 => wire__crate__api__routes_api__list_embedding_routes_impl(
+        55 => wire__crate__api__routes_api__list_embedding_routes_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        55 => wire__crate__api__knowledge_api__list_knowledge_entries_impl(
+        56 => wire__crate__api__knowledge_api__list_knowledge_entries_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        56 => wire__crate__api__mcp_api__list_mcp_servers_impl(port, ptr, rust_vec_len, data_len),
-        57 => wire__crate__api__providers_api__list_model_provider_profiles_impl(
+        57 => wire__crate__api__mcp_api__list_mcp_servers_impl(port, ptr, rust_vec_len, data_len),
+        58 => wire__crate__api__providers_api__list_model_provider_profiles_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        58 => {
+        59 => {
             wire__crate__api__routes_api__list_model_routes_impl(port, ptr, rust_vec_len, data_len)
         }
-        61 => wire__crate__api__agent_api__list_session_workspace_files_impl(
+        62 => wire__crate__api__agent_api__list_session_workspace_files_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        62 => wire__crate__api__sessions_api__list_sessions_impl(port, ptr, rust_vec_len, data_len),
-        63 => wire__crate__api__skills_api__list_skills_impl(port, ptr, rust_vec_len, data_len),
-        65 => wire__crate__api__workspace_api__list_tools_with_status_impl(
+        63 => wire__crate__api__sessions_api__list_sessions_impl(port, ptr, rust_vec_len, data_len),
+        64 => wire__crate__api__skills_api__list_skills_impl(port, ptr, rust_vec_len, data_len),
+        66 => wire__crate__api__workspace_api__list_tools_with_status_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        66 => wire__crate__api__config_api__load_config_impl(port, ptr, rust_vec_len, data_len),
-        68 => wire__crate__api__agent_api__open_in_system_impl(port, ptr, rust_vec_len, data_len),
-        69 => wire__crate__api__cron_api__pause_cron_job_impl(port, ptr, rust_vec_len, data_len),
-        70 => wire__crate__api__proxy_api__proxy_config_dto_default_impl(
+        67 => wire__crate__api__config_api__load_config_impl(port, ptr, rust_vec_len, data_len),
+        69 => wire__crate__api__agent_api__open_in_system_impl(port, ptr, rust_vec_len, data_len),
+        70 => wire__crate__api__cron_api__pause_cron_job_impl(port, ptr, rust_vec_len, data_len),
+        71 => wire__crate__api__proxy_api__proxy_config_dto_default_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        71 => wire__crate__api__workspace_api__remove_allowed_command_impl(
+        72 => wire__crate__api__agent_api__reload_config_from_disk_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        72 => wire__crate__api__cron_api__remove_cron_job_impl(port, ptr, rust_vec_len, data_len),
-        73 => wire__crate__api__agents_api__remove_delegate_agent_impl(
+        73 => wire__crate__api__workspace_api__remove_allowed_command_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        74 => wire__crate__api__routes_api__remove_embedding_route_impl(
+        74 => wire__crate__api__cron_api__remove_cron_job_impl(port, ptr, rust_vec_len, data_len),
+        75 => wire__crate__api__agents_api__remove_delegate_agent_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        75 => wire__crate__api__mcp_api__remove_mcp_server_impl(port, ptr, rust_vec_len, data_len),
-        76 => wire__crate__api__providers_api__remove_model_provider_profile_impl(
+        76 => wire__crate__api__routes_api__remove_embedding_route_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        77 => {
+        77 => wire__crate__api__mcp_api__remove_mcp_server_impl(port, ptr, rust_vec_len, data_len),
+        78 => wire__crate__api__providers_api__remove_model_provider_profile_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        79 => {
             wire__crate__api__routes_api__remove_model_route_impl(port, ptr, rust_vec_len, data_len)
         }
-        78 => wire__crate__api__agent_api__remove_session_agent_impl(
+        80 => wire__crate__api__agent_api__remove_session_agent_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        79 => wire__crate__api__sessions_api__remove_session_file_impl(
+        81 => wire__crate__api__sessions_api__remove_session_file_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        80 => wire__crate__api__skills_api__remove_skill_impl(port, ptr, rust_vec_len, data_len),
-        81 => {
+        82 => wire__crate__api__skills_api__remove_skill_impl(port, ptr, rust_vec_len, data_len),
+        83 => {
             wire__crate__api__sessions_api__rename_session_impl(port, ptr, rust_vec_len, data_len)
         }
-        82 => wire__crate__api__agent_api__respond_to_tool_approval_impl(
+        84 => {
+            wire__crate__api__proxy_api__reset_proxy_config_impl(port, ptr, rust_vec_len, data_len)
+        }
+        85 => wire__crate__api__agent_api__respond_to_tool_approval_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        83 => wire__crate__api__agent_api__respond_to_tool_approval_by_id_impl(
+        86 => wire__crate__api__agent_api__respond_to_tool_approval_by_id_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        84 => wire__crate__api__channel_runtime_api__restart_channel_listeners_impl(
+        87 => wire__crate__api__channel_runtime_api__restart_channel_listeners_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        85 => wire__crate__api__cron_api__resume_cron_job_impl(port, ptr, rust_vec_len, data_len),
-        86 => wire__crate__api__cron_api__run_cron_job_now_impl(port, ptr, rust_vec_len, data_len),
-        87 => wire__crate__api__workspace_api__save_channel_config_impl(
+        88 => wire__crate__api__cron_api__resume_cron_job_impl(port, ptr, rust_vec_len, data_len),
+        89 => wire__crate__api__cron_api__run_cron_job_now_impl(port, ptr, rust_vec_len, data_len),
+        90 => wire__crate__api__workspace_api__save_channel_config_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        88 => wire__crate__api__config_api__save_config_impl(port, ptr, rust_vec_len, data_len),
-        89 => {
+        91 => wire__crate__api__config_api__save_config_impl(port, ptr, rust_vec_len, data_len),
+        92 => {
             wire__crate__api__agent_api__save_config_to_disk_impl(port, ptr, rust_vec_len, data_len)
         }
-        90 => {
+        93 => {
             wire__crate__api__proxy_api__save_proxy_to_disk_impl(port, ptr, rust_vec_len, data_len)
         }
-        91 => wire__crate__api__sessions_api__save_session_impl(port, ptr, rust_vec_len, data_len),
-        92 => wire__crate__api__knowledge_api__search_knowledge_impl(
+        94 => wire__crate__api__sessions_api__save_session_impl(port, ptr, rust_vec_len, data_len),
+        95 => wire__crate__api__knowledge_api__search_knowledge_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        93 => wire__crate__api__agent_api__send_message_impl(port, ptr, rust_vec_len, data_len),
-        94 => {
+        96 => wire__crate__api__agent_api__send_message_impl(port, ptr, rust_vec_len, data_len),
+        97 => {
             wire__crate__api__agent_api__send_message_stream_impl(port, ptr, rust_vec_len, data_len)
         }
-        95 => wire__crate__api__providers_api__set_default_profile_impl(
+        98 => wire__crate__api__providers_api__set_default_profile_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        96 => wire__crate__api__mcp_api__set_mcp_enabled_impl(port, ptr, rust_vec_len, data_len),
-        97 => wire__crate__api__workspace_api__set_tool_approval_impl(
+        99 => wire__crate__api__mcp_api__set_mcp_enabled_impl(port, ptr, rust_vec_len, data_len),
+        100 => wire__crate__api__workspace_api__set_tool_approval_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        98 => wire__crate__api__channel_runtime_api__start_channel_listeners_impl(
+        101 => wire__crate__api__channel_runtime_api__start_channel_listeners_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        99 => {
+        102 => {
             wire__crate__api__cron_api__start_cron_scheduler_impl(port, ptr, rust_vec_len, data_len)
         }
-        100 => wire__crate__api__channel_runtime_api__stop_channel_listeners_impl(
+        103 => wire__crate__api__channel_runtime_api__stop_channel_listeners_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        101 => wire__crate__api__cron_notification_api__subscribe_cron_notifications_impl(
+        104 => wire__crate__api__cron_notification_api__subscribe_cron_notifications_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        102 => wire__crate__api__providers_api__switch_active_model_impl(
+        105 => wire__crate__api__providers_api__switch_active_model_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        103 => wire__crate__api__agent_api__switch_session_impl(port, ptr, rust_vec_len, data_len),
-        104 => {
+        106 => wire__crate__api__agent_api__switch_session_impl(port, ptr, rust_vec_len, data_len),
+        107 => {
             wire__crate__api__workspace_api__toggle_channel_impl(port, ptr, rust_vec_len, data_len)
         }
-        105 => {
+        108 => {
             wire__crate__api__skills_api__toggle_open_skills_impl(port, ptr, rust_vec_len, data_len)
         }
-        106 => wire__crate__api__workspace_api__update_agent_config_impl(
+        109 => wire__crate__api__workspace_api__update_agent_config_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        107 => wire__crate__api__workspace_api__update_allowed_commands_impl(
+        110 => wire__crate__api__workspace_api__update_allowed_commands_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        108 => wire__crate__api__workspace_api__update_autonomy_level_impl(
+        111 => wire__crate__api__workspace_api__update_autonomy_level_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        109 => wire__crate__api__agent_api__update_config_impl(port, ptr, rust_vec_len, data_len),
-        110 => wire__crate__api__cron_api__update_cron_job_impl(port, ptr, rust_vec_len, data_len),
-        111 => wire__crate__api__routes_api__update_embedding_config_impl(
+        112 => wire__crate__api__agent_api__update_config_impl(port, ptr, rust_vec_len, data_len),
+        113 => wire__crate__api__cron_api__update_cron_job_impl(port, ptr, rust_vec_len, data_len),
+        114 => wire__crate__api__routes_api__update_embedding_config_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        112 => wire__crate__api__workspace_api__update_feature_toggle_impl(
+        115 => wire__crate__api__workspace_api__update_feature_toggle_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        113 => wire__crate__api__mcp_api__update_mcp_server_impl(port, ptr, rust_vec_len, data_len),
-        114 => wire__crate__api__skills_api__update_prompt_injection_mode_impl(
+        116 => wire__crate__api__mcp_api__update_mcp_server_impl(port, ptr, rust_vec_len, data_len),
+        117 => wire__crate__api__skills_api__update_prompt_injection_mode_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        115 => {
+        118 => {
             wire__crate__api__proxy_api__update_proxy_config_impl(port, ptr, rust_vec_len, data_len)
         }
-        116 => {
+        119 => {
             wire__crate__api__workspace_api__update_trust_me_impl(port, ptr, rust_vec_len, data_len)
         }
-        117 => wire__crate__api__agents_api__upsert_delegate_agent_impl(
+        120 => wire__crate__api__agents_api__upsert_delegate_agent_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        118 => wire__crate__api__routes_api__upsert_embedding_route_impl(
+        121 => wire__crate__api__routes_api__upsert_embedding_route_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        119 => wire__crate__api__providers_api__upsert_model_provider_profile_impl(
+        122 => wire__crate__api__providers_api__upsert_model_provider_profile_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        120 => {
+        123 => {
             wire__crate__api__routes_api__upsert_model_route_impl(port, ptr, rust_vec_len, data_len)
         }
         _ => unreachable!(),
@@ -6409,16 +6521,19 @@ fn pde_ffi_dispatcher_sync_impl(
     match func_id {
         15 => wire__crate__api__agent_api__create_session_impl(ptr, rust_vec_len, data_len),
         16 => wire__crate__api__agents_api__delegate_agent_count_impl(ptr, rust_vec_len, data_len),
-        44 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
-        59 => wire__crate__api__config_api__list_providers_impl(ptr, rust_vec_len, data_len),
-        60 => wire__crate__api__proxy_api__list_proxy_services_impl(ptr, rust_vec_len, data_len),
-        64 => wire__crate__api__agent_api__list_tools_impl(ptr, rust_vec_len, data_len),
-        67 => wire__crate__api__providers_api__model_provider_profile_count_impl(
+        37 => {
+            wire__crate__api__proxy_api__get_runtime_proxy_status_impl(ptr, rust_vec_len, data_len)
+        }
+        45 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
+        60 => wire__crate__api__config_api__list_providers_impl(ptr, rust_vec_len, data_len),
+        61 => wire__crate__api__proxy_api__list_proxy_services_impl(ptr, rust_vec_len, data_len),
+        65 => wire__crate__api__agent_api__list_tools_impl(ptr, rust_vec_len, data_len),
+        68 => wire__crate__api__providers_api__model_provider_profile_count_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        121 => wire__crate__api__proxy_api__validate_proxy_url_impl(ptr, rust_vec_len, data_len),
+        124 => wire__crate__api__proxy_api__validate_proxy_url_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }

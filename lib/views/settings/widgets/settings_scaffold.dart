@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:window_manager/window_manager.dart';
+import 'package:coraldesk/constants.dart';
 import 'package:coraldesk/theme/app_theme.dart';
 
 /// Reusable scaffold for settings / configuration pages.
@@ -34,35 +36,47 @@ class SettingsScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = CoralDeskColors.of(context);
+    final isMacOS = AppConstants.isMacOS;
+    final isDesktop = AppConstants.isDesktop;
+
+    // 在 macOS 上为红绿灯按钮预留空间
+    final effectiveTopBarHeight =
+        topBarHeight + (isMacOS ? AppConstants.macOSTopInset : 0);
 
     return Column(
       children: [
-        // Top bar
-        Container(
-          height: topBarHeight,
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          decoration: BoxDecoration(
-            color: c.surfaceBg,
-            border: Border(
-              bottom: BorderSide(color: c.chatListBorder, width: 1),
+        // Top bar - 支持拖动窗口
+        DragToMoveArea(
+          child: Container(
+            height: effectiveTopBarHeight,
+            padding: EdgeInsets.only(
+              left: 24,
+              right: isDesktop && !isMacOS ? 150 : 24,
+              top: isMacOS ? AppConstants.macOSTopInset : 0,
             ),
-          ),
-          child: Row(
-            children: [
-              if (icon != null) ...[
-                Icon(icon, size: 20, color: AppColors.primary),
-                const SizedBox(width: 10),
-              ],
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: c.textPrimary,
-                ),
+            decoration: BoxDecoration(
+              color: c.surfaceBg,
+              border: Border(
+                bottom: BorderSide(color: c.chatListBorder, width: 1),
               ),
-              if (actions != null) ...[const Spacer(), ...actions!],
-            ],
+            ),
+            child: Row(
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 20, color: AppColors.primary),
+                  const SizedBox(width: 10),
+                ],
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: c.textPrimary,
+                  ),
+                ),
+                if (actions != null) ...[const Spacer(), ...actions!],
+              ],
+            ),
           ),
         ),
 

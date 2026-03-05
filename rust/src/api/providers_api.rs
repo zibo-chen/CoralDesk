@@ -100,6 +100,7 @@ pub async fn upsert_model_provider_profile(profile: ModelProviderProfileDto) -> 
             .map(str::trim)
             .filter(|s| !s.is_empty())
             .map(String::from),
+        auth_header: None,
         requires_openai_auth: false,
     };
 

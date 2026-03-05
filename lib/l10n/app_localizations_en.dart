@@ -1629,4 +1629,149 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trayTooltip => 'CoralDesk – Running in background';
+
+  @override
+  String get proxyServiceCategoryProvider => 'AI Providers';
+
+  @override
+  String get proxyServiceCategoryChannel => 'Channels';
+
+  @override
+  String get proxyServiceCategoryTool => 'Tools';
+
+  @override
+  String get proxyServiceCategoryMemory => 'Memory';
+
+  @override
+  String get proxyServiceCategoryTunnel => 'Tunnel';
+
+  @override
+  String get proxyServiceCategoryTranscription => 'Transcription';
+
+  @override
+  String get proxyServiceProviderAnthropic => 'Anthropic (Claude)';
+
+  @override
+  String get proxyServiceProviderCompatible => 'OpenAI Compatible';
+
+  @override
+  String get proxyServiceProviderCopilot => 'GitHub Copilot';
+
+  @override
+  String get proxyServiceProviderGemini => 'Google Gemini';
+
+  @override
+  String get proxyServiceProviderGlm => 'GLM (Zhipu)';
+
+  @override
+  String get proxyServiceProviderOllama => 'Ollama (Local)';
+
+  @override
+  String get proxyServiceProviderOpenai => 'OpenAI';
+
+  @override
+  String get proxyServiceProviderOpenrouter => 'OpenRouter';
+
+  @override
+  String get proxyServiceChannelBluebubbles => 'BlueBubbles';
+
+  @override
+  String get proxyServiceChannelDingtalk => 'DingTalk';
+
+  @override
+  String get proxyServiceChannelDiscord => 'Discord';
+
+  @override
+  String get proxyServiceChannelFeishu => 'Feishu';
+
+  @override
+  String get proxyServiceChannelGithub => 'GitHub';
+
+  @override
+  String get proxyServiceChannelLark => 'Lark';
+
+  @override
+  String get proxyServiceChannelMatrix => 'Matrix';
+
+  @override
+  String get proxyServiceChannelMattermost => 'Mattermost';
+
+  @override
+  String get proxyServiceChannelNextcloudTalk => 'Nextcloud Talk';
+
+  @override
+  String get proxyServiceChannelNapcat => 'NapCat (QQ)';
+
+  @override
+  String get proxyServiceChannelQq => 'QQ';
+
+  @override
+  String get proxyServiceChannelSignal => 'Signal';
+
+  @override
+  String get proxyServiceChannelSlack => 'Slack';
+
+  @override
+  String get proxyServiceChannelTelegram => 'Telegram';
+
+  @override
+  String get proxyServiceChannelWati => 'WATI (WhatsApp)';
+
+  @override
+  String get proxyServiceChannelWhatsapp => 'WhatsApp';
+
+  @override
+  String get proxyServiceToolBrowser => 'Browser Automation';
+
+  @override
+  String get proxyServiceToolComposio => 'Composio';
+
+  @override
+  String get proxyServiceToolHttpRequest => 'HTTP Request';
+
+  @override
+  String get proxyServiceToolMultimodal => 'Multimodal';
+
+  @override
+  String get proxyServiceToolPushover => 'Pushover';
+
+  @override
+  String get proxyServiceMemoryEmbeddings => 'Embeddings';
+
+  @override
+  String get proxyServiceTunnelCustom => 'Custom Tunnel';
+
+  @override
+  String get proxyServiceTranscriptionGroq => 'Groq Transcription';
+
+  @override
+  String get proxyServiceWildcardProvider => 'All Providers';
+
+  @override
+  String get proxyServiceWildcardChannel => 'All Channels';
+
+  @override
+  String get proxyServiceWildcardTool => 'All Tools';
+
+  @override
+  String get proxyServiceWildcardMemory => 'All Memory';
+
+  @override
+  String get proxyServiceWildcardTunnel => 'All Tunnels';
+
+  @override
+  String get proxyServiceWildcardTranscription => 'All Transcription';
+
+  @override
+  String get proxyResetButton => 'Reset';
+
+  @override
+  String get proxyResetConfirmTitle => 'Reset Proxy Settings?';
+
+  @override
+  String get proxyResetConfirmBody =>
+      'This will clear all proxy settings and disable the proxy. Are you sure?';
+
+  @override
+  String get proxyResetSuccess => 'Proxy settings have been reset';
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:coraldesk/l10n/app_localizations.dart';
 import 'package:coraldesk/theme/app_theme.dart';
 import 'package:coraldesk/src/rust/api/agents_api.dart' as agents_api;
+import 'package:coraldesk/src/rust/api/agent_api.dart' as agent_api;
 import 'package:coraldesk/src/rust/api/config_api.dart' as config_api;
 import 'package:coraldesk/src/rust/api/providers_api.dart' as providers_api;
 import 'package:coraldesk/views/settings/widgets/settings_scaffold.dart';
@@ -31,6 +32,8 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
 
   Future<void> _loadAgents() async {
     setState(() => _loading = true);
+    // Reload config from disk to pick up changes made by AI tools
+    await agent_api.reloadConfigFromDisk();
     final agents = await agents_api.listDelegateAgents();
     if (mounted) {
       setState(() {

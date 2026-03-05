@@ -305,10 +305,20 @@ async fn load_default_profile_id(config_path: &std::path::Path) -> Option<String
         .map(String::from)
 }
 
-/// Load embedding_api_key from config file (custom field not in zeroclaw::Config)
+/// Load embedding_api_key from config file (from [memory] section)
 async fn load_embedding_api_key(config_path: &std::path::Path) -> Option<String> {
     let content = tokio::fs::read_to_string(config_path).await.ok()?;
     let table: toml::Table = content.parse().ok()?;
+    // First try [memory].embedding_api_key (new location)
+    if let Some(memory_table) = table.get("memory").and_then(|v| v.as_table()) {
+        if let Some(key) = memory_table
+            .get("embedding_api_key")
+            .and_then(|v| v.as_str())
+        {
+            return Some(key.to_string());
+        }
+    }
+    // Fallback: check top-level for backward compatibility
     table
         .get("embedding_api_key")
         .and_then(|v| v.as_str())
@@ -341,8 +351,13 @@ pub async fn init_runtime() -> String {
 
             // Load default_profile_id from config file (not part of zeroclaw::Config)
             let default_profile_id = load_default_profile_id(&config.config_path).await;
-            // Load embedding_api_key from config file (not part of zeroclaw::Config)
+            // Load embedding_api_key from config file
             let embedding_api_key = load_embedding_api_key(&config.config_path).await;
+
+            // Sync embedding_api_key to config.memory for zeroclaw to use
+            if embedding_api_key.is_some() {
+                config.memory.embedding_api_key = embedding_api_key.clone();
+            }
 
             // Update global config
             {
@@ -355,8 +370,17 @@ pub async fn init_runtime() -> String {
             // Also update legacy config_state for backward compatibility
             {
                 let mut cs = config_state().write().await;
-                cs.config = Some(config);
+                cs.config = Some(config.clone());
                 cs.active_session_id = None;
+            }
+
+            // Explicitly sync proxy config to zeroclaw runtime (in case apply_env_overrides
+            // was called before browser defaults modified the config)
+            zeroclaw::config::set_runtime_proxy_config(config.proxy.clone());
+
+            // Clear process env proxy vars if proxy is disabled to avoid stale state
+            if !config.proxy.enabled {
+                zeroclaw::config::ProxyConfig::clear_process_env();
             }
 
             // Clear all cached session agents (they need to be recreated with new config)
@@ -397,6 +421,62 @@ pub async fn get_runtime_status() -> RuntimeStatus {
             provider: String::new(),
             model: String::new(),
         },
+    }
+}
+
+/// Reload configuration from disk into memory.
+/// This is useful when the config file has been modified externally
+/// (e.g., by AI tool calls like model_routing_config upsert_agent).
+/// Returns "ok" on success, or an error message.
+pub async fn reload_config_from_disk() -> String {
+    match zeroclaw::Config::load_or_init().await {
+        Ok(mut config) => {
+            // Re-apply browser defaults
+            let agent_browser_path = crate::api::browser_bootstrap::ensure_agent_browser().await;
+            crate::api::browser_bootstrap::apply_browser_defaults(&mut config, &agent_browser_path);
+
+            // Reload auxiliary settings from disk
+            let default_profile_id = load_default_profile_id(&config.config_path).await;
+            let embedding_api_key = load_embedding_api_key(&config.config_path).await;
+
+            // Sync embedding_api_key to config.memory for zeroclaw to use
+            if embedding_api_key.is_some() {
+                config.memory.embedding_api_key = embedding_api_key.clone();
+            }
+
+            // Update global config
+            {
+                let mut gc = global_config().write().await;
+                gc.config = Some(config.clone());
+                gc.default_profile_id = default_profile_id;
+                gc.embedding_api_key = embedding_api_key;
+            }
+
+            // Update legacy config_state
+            {
+                let mut cs = config_state().write().await;
+                cs.config = Some(config.clone());
+            }
+
+            // Sync proxy config
+            zeroclaw::config::set_runtime_proxy_config(config.proxy.clone());
+            if !config.proxy.enabled {
+                zeroclaw::config::ProxyConfig::clear_process_env();
+            }
+
+            // Clear cached session agents so they pick up new config
+            {
+                let mut agents = session_agents().write().await;
+                agents.clear();
+            }
+
+            tracing::info!("Config reloaded from disk");
+            "ok".into()
+        }
+        Err(e) => {
+            tracing::error!("Failed to reload config: {e}");
+            format!("error: {e}")
+        }
     }
 }
 
@@ -497,15 +577,8 @@ pub async fn save_config_to_disk() -> String {
         table.remove("default_profile_id");
     }
 
-    // Persist embedding_api_key (not in zeroclaw::Config)
-    if let Some(ref api_key) = gc.embedding_api_key {
-        table.insert(
-            "embedding_api_key".into(),
-            toml::Value::String(api_key.clone()),
-        );
-    } else {
-        table.remove("embedding_api_key");
-    }
+    // Remove legacy top-level embedding_api_key (now stored in [memory])
+    table.remove("embedding_api_key");
 
     // Update the user-facing fields
     if let Some(ref provider) = config.default_provider {
@@ -632,6 +705,15 @@ pub async fn save_config_to_disk() -> String {
         "min_relevance_score".into(),
         toml::Value::Float(config.memory.min_relevance_score),
     );
+    // Persist embedding_api_key in [memory] section
+    if let Some(ref api_key) = gc.embedding_api_key {
+        mem_table.insert(
+            "embedding_api_key".into(),
+            toml::Value::String(api_key.clone()),
+        );
+    } else {
+        mem_table.remove("embedding_api_key");
+    }
     table.insert("memory".into(), toml::Value::Table(mem_table));
 
     // [[model_routes]]
@@ -1044,6 +1126,78 @@ async fn evict_oldest_agent_if_needed() {
     }
 }
 
+/// Resolve delegate agent provider names through model_providers profiles.
+///
+/// When a delegate agent has `provider = "openai"` and the same API key as a
+/// model_providers profile that specifies a custom `base_url`, the provider is
+/// rewritten to `"custom:{base_url}"` so the delegate hits the correct endpoint.
+///
+/// Without this, a delegate with `provider = "openai"` would always go to
+/// `api.openai.com`, even when the user configured a DashScope/compatible endpoint.
+fn resolve_delegate_providers(config: &mut zeroclaw::Config) {
+    let main_provider = config.default_provider.clone().unwrap_or_default();
+    let main_api_url = config.api_url.clone().unwrap_or_default();
+    let main_api_key = config.api_key.clone().unwrap_or_default();
+    let model_providers = config.model_providers.clone();
+
+    for (agent_name, agent_config) in config.agents.iter_mut() {
+        // Skip if already using a custom URL provider
+        if agent_config.provider.starts_with("custom:")
+            || agent_config.provider.starts_with("anthropic-custom:")
+        {
+            continue;
+        }
+
+        let agent_key = agent_config.api_key.as_deref().unwrap_or("").trim();
+
+        // Strategy 1: Match against model_providers profiles
+        // Look for a profile whose name matches the delegate's provider type
+        // AND whose api_key matches the delegate's api_key, AND has a base_url.
+        let matched_url = model_providers.values().find_map(|profile| {
+            let profile_name = profile.name.as_deref().unwrap_or("").trim();
+            let profile_key = profile.api_key.as_deref().unwrap_or("").trim();
+            let profile_url = profile.base_url.as_deref().unwrap_or("").trim();
+
+            if !profile_url.is_empty()
+                && profile_name == agent_config.provider
+                && !profile_key.is_empty()
+                && profile_key == agent_key
+            {
+                Some(profile_url.to_string())
+            } else {
+                None
+            }
+        });
+
+        if let Some(url) = matched_url {
+            tracing::info!(
+                agent = agent_name,
+                old_provider = %agent_config.provider,
+                new_provider = %format!("custom:{url}"),
+                "Resolved delegate agent provider through model_providers profile"
+            );
+            agent_config.provider = format!("custom:{url}");
+            continue;
+        }
+
+        // Strategy 2: If the delegate uses the same provider and API key as the
+        // main config and a custom api_url is configured globally, inherit it.
+        if agent_config.provider == main_provider
+            && !agent_key.is_empty()
+            && agent_key == main_api_key.trim()
+            && !main_api_url.trim().is_empty()
+        {
+            tracing::info!(
+                agent = agent_name,
+                old_provider = %agent_config.provider,
+                new_provider = %format!("custom:{}", main_api_url.trim()),
+                "Resolved delegate agent provider through main config api_url"
+            );
+            agent_config.provider = format!("custom:{}", main_api_url.trim());
+        }
+    }
+}
+
 /// Helper: ensure agent exists for a session, creating if needed.
 /// Returns an Arc to the session's agent mutex for concurrent access.
 async fn ensure_session_agent(session_id: &str) -> Result<Arc<TokioMutex<SessionAgent>>, String> {
@@ -1130,7 +1284,14 @@ async fn ensure_session_agent(session_id: &str) -> Result<Arc<TokioMutex<Session
         }
     }
 
-    // 7. Create the agent
+    // 7. Resolve delegate agent providers through model_providers profiles.
+    //    When a delegate agent's provider + api_key matches a model_providers
+    //    profile that has a custom base_url, transform the provider to
+    //    "custom:{base_url}" so the delegate hits the correct API endpoint
+    //    instead of the provider's default URL (e.g. api.openai.com).
+    resolve_delegate_providers(&mut config);
+
+    // 8. Create the agent
     let agent = zeroclaw::agent::Agent::from_config(&config)
         .map_err(|e| format!("Failed to create agent: {e}"))?;
 
@@ -1142,7 +1303,7 @@ async fn ensure_session_agent(session_id: &str) -> Result<Arc<TokioMutex<Session
 
     let agent_arc = Arc::new(TokioMutex::new(session_agent));
 
-    // 8. Store in map
+    // 9. Store in map
     {
         let mut agents = session_agents().write().await;
         agents.insert(session_id.to_string(), agent_arc.clone());
@@ -1233,10 +1394,71 @@ pub async fn send_message(session_id: String, message: String) -> Vec<AgentEvent
             });
         }
         Err(e) => {
-            tracing::error!("Agent turn error: {e}");
-            events.push(AgentEvent::Error {
-                message: e.to_string(),
-            });
+            let err_str = e.to_string();
+            let is_http_error = err_str.contains("HTTP error")
+                || err_str.contains("error sending request")
+                || err_str.contains("connection")
+                || err_str.contains("timed out");
+
+            // Retry once for transient HTTP/connection errors
+            if is_http_error {
+                tracing::warn!("Agent turn HTTP error (will retry once): {e}");
+                tokio::time::sleep(Duration::from_millis(2000)).await;
+
+                match agent.turn(&enriched_message).await {
+                    Ok(response) => {
+                        tracing::info!("Agent turn retry succeeded");
+                        let history = agent.history();
+                        let mut tool_name_map: HashMap<String, String> = HashMap::new();
+                        for msg in history.iter().skip(history_before) {
+                            match msg {
+                                zeroclaw::providers::ConversationMessage::AssistantToolCalls {
+                                    tool_calls,
+                                    ..
+                                } => {
+                                    for tc in tool_calls {
+                                        tool_name_map.insert(tc.id.clone(), tc.name.clone());
+                                        events.push(AgentEvent::ToolCallStart {
+                                            name: tc.name.clone(),
+                                            args: truncate_str(&tc.arguments, 1000),
+                                        });
+                                    }
+                                }
+                                zeroclaw::providers::ConversationMessage::ToolResults(results) => {
+                                    for r in results {
+                                        let name = tool_name_map
+                                            .get(&r.tool_call_id)
+                                            .cloned()
+                                            .unwrap_or_else(|| r.tool_call_id.clone());
+                                        events.push(AgentEvent::ToolCallEnd {
+                                            name,
+                                            result: truncate_str(&r.content, 500),
+                                            success: true,
+                                        });
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                        events.push(AgentEvent::TextDelta { text: response });
+                        events.push(AgentEvent::MessageComplete {
+                            input_tokens: None,
+                            output_tokens: None,
+                        });
+                    }
+                    Err(retry_err) => {
+                        tracing::error!("Agent turn retry also failed: {retry_err}");
+                        events.push(AgentEvent::Error {
+                            message: retry_err.to_string(),
+                        });
+                    }
+                }
+            } else {
+                tracing::error!("Agent turn error: {e}");
+                events.push(AgentEvent::Error {
+                    message: e.to_string(),
+                });
+            }
         }
     }
 
@@ -1597,14 +1819,25 @@ pub async fn send_message_stream(
             });
         }
         Ok(Err(e)) => {
+            let err_str = e.to_string();
             tracing::info!(
                 session_id = %session_id,
                 error = %e,
                 "Agent turn encountered an error"
             );
             tracing::error!("Agent turn error: {e}");
+
+            // Provide a more helpful message for HTTP/connection errors
+            let user_message = if err_str.contains("error sending request")
+                || err_str.contains("connection")
+                || err_str.contains("HTTP error")
+            {
+                format!("网络连接错误，请重试。\n\n详情: {}", err_str)
+            } else {
+                err_str
+            };
             let _ = sink.add(AgentEvent::Error {
-                message: e.to_string(),
+                message: user_message,
             });
         }
         Err(_) => {

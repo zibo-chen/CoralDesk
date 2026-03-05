@@ -149,9 +149,14 @@ pub async fn update_proxy_config(config: ProxyConfigDto) -> String {
     // will pick up the proxy settings.
     zeroclaw::config::set_runtime_proxy_config(proxy.clone());
 
-    // If scope == Environment, also set process env vars
+    // Handle environment variables based on proxy state
     if proxy.enabled && proxy.scope == zeroclaw::config::ProxyScope::Environment {
+        // Set process env vars for Environment scope
         proxy.apply_to_process_env();
+    } else {
+        // Clear process env vars when proxy is disabled or scope changed
+        // This ensures no stale proxy env vars affect future requests
+        zeroclaw::config::ProxyConfig::clear_process_env();
     }
 
     "ok".into()
@@ -164,19 +169,71 @@ pub async fn save_proxy_to_disk() -> String {
     super::agent_api::save_config_to_disk().await
 }
 
+/// Reset proxy configuration to defaults (disabled, no URLs).
+/// This clears all proxy settings and syncs to both runtime and disk.
+pub async fn reset_proxy_config() -> String {
+    let default_proxy = zeroclaw::config::ProxyConfig::default();
+
+    // Update in-memory config
+    {
+        let mut cs = super::agent_api::config_state().write().await;
+        match cs.config.as_mut() {
+            Some(c) => c.proxy = default_proxy.clone(),
+            None => return "error: runtime not initialized".into(),
+        }
+    }
+
+    // Apply to zeroclaw runtime
+    zeroclaw::config::set_runtime_proxy_config(default_proxy);
+
+    // Clear any process env vars
+    zeroclaw::config::ProxyConfig::clear_process_env();
+
+    // Persist to disk
+    super::agent_api::save_config_to_disk().await
+}
+
+/// Get the current runtime proxy configuration status.
+/// This returns the actual state from zeroclaw runtime, useful for debugging sync issues.
+#[frb(sync)]
+pub fn get_runtime_proxy_status() -> ProxyConfigDto {
+    let runtime_proxy = zeroclaw::config::runtime_proxy_config();
+    ProxyConfigDto {
+        enabled: runtime_proxy.enabled,
+        http_proxy: runtime_proxy.http_proxy.unwrap_or_default(),
+        https_proxy: runtime_proxy.https_proxy.unwrap_or_default(),
+        all_proxy: runtime_proxy.all_proxy.unwrap_or_default(),
+        no_proxy: runtime_proxy.no_proxy.join(", "),
+        scope: runtime_proxy.scope.into(),
+        services: runtime_proxy.services.join(", "),
+    }
+}
+
 /// List supported service keys for scope = Services.
+/// Includes both specific keys and wildcard selectors.
 #[frb(sync)]
 pub fn list_proxy_services() -> Vec<ProxyServiceInfo> {
-    zeroclaw::config::ProxyConfig::supported_service_keys()
-        .iter()
-        .map(|key| {
-            let category = key.split('.').next().unwrap_or("other").to_string();
-            ProxyServiceInfo {
-                key: key.to_string(),
-                category,
-            }
-        })
-        .collect()
+    let mut result: Vec<ProxyServiceInfo> = Vec::new();
+
+    // Add wildcard selectors first (they appear at top of each category)
+    for selector in zeroclaw::config::ProxyConfig::supported_service_selectors() {
+        let category = selector.strip_suffix(".*").unwrap_or(selector).to_string();
+        result.push(ProxyServiceInfo {
+            key: selector.to_string(),
+            category,
+        });
+    }
+
+    // Add specific service keys
+    for key in zeroclaw::config::ProxyConfig::supported_service_keys() {
+        let category = key.split('.').next().unwrap_or("other").to_string();
+        result.push(ProxyServiceInfo {
+            key: key.to_string(),
+            category,
+        });
+    }
+
+    result
 }
 
 /// Quick test: validate a proxy URL without persisting anything.

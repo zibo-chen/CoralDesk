@@ -1584,5 +1584,149 @@
   "@trayQuit": { "description": "Tray menu – quit app" },
 
   "trayTooltip": "CoralDesk – Running in background",
-  "@trayTooltip": { "description": "Tray icon tooltip" }
+  "@trayTooltip": { "description": "Tray icon tooltip" },
+
+  "proxyServiceCategoryProvider": "AI Providers",
+  "@proxyServiceCategoryProvider": { "description": "Provider category for proxy services" },
+
+  "proxyServiceCategoryChannel": "Channels",
+  "@proxyServiceCategoryChannel": { "description": "Channel category for proxy services" },
+
+  "proxyServiceCategoryTool": "Tools",
+  "@proxyServiceCategoryTool": { "description": "Tool category for proxy services" },
+
+  "proxyServiceCategoryMemory": "Memory",
+  "@proxyServiceCategoryMemory": { "description": "Memory category for proxy services" },
+
+  "proxyServiceCategoryTunnel": "Tunnel",
+  "@proxyServiceCategoryTunnel": { "description": "Tunnel category for proxy services" },
+
+  "proxyServiceCategoryTranscription": "Transcription",
+  "@proxyServiceCategoryTranscription": { "description": "Transcription category for proxy services" },
+
+  "proxyServiceProviderAnthropic": "Anthropic (Claude)",
+  "@proxyServiceProviderAnthropic": { "description": "Anthropic provider" },
+
+  "proxyServiceProviderCompatible": "OpenAI Compatible",
+  "@proxyServiceProviderCompatible": { "description": "OpenAI compatible provider" },
+
+  "proxyServiceProviderCopilot": "GitHub Copilot",
+  "@proxyServiceProviderCopilot": { "description": "GitHub Copilot provider" },
+
+  "proxyServiceProviderGemini": "Google Gemini",
+  "@proxyServiceProviderGemini": { "description": "Google Gemini provider" },
+
+  "proxyServiceProviderGlm": "GLM (Zhipu)",
+  "@proxyServiceProviderGlm": { "description": "GLM/Zhipu provider" },
+
+  "proxyServiceProviderOllama": "Ollama (Local)",
+  "@proxyServiceProviderOllama": { "description": "Ollama local provider" },
+
+  "proxyServiceProviderOpenai": "OpenAI",
+  "@proxyServiceProviderOpenai": { "description": "OpenAI provider" },
+
+  "proxyServiceProviderOpenrouter": "OpenRouter",
+  "@proxyServiceProviderOpenrouter": { "description": "OpenRouter provider" },
+
+  "proxyServiceChannelBluebubbles": "BlueBubbles",
+  "@proxyServiceChannelBluebubbles": { "description": "BlueBubbles channel" },
+
+  "proxyServiceChannelDingtalk": "DingTalk",
+  "@proxyServiceChannelDingtalk": { "description": "DingTalk channel" },
+
+  "proxyServiceChannelDiscord": "Discord",
+  "@proxyServiceChannelDiscord": { "description": "Discord channel" },
+
+  "proxyServiceChannelFeishu": "Feishu",
+  "@proxyServiceChannelFeishu": { "description": "Feishu channel" },
+
+  "proxyServiceChannelGithub": "GitHub",
+  "@proxyServiceChannelGithub": { "description": "GitHub channel" },
+
+  "proxyServiceChannelLark": "Lark",
+  "@proxyServiceChannelLark": { "description": "Lark channel" },
+
+  "proxyServiceChannelMatrix": "Matrix",
+  "@proxyServiceChannelMatrix": { "description": "Matrix channel" },
+
+  "proxyServiceChannelMattermost": "Mattermost",
+  "@proxyServiceChannelMattermost": { "description": "Mattermost channel" },
+
+  "proxyServiceChannelNextcloudTalk": "Nextcloud Talk",
+  "@proxyServiceChannelNextcloudTalk": { "description": "Nextcloud Talk channel" },
+
+  "proxyServiceChannelNapcat": "NapCat (QQ)",
+  "@proxyServiceChannelNapcat": { "description": "NapCat QQ channel" },
+
+  "proxyServiceChannelQq": "QQ",
+  "@proxyServiceChannelQq": { "description": "QQ channel" },
+
+  "proxyServiceChannelSignal": "Signal",
+  "@proxyServiceChannelSignal": { "description": "Signal channel" },
+
+  "proxyServiceChannelSlack": "Slack",
+  "@proxyServiceChannelSlack": { "description": "Slack channel" },
+
+  "proxyServiceChannelTelegram": "Telegram",
+  "@proxyServiceChannelTelegram": { "description": "Telegram channel" },
+
+  "proxyServiceChannelWati": "WATI (WhatsApp)",
+  "@proxyServiceChannelWati": { "description": "WATI WhatsApp channel" },
+
+  "proxyServiceChannelWhatsapp": "WhatsApp",
+  "@proxyServiceChannelWhatsapp": { "description": "WhatsApp channel" },
+
+  "proxyServiceToolBrowser": "Browser Automation",
+  "@proxyServiceToolBrowser": { "description": "Browser automation tool" },
+
+  "proxyServiceToolComposio": "Composio",
+  "@proxyServiceToolComposio": { "description": "Composio tool" },
+
+  "proxyServiceToolHttpRequest": "HTTP Request",
+  "@proxyServiceToolHttpRequest": { "description": "HTTP request tool" },
+
+  "proxyServiceToolMultimodal": "Multimodal",
+  "@proxyServiceToolMultimodal": { "description": "Multimodal tool" },
+
+  "proxyServiceToolPushover": "Pushover",
+  "@proxyServiceToolPushover": { "description": "Pushover notification tool" },
+
+  "proxyServiceMemoryEmbeddings": "Embeddings",
+  "@proxyServiceMemoryEmbeddings": { "description": "Memory embeddings service" },
+
+  "proxyServiceTunnelCustom": "Custom Tunnel",
+  "@proxyServiceTunnelCustom": { "description": "Custom tunnel service" },
+
+  "proxyServiceTranscriptionGroq": "Groq Transcription",
+  "@proxyServiceTranscriptionGroq": { "description": "Groq transcription service" },
+
+  "proxyServiceWildcardProvider": "All Providers",
+  "@proxyServiceWildcardProvider": { "description": "Wildcard for all providers" },
+
+  "proxyServiceWildcardChannel": "All Channels",
+  "@proxyServiceWildcardChannel": { "description": "Wildcard for all channels" },
+
+  "proxyServiceWildcardTool": "All Tools",
+  "@proxyServiceWildcardTool": { "description": "Wildcard for all tools" },
+
+  "proxyServiceWildcardMemory": "All Memory",
+  "@proxyServiceWildcardMemory": { "description": "Wildcard for all memory services" },
+
+  "proxyServiceWildcardTunnel": "All Tunnels",
+  "@proxyServiceWildcardTunnel": { "description": "Wildcard for all tunnel services" },
+
+  "proxyServiceWildcardTranscription": "All Transcription",
+  "@proxyServiceWildcardTranscription": { "description": "Wildcard for all transcription services" },
+
+  "proxyResetButton": "Reset",
+  "@proxyResetButton": { "description": "Reset proxy settings button" },
+
+  "proxyResetConfirmTitle": "Reset Proxy Settings?",
+  "@proxyResetConfirmTitle": { "description": "Reset proxy confirmation title" },
+
+  "proxyResetConfirmBody": "This will clear all proxy settings and disable the proxy. Are you sure?",
+  "@proxyResetConfirmBody": { "description": "Reset proxy confirmation body" },
+
+  "proxyResetSuccess": "Proxy settings have been reset",
+  "@proxyResetSuccess": { "description": "Proxy reset success message" }
 }
