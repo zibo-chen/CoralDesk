@@ -5,6 +5,7 @@ import 'package:coraldesk/theme/app_theme.dart';
 import 'package:coraldesk/src/rust/api/agent_api.dart' as agent_api;
 import 'package:coraldesk/src/rust/api/routes_api.dart' as routes_api;
 import 'package:coraldesk/src/rust/api/providers_api.dart' as providers_api;
+import 'package:coraldesk/src/rust/api/config_api.dart' as config_api;
 import 'package:coraldesk/views/settings/widgets/settings_scaffold.dart';
 import 'package:coraldesk/views/settings/widgets/desktop_dialog.dart';
 
@@ -22,6 +23,7 @@ class _ModelsPageState extends ConsumerState<ModelsPage> {
 
   // Provider profiles
   List<providers_api.ModelProviderProfileDto> _providerProfiles = [];
+  late final List<config_api.ProviderInfo> _availableProviders;
   String _defaultProfileId = '';
 
   // Embedding config
@@ -39,6 +41,11 @@ class _ModelsPageState extends ConsumerState<ModelsPage> {
   @override
   void initState() {
     super.initState();
+    try {
+      _availableProviders = config_api.listProviders();
+    } catch (_) {
+      _availableProviders = const [];
+    }
     _loadAll();
   }
 
@@ -446,7 +453,10 @@ class _ModelsPageState extends ConsumerState<ModelsPage> {
   }) async {
     final result = await showDialog<providers_api.ModelProviderProfileDto>(
       context: context,
-      builder: (ctx) => _ProfileEditorDialog(existing: existing),
+      builder: (ctx) => _ProfileEditorDialog(
+        existing: existing,
+        availableProviders: _availableProviders,
+      ),
     );
     if (result == null || !mounted) return;
 
@@ -820,20 +830,32 @@ class _ModelsPageState extends ConsumerState<ModelsPage> {
 
 class _ProfileEditorDialog extends StatefulWidget {
   final providers_api.ModelProviderProfileDto? existing;
-  const _ProfileEditorDialog({this.existing});
+  final List<config_api.ProviderInfo> availableProviders;
+  const _ProfileEditorDialog({this.existing, required this.availableProviders});
 
   @override
   State<_ProfileEditorDialog> createState() => _ProfileEditorDialogState();
 }
 
 class _ProfileEditorDialogState extends State<_ProfileEditorDialog> {
+  static const String _customProviderOption = '__custom__';
+
   late final TextEditingController _idCtrl;
   late final TextEditingController _nameCtrl;
   late final TextEditingController _baseUrlCtrl;
   late final TextEditingController _modelCtrl;
   late final TextEditingController _apiKeyCtrl;
   late String _wireApi;
+  late String _selectedProvider;
   bool get _isEdit => widget.existing != null;
+
+  List<String> get _providerOptions {
+    final ids = widget.availableProviders.map((p) => p.id).toSet().toList()
+      ..sort();
+    return ids;
+  }
+
+  bool get _isCustomProvider => _selectedProvider == _customProviderOption;
 
   @override
   void initState() {
@@ -845,6 +867,22 @@ class _ProfileEditorDialogState extends State<_ProfileEditorDialog> {
     _modelCtrl = TextEditingController(text: e?.defaultModel ?? '');
     _apiKeyCtrl = TextEditingController(text: e?.apiKey ?? '');
     _wireApi = e?.wireApi ?? '';
+
+    final existingName = (e?.name ?? '').trim();
+    final options = _providerOptions;
+    if (existingName.isNotEmpty && options.contains(existingName)) {
+      _selectedProvider = existingName;
+    } else if (existingName.isNotEmpty) {
+      _selectedProvider = _customProviderOption;
+    } else if (options.contains('openai')) {
+      _selectedProvider = 'openai';
+      _nameCtrl.text = 'openai';
+    } else if (options.isNotEmpty) {
+      _selectedProvider = options.first;
+      _nameCtrl.text = options.first;
+    } else {
+      _selectedProvider = _customProviderOption;
+    }
   }
 
   @override
@@ -889,6 +927,16 @@ class _ProfileEditorDialogState extends State<_ProfileEditorDialog> {
     Navigator.pop(context, dto);
   }
 
+  void _onProviderChanged(String? value) {
+    if (value == null) return;
+    setState(() {
+      _selectedProvider = value;
+      if (!_isCustomProvider) {
+        _nameCtrl.text = value;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -922,15 +970,37 @@ class _ProfileEditorDialogState extends State<_ProfileEditorDialog> {
                       hintText: l10n.providerProfileIdHint,
                     ),
                   ),
-                  TextField(
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedProvider,
+                    decoration: InputDecoration(
+                      labelText: l10n.providerProfileName,
+                    ),
+                    items: [
+                      ..._providerOptions.map(
+                        (provider) => DropdownMenuItem(
+                          value: provider,
+                          child: Text(provider),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: _customProviderOption,
+                        child: Text(l10n.providerProfileManual),
+                      ),
+                    ],
+                    onChanged: _onProviderChanged,
+                  ),
+                ],
+              ),
+              if (_isCustomProvider)
+                FieldColumn(
+                  child: TextField(
                     controller: _nameCtrl,
                     decoration: InputDecoration(
                       labelText: l10n.providerProfileName,
                       hintText: l10n.providerProfileNameHint,
                     ),
                   ),
-                ],
-              ),
+                ),
             ],
           ),
 
