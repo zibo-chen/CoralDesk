@@ -55,7 +55,7 @@ extension AgentEventPatterns on AgentEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( AgentEvent_Thinking value)?  thinking,TResult Function( AgentEvent_TextDelta value)?  textDelta,TResult Function( AgentEvent_ClearStreamedContent value)?  clearStreamedContent,TResult Function( AgentEvent_ToolCallStart value)?  toolCallStart,TResult Function( AgentEvent_ToolCallEnd value)?  toolCallEnd,TResult Function( AgentEvent_ToolApprovalRequest value)?  toolApprovalRequest,TResult Function( AgentEvent_RoleSwitch value)?  roleSwitch,TResult Function( AgentEvent_MessageComplete value)?  messageComplete,TResult Function( AgentEvent_Error value)?  error,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( AgentEvent_Thinking value)?  thinking,TResult Function( AgentEvent_TextDelta value)?  textDelta,TResult Function( AgentEvent_ClearStreamedContent value)?  clearStreamedContent,TResult Function( AgentEvent_ToolCallStart value)?  toolCallStart,TResult Function( AgentEvent_ToolCallEnd value)?  toolCallEnd,TResult Function( AgentEvent_ToolApprovalRequest value)?  toolApprovalRequest,TResult Function( AgentEvent_RoleSwitch value)?  roleSwitch,TResult Function( AgentEvent_RoleHandoff value)?  roleHandoff,TResult Function( AgentEvent_MessageComplete value)?  messageComplete,TResult Function( AgentEvent_Error value)?  error,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case AgentEvent_Thinking() when thinking != null:
@@ -65,7 +65,8 @@ return clearStreamedContent(_that);case AgentEvent_ToolCallStart() when toolCall
 return toolCallStart(_that);case AgentEvent_ToolCallEnd() when toolCallEnd != null:
 return toolCallEnd(_that);case AgentEvent_ToolApprovalRequest() when toolApprovalRequest != null:
 return toolApprovalRequest(_that);case AgentEvent_RoleSwitch() when roleSwitch != null:
-return roleSwitch(_that);case AgentEvent_MessageComplete() when messageComplete != null:
+return roleSwitch(_that);case AgentEvent_RoleHandoff() when roleHandoff != null:
+return roleHandoff(_that);case AgentEvent_MessageComplete() when messageComplete != null:
 return messageComplete(_that);case AgentEvent_Error() when error != null:
 return error(_that);case _:
   return orElse();
@@ -85,7 +86,7 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( AgentEvent_Thinking value)  thinking,required TResult Function( AgentEvent_TextDelta value)  textDelta,required TResult Function( AgentEvent_ClearStreamedContent value)  clearStreamedContent,required TResult Function( AgentEvent_ToolCallStart value)  toolCallStart,required TResult Function( AgentEvent_ToolCallEnd value)  toolCallEnd,required TResult Function( AgentEvent_ToolApprovalRequest value)  toolApprovalRequest,required TResult Function( AgentEvent_RoleSwitch value)  roleSwitch,required TResult Function( AgentEvent_MessageComplete value)  messageComplete,required TResult Function( AgentEvent_Error value)  error,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( AgentEvent_Thinking value)  thinking,required TResult Function( AgentEvent_TextDelta value)  textDelta,required TResult Function( AgentEvent_ClearStreamedContent value)  clearStreamedContent,required TResult Function( AgentEvent_ToolCallStart value)  toolCallStart,required TResult Function( AgentEvent_ToolCallEnd value)  toolCallEnd,required TResult Function( AgentEvent_ToolApprovalRequest value)  toolApprovalRequest,required TResult Function( AgentEvent_RoleSwitch value)  roleSwitch,required TResult Function( AgentEvent_RoleHandoff value)  roleHandoff,required TResult Function( AgentEvent_MessageComplete value)  messageComplete,required TResult Function( AgentEvent_Error value)  error,}){
 final _that = this;
 switch (_that) {
 case AgentEvent_Thinking():
@@ -95,7 +96,8 @@ return clearStreamedContent(_that);case AgentEvent_ToolCallStart():
 return toolCallStart(_that);case AgentEvent_ToolCallEnd():
 return toolCallEnd(_that);case AgentEvent_ToolApprovalRequest():
 return toolApprovalRequest(_that);case AgentEvent_RoleSwitch():
-return roleSwitch(_that);case AgentEvent_MessageComplete():
+return roleSwitch(_that);case AgentEvent_RoleHandoff():
+return roleHandoff(_that);case AgentEvent_MessageComplete():
 return messageComplete(_that);case AgentEvent_Error():
 return error(_that);}
 }
@@ -111,7 +113,7 @@ return error(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( AgentEvent_Thinking value)?  thinking,TResult? Function( AgentEvent_TextDelta value)?  textDelta,TResult? Function( AgentEvent_ClearStreamedContent value)?  clearStreamedContent,TResult? Function( AgentEvent_ToolCallStart value)?  toolCallStart,TResult? Function( AgentEvent_ToolCallEnd value)?  toolCallEnd,TResult? Function( AgentEvent_ToolApprovalRequest value)?  toolApprovalRequest,TResult? Function( AgentEvent_RoleSwitch value)?  roleSwitch,TResult? Function( AgentEvent_MessageComplete value)?  messageComplete,TResult? Function( AgentEvent_Error value)?  error,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( AgentEvent_Thinking value)?  thinking,TResult? Function( AgentEvent_TextDelta value)?  textDelta,TResult? Function( AgentEvent_ClearStreamedContent value)?  clearStreamedContent,TResult? Function( AgentEvent_ToolCallStart value)?  toolCallStart,TResult? Function( AgentEvent_ToolCallEnd value)?  toolCallEnd,TResult? Function( AgentEvent_ToolApprovalRequest value)?  toolApprovalRequest,TResult? Function( AgentEvent_RoleSwitch value)?  roleSwitch,TResult? Function( AgentEvent_RoleHandoff value)?  roleHandoff,TResult? Function( AgentEvent_MessageComplete value)?  messageComplete,TResult? Function( AgentEvent_Error value)?  error,}){
 final _that = this;
 switch (_that) {
 case AgentEvent_Thinking() when thinking != null:
@@ -121,7 +123,8 @@ return clearStreamedContent(_that);case AgentEvent_ToolCallStart() when toolCall
 return toolCallStart(_that);case AgentEvent_ToolCallEnd() when toolCallEnd != null:
 return toolCallEnd(_that);case AgentEvent_ToolApprovalRequest() when toolApprovalRequest != null:
 return toolApprovalRequest(_that);case AgentEvent_RoleSwitch() when roleSwitch != null:
-return roleSwitch(_that);case AgentEvent_MessageComplete() when messageComplete != null:
+return roleSwitch(_that);case AgentEvent_RoleHandoff() when roleHandoff != null:
+return roleHandoff(_that);case AgentEvent_MessageComplete() when messageComplete != null:
 return messageComplete(_that);case AgentEvent_Error() when error != null:
 return error(_that);case _:
   return null;
@@ -140,7 +143,7 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  thinking,TResult Function( String text,  String? roleName)?  textDelta,TResult Function()?  clearStreamedContent,TResult Function( String name,  String args,  String? roleName)?  toolCallStart,TResult Function( String name,  String result,  bool success)?  toolCallEnd,TResult Function( String requestId,  String name,  String args)?  toolApprovalRequest,TResult Function( String roleName,  String roleColor,  String roleIcon)?  roleSwitch,TResult Function( BigInt? inputTokens,  BigInt? outputTokens)?  messageComplete,TResult Function( String message)?  error,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  thinking,TResult Function( String text,  String? roleName)?  textDelta,TResult Function()?  clearStreamedContent,TResult Function( String name,  String args,  String? roleName)?  toolCallStart,TResult Function( String name,  String result,  bool success)?  toolCallEnd,TResult Function( String requestId,  String name,  String args)?  toolApprovalRequest,TResult Function( String roleName,  String roleColor,  String roleIcon)?  roleSwitch,TResult Function( String fromRole,  String toRole,  String summary)?  roleHandoff,TResult Function( BigInt? inputTokens,  BigInt? outputTokens)?  messageComplete,TResult Function( String message)?  error,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case AgentEvent_Thinking() when thinking != null:
 return thinking();case AgentEvent_TextDelta() when textDelta != null:
@@ -149,7 +152,8 @@ return clearStreamedContent();case AgentEvent_ToolCallStart() when toolCallStart
 return toolCallStart(_that.name,_that.args,_that.roleName);case AgentEvent_ToolCallEnd() when toolCallEnd != null:
 return toolCallEnd(_that.name,_that.result,_that.success);case AgentEvent_ToolApprovalRequest() when toolApprovalRequest != null:
 return toolApprovalRequest(_that.requestId,_that.name,_that.args);case AgentEvent_RoleSwitch() when roleSwitch != null:
-return roleSwitch(_that.roleName,_that.roleColor,_that.roleIcon);case AgentEvent_MessageComplete() when messageComplete != null:
+return roleSwitch(_that.roleName,_that.roleColor,_that.roleIcon);case AgentEvent_RoleHandoff() when roleHandoff != null:
+return roleHandoff(_that.fromRole,_that.toRole,_that.summary);case AgentEvent_MessageComplete() when messageComplete != null:
 return messageComplete(_that.inputTokens,_that.outputTokens);case AgentEvent_Error() when error != null:
 return error(_that.message);case _:
   return orElse();
@@ -169,7 +173,7 @@ return error(_that.message);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  thinking,required TResult Function( String text,  String? roleName)  textDelta,required TResult Function()  clearStreamedContent,required TResult Function( String name,  String args,  String? roleName)  toolCallStart,required TResult Function( String name,  String result,  bool success)  toolCallEnd,required TResult Function( String requestId,  String name,  String args)  toolApprovalRequest,required TResult Function( String roleName,  String roleColor,  String roleIcon)  roleSwitch,required TResult Function( BigInt? inputTokens,  BigInt? outputTokens)  messageComplete,required TResult Function( String message)  error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  thinking,required TResult Function( String text,  String? roleName)  textDelta,required TResult Function()  clearStreamedContent,required TResult Function( String name,  String args,  String? roleName)  toolCallStart,required TResult Function( String name,  String result,  bool success)  toolCallEnd,required TResult Function( String requestId,  String name,  String args)  toolApprovalRequest,required TResult Function( String roleName,  String roleColor,  String roleIcon)  roleSwitch,required TResult Function( String fromRole,  String toRole,  String summary)  roleHandoff,required TResult Function( BigInt? inputTokens,  BigInt? outputTokens)  messageComplete,required TResult Function( String message)  error,}) {final _that = this;
 switch (_that) {
 case AgentEvent_Thinking():
 return thinking();case AgentEvent_TextDelta():
@@ -178,7 +182,8 @@ return clearStreamedContent();case AgentEvent_ToolCallStart():
 return toolCallStart(_that.name,_that.args,_that.roleName);case AgentEvent_ToolCallEnd():
 return toolCallEnd(_that.name,_that.result,_that.success);case AgentEvent_ToolApprovalRequest():
 return toolApprovalRequest(_that.requestId,_that.name,_that.args);case AgentEvent_RoleSwitch():
-return roleSwitch(_that.roleName,_that.roleColor,_that.roleIcon);case AgentEvent_MessageComplete():
+return roleSwitch(_that.roleName,_that.roleColor,_that.roleIcon);case AgentEvent_RoleHandoff():
+return roleHandoff(_that.fromRole,_that.toRole,_that.summary);case AgentEvent_MessageComplete():
 return messageComplete(_that.inputTokens,_that.outputTokens);case AgentEvent_Error():
 return error(_that.message);}
 }
@@ -194,7 +199,7 @@ return error(_that.message);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  thinking,TResult? Function( String text,  String? roleName)?  textDelta,TResult? Function()?  clearStreamedContent,TResult? Function( String name,  String args,  String? roleName)?  toolCallStart,TResult? Function( String name,  String result,  bool success)?  toolCallEnd,TResult? Function( String requestId,  String name,  String args)?  toolApprovalRequest,TResult? Function( String roleName,  String roleColor,  String roleIcon)?  roleSwitch,TResult? Function( BigInt? inputTokens,  BigInt? outputTokens)?  messageComplete,TResult? Function( String message)?  error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  thinking,TResult? Function( String text,  String? roleName)?  textDelta,TResult? Function()?  clearStreamedContent,TResult? Function( String name,  String args,  String? roleName)?  toolCallStart,TResult? Function( String name,  String result,  bool success)?  toolCallEnd,TResult? Function( String requestId,  String name,  String args)?  toolApprovalRequest,TResult? Function( String roleName,  String roleColor,  String roleIcon)?  roleSwitch,TResult? Function( String fromRole,  String toRole,  String summary)?  roleHandoff,TResult? Function( BigInt? inputTokens,  BigInt? outputTokens)?  messageComplete,TResult? Function( String message)?  error,}) {final _that = this;
 switch (_that) {
 case AgentEvent_Thinking() when thinking != null:
 return thinking();case AgentEvent_TextDelta() when textDelta != null:
@@ -203,7 +208,8 @@ return clearStreamedContent();case AgentEvent_ToolCallStart() when toolCallStart
 return toolCallStart(_that.name,_that.args,_that.roleName);case AgentEvent_ToolCallEnd() when toolCallEnd != null:
 return toolCallEnd(_that.name,_that.result,_that.success);case AgentEvent_ToolApprovalRequest() when toolApprovalRequest != null:
 return toolApprovalRequest(_that.requestId,_that.name,_that.args);case AgentEvent_RoleSwitch() when roleSwitch != null:
-return roleSwitch(_that.roleName,_that.roleColor,_that.roleIcon);case AgentEvent_MessageComplete() when messageComplete != null:
+return roleSwitch(_that.roleName,_that.roleColor,_that.roleIcon);case AgentEvent_RoleHandoff() when roleHandoff != null:
+return roleHandoff(_that.fromRole,_that.toRole,_that.summary);case AgentEvent_MessageComplete() when messageComplete != null:
 return messageComplete(_that.inputTokens,_that.outputTokens);case AgentEvent_Error() when error != null:
 return error(_that.message);case _:
   return null;
@@ -620,6 +626,76 @@ class _$AgentEvent_RoleSwitchCopyWithImpl<$Res>
 roleName: null == roleName ? _self.roleName : roleName // ignore: cast_nullable_to_non_nullable
 as String,roleColor: null == roleColor ? _self.roleColor : roleColor // ignore: cast_nullable_to_non_nullable
 as String,roleIcon: null == roleIcon ? _self.roleIcon : roleIcon // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class AgentEvent_RoleHandoff extends AgentEvent {
+  const AgentEvent_RoleHandoff({required this.fromRole, required this.toRole, required this.summary}): super._();
+  
+
+ final  String fromRole;
+ final  String toRole;
+ final  String summary;
+
+/// Create a copy of AgentEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$AgentEvent_RoleHandoffCopyWith<AgentEvent_RoleHandoff> get copyWith => _$AgentEvent_RoleHandoffCopyWithImpl<AgentEvent_RoleHandoff>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AgentEvent_RoleHandoff&&(identical(other.fromRole, fromRole) || other.fromRole == fromRole)&&(identical(other.toRole, toRole) || other.toRole == toRole)&&(identical(other.summary, summary) || other.summary == summary));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,fromRole,toRole,summary);
+
+@override
+String toString() {
+  return 'AgentEvent.roleHandoff(fromRole: $fromRole, toRole: $toRole, summary: $summary)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $AgentEvent_RoleHandoffCopyWith<$Res> implements $AgentEventCopyWith<$Res> {
+  factory $AgentEvent_RoleHandoffCopyWith(AgentEvent_RoleHandoff value, $Res Function(AgentEvent_RoleHandoff) _then) = _$AgentEvent_RoleHandoffCopyWithImpl;
+@useResult
+$Res call({
+ String fromRole, String toRole, String summary
+});
+
+
+
+
+}
+/// @nodoc
+class _$AgentEvent_RoleHandoffCopyWithImpl<$Res>
+    implements $AgentEvent_RoleHandoffCopyWith<$Res> {
+  _$AgentEvent_RoleHandoffCopyWithImpl(this._self, this._then);
+
+  final AgentEvent_RoleHandoff _self;
+  final $Res Function(AgentEvent_RoleHandoff) _then;
+
+/// Create a copy of AgentEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? fromRole = null,Object? toRole = null,Object? summary = null,}) {
+  return _then(AgentEvent_RoleHandoff(
+fromRole: null == fromRole ? _self.fromRole : fromRole // ignore: cast_nullable_to_non_nullable
+as String,toRole: null == toRole ? _self.toRole : toRole // ignore: cast_nullable_to_non_nullable
+as String,summary: null == summary ? _self.summary : summary // ignore: cast_nullable_to_non_nullable
 as String,
   ));
 }

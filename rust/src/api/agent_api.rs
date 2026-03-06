@@ -60,6 +60,13 @@ pub enum AgentEvent {
         role_color: String,
         role_icon: String,
     },
+    /// A delegate agent role has finished and handed off to another role.
+    /// Emitted when a sub-agent completes and suggests the next agent/task.
+    RoleHandoff {
+        from_role: String,
+        to_role: String,
+        summary: String,
+    },
     /// Full message generation complete
     MessageComplete {
         input_tokens: Option<u64>,
@@ -1383,15 +1390,31 @@ async fn ensure_session_agent(session_id: &str) -> Result<Arc<TokioMutex<Session
 
             let orchestrator_prompt = format!(
                 "# Team Orchestrator\n\n\
-                 You are an AI team orchestrator coordinating specialized agents.\n\n\
+                 You are an AI team orchestrator coordinating specialized agents.\n\
+                 Each agent has its own independent context space and retains memory \n\
+                 across multiple invocations within this session.\n\n\
                  ## Your Team\n\
                  Use the `delegate` tool with the agent name to assign tasks:\n\
                  {roles_desc}\n\n\
+                 ## Inter-Role Collaboration\n\
+                 Agents can also delegate to each other. For example, after architect \n\
+                 designs a solution, architect can hand off directly to coder via delegate.\n\
+                 Each agent retains context from prior calls, so subsequent invocations \n\
+                 build on previous work without losing information.\n\n\
                  ## Workflow\n\
                  1. Analyze the user's request to determine which agents are needed\n\
                  2. Use `delegate` with agent=\"<name>\" and prompt=\"<task>\" to invoke roles\n\
-                 3. Coordinate results — if critic finds issues, send back to coder\n\
-                 4. Synthesize and present the final result clearly\n\n\
+                 3. Agents may hand off tasks to each other — monitor the chain\n\
+                 4. Coordinate results — if critic finds issues, send back to coder\n\
+                 5. Use context_keeper periodically to record key decisions\n\
+                 6. Synthesize and present the final result clearly\n\
+                 7. Only conclude when you are satisfied ALL sub-tasks are complete\n\n\
+                 ## Task Handoff Protocol\n\
+                 When an agent finishes its work, it should include a structured handoff:\n\
+                 - **Status**: done | needs-review | blocked\n\
+                 - **Summary**: What was accomplished\n\
+                 - **Next**: Recommended next agent and task (if any)\n\
+                 You decide whether to follow the recommendation or conclude.\n\n\
                  For simple tasks, use just 1-2 agents. For complex tasks, use the full pipeline.\n"
             );
 
@@ -1782,9 +1805,47 @@ pub async fn send_message_stream(
                         let success = parts[1] == "true";
                         let result = parts[2].to_string();
                         tool_active.store(false, Ordering::Relaxed);
-                        // Reset current role when delegate tool completes
+                        // Reset current role when delegate tool completes.
+                        // Try to parse handoff protocol from the result to emit
+                        // a RoleHandoff event for the UI.
                         if name == "delegate" {
-                            current_role = None;
+                            if let Some(from_role) = current_role.take() {
+                                // Look for handoff markers in the result:
+                                //   **Next**: agent_name: task description
+                                let mut to_role = String::new();
+                                let mut summary = String::new();
+                                for line in result.lines() {
+                                    let trimmed_line = line.trim().trim_start_matches("- ");
+                                    if trimmed_line.starts_with("**Summary**:")
+                                        || trimmed_line.starts_with("**Summary:**")
+                                    {
+                                        summary = trimmed_line
+                                            .trim_start_matches("**Summary**:")
+                                            .trim_start_matches("**Summary:**")
+                                            .trim()
+                                            .to_string();
+                                    }
+                                    if trimmed_line.starts_with("**Next**:")
+                                        || trimmed_line.starts_with("**Next:**")
+                                    {
+                                        let next_text = trimmed_line
+                                            .trim_start_matches("**Next**:")
+                                            .trim_start_matches("**Next:**")
+                                            .trim();
+                                        if let Some((role, _task)) = next_text.split_once(':') {
+                                            to_role = role.trim().to_lowercase()
+                                                .replace("**", "").replace('*', "");
+                                        }
+                                    }
+                                }
+                                if !to_role.is_empty() || !summary.is_empty() {
+                                    send_or_break!(AgentEvent::RoleHandoff {
+                                        from_role: from_role.clone(),
+                                        to_role: to_role.clone(),
+                                        summary: summary.clone(),
+                                    });
+                                }
+                            }
                         }
                         send_or_break!(AgentEvent::ToolCallEnd {
                             name,

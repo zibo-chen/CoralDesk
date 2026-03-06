@@ -98,6 +98,9 @@ class DelegateAgentDto {
   /// Whether this is a built-in preset role
   final bool isPreset;
 
+  /// Whether this agent can delegate to other agents (nested delegation)
+  final bool allowNestedDelegate;
+
   const DelegateAgentDto({
     required this.name,
     required this.provider,
@@ -116,6 +119,7 @@ class DelegateAgentDto {
     this.roleColor,
     this.roleIcon,
     required this.isPreset,
+    required this.allowNestedDelegate,
   });
 
   @override
@@ -136,7 +140,8 @@ class DelegateAgentDto {
       roleLabel.hashCode ^
       roleColor.hashCode ^
       roleIcon.hashCode ^
-      isPreset.hashCode;
+      isPreset.hashCode ^
+      allowNestedDelegate.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -159,5 +164,6 @@ class DelegateAgentDto {
           roleLabel == other.roleLabel &&
           roleColor == other.roleColor &&
           roleIcon == other.roleIcon &&
-          isPreset == other.isPreset;
+          isPreset == other.isPreset &&
+          allowNestedDelegate == other.allowNestedDelegate;
 }

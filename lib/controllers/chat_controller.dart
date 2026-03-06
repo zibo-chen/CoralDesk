@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:coraldesk/models/models.dart';
 import 'package:coraldesk/providers/chat_provider.dart';
+import 'package:coraldesk/providers/task_plan_provider.dart';
 import 'package:coraldesk/src/rust/api/agent_api.dart' as agent_api;
 import 'package:coraldesk/src/rust/api/sessions_api.dart' as sessions_api;
 
@@ -77,6 +78,9 @@ class ChatController {
     // Atomic save + load
     _ref.read(messagesProvider.notifier).switchToSession(sessionId);
 
+    // Switch task plan context
+    _ref.read(taskPlanProvider.notifier).switchToSession(sessionId);
+
     // Update active ID
     _ref.read(activeSessionIdProvider.notifier).state = sessionId;
 
@@ -121,6 +125,7 @@ class ChatController {
     _ref.read(sessionsProvider.notifier).deleteSession(sessionId);
     _ref.read(messagesProvider.notifier).removeSession(sessionId);
     _ref.read(sessionFilesProvider.notifier).removeCache(sessionId);
+    _ref.read(taskPlanProvider.notifier).removeSession(sessionId);
     if (isActive) {
       _ref.read(activeSessionIdProvider.notifier).state = null;
       agent_api.clearSession();
@@ -307,6 +312,10 @@ class ChatController {
           status: ToolCallStatus.running,
         );
         s.parts.add(ToolCallPart(tc));
+        // Track task_plan args for later processing
+        if (name == 'task_plan') {
+          s.pendingTaskPlanArgs = args;
+        }
         _pushStreamState(s);
       },
       toolCallEnd: (name, result, success) {
@@ -326,6 +335,13 @@ class ChatController {
             );
             break;
           }
+        }
+        // Intercept task_plan tool calls to update the overlay state
+        if (name == 'task_plan' && success) {
+          _ref
+              .read(taskPlanProvider.notifier)
+              .processToolCall(s.pendingTaskPlanArgs ?? '{}', result);
+          s.pendingTaskPlanArgs = null;
         }
         _pushStreamState(s);
       },
@@ -361,6 +377,14 @@ class ChatController {
             roleColor: roleColor,
             roleIcon: roleIcon,
           ),
+        );
+        _pushStreamState(s);
+      },
+      roleHandoff: (fromRole, toRole, summary) {
+        // Insert a handoff marker between role sections
+        s.finalizeCurrentTextSegment();
+        s.parts.add(
+          RoleHandoffPart(fromRole: fromRole, toRole: toRole, summary: summary),
         );
         _pushStreamState(s);
       },
@@ -538,6 +562,10 @@ class _SessionStreamState {
 
   /// The current delegate agent role name (null = main agent).
   String? currentRole;
+
+  /// Pending task_plan tool call arguments (saved at toolCallStart,
+  /// consumed at toolCallEnd).
+  String? pendingTaskPlanArgs;
 
   _SessionStreamState({
     required this.sessionId,

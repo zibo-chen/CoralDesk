@@ -27,6 +27,18 @@ class RoleHeaderPart extends MessagePart {
   });
 }
 
+/// A role handoff segment — marks a task handoff between agents.
+class RoleHandoffPart extends MessagePart {
+  final String fromRole;
+  final String toRole;
+  final String summary;
+  const RoleHandoffPart({
+    required this.fromRole,
+    required this.toRole,
+    required this.summary,
+  });
+}
+
 /// Represents a single chat message
 class ChatMessage {
   final String id;

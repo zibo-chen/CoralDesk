@@ -224,6 +224,13 @@ sealed class AgentEvent with _$AgentEvent {
     required String roleIcon,
   }) = AgentEvent_RoleSwitch;
 
+  /// A role has finished its task and is handing off to the next role.
+  const factory AgentEvent.roleHandoff({
+    required String fromRole,
+    required String toRole,
+    required String summary,
+  }) = AgentEvent_RoleHandoff;
+
   /// Full message generation complete
   const factory AgentEvent.messageComplete({
     BigInt? inputTokens,

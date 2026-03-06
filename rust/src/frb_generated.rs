@@ -5457,6 +5457,16 @@ impl SseDecode for crate::api::agent_api::AgentEvent {
                 };
             }
             7 => {
+                let mut var_fromRole = <String>::sse_decode(deserializer);
+                let mut var_toRole = <String>::sse_decode(deserializer);
+                let mut var_summary = <String>::sse_decode(deserializer);
+                return crate::api::agent_api::AgentEvent::RoleHandoff {
+                    from_role: var_fromRole,
+                    to_role: var_toRole,
+                    summary: var_summary,
+                };
+            }
+            8 => {
                 let mut var_inputTokens = <Option<u64>>::sse_decode(deserializer);
                 let mut var_outputTokens = <Option<u64>>::sse_decode(deserializer);
                 return crate::api::agent_api::AgentEvent::MessageComplete {
@@ -5464,7 +5474,7 @@ impl SseDecode for crate::api::agent_api::AgentEvent {
                     output_tokens: var_outputTokens,
                 };
             }
-            8 => {
+            9 => {
                 let mut var_message = <String>::sse_decode(deserializer);
                 return crate::api::agent_api::AgentEvent::Error {
                     message: var_message,
@@ -5792,6 +5802,7 @@ impl SseDecode for crate::api::agents_api::DelegateAgentDto {
         let mut var_roleColor = <Option<String>>::sse_decode(deserializer);
         let mut var_roleIcon = <Option<String>>::sse_decode(deserializer);
         let mut var_isPreset = <bool>::sse_decode(deserializer);
+        let mut var_allowNestedDelegate = <bool>::sse_decode(deserializer);
         return crate::api::agents_api::DelegateAgentDto {
             name: var_name,
             provider: var_provider,
@@ -5810,6 +5821,7 @@ impl SseDecode for crate::api::agents_api::DelegateAgentDto {
             role_color: var_roleColor,
             role_icon: var_roleIcon,
             is_preset: var_isPreset,
+            allow_nested_delegate: var_allowNestedDelegate,
         };
     }
 }
@@ -8625,16 +8637,26 @@ impl SseEncode for crate::api::agent_api::AgentEvent {
                 <String>::sse_encode(role_color, serializer);
                 <String>::sse_encode(role_icon, serializer);
             }
+            crate::api::agent_api::AgentEvent::RoleHandoff {
+                from_role,
+                to_role,
+                summary,
+            } => {
+                <i32>::sse_encode(7, serializer);
+                <String>::sse_encode(from_role, serializer);
+                <String>::sse_encode(to_role, serializer);
+                <String>::sse_encode(summary, serializer);
+            }
             crate::api::agent_api::AgentEvent::MessageComplete {
                 input_tokens,
                 output_tokens,
             } => {
-                <i32>::sse_encode(7, serializer);
+                <i32>::sse_encode(8, serializer);
                 <Option<u64>>::sse_encode(input_tokens, serializer);
                 <Option<u64>>::sse_encode(output_tokens, serializer);
             }
             crate::api::agent_api::AgentEvent::Error { message } => {
-                <i32>::sse_encode(8, serializer);
+                <i32>::sse_encode(9, serializer);
                 <String>::sse_encode(message, serializer);
             }
             _ => {
@@ -8837,6 +8859,7 @@ impl SseEncode for crate::api::agents_api::DelegateAgentDto {
         <Option<String>>::sse_encode(self.role_color, serializer);
         <Option<String>>::sse_encode(self.role_icon, serializer);
         <bool>::sse_encode(self.is_preset, serializer);
+        <bool>::sse_encode(self.allow_nested_delegate, serializer);
     }
 }
 

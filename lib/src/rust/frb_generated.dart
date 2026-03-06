@@ -4906,11 +4906,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           roleIcon: dco_decode_String(raw[3]),
         );
       case 7:
+        return AgentEvent_RoleHandoff(
+          fromRole: dco_decode_String(raw[1]),
+          toRole: dco_decode_String(raw[2]),
+          summary: dco_decode_String(raw[3]),
+        );
+      case 8:
         return AgentEvent_MessageComplete(
           inputTokens: dco_decode_opt_box_autoadd_u_64(raw[1]),
           outputTokens: dco_decode_opt_box_autoadd_u_64(raw[2]),
         );
-      case 8:
+      case 9:
         return AgentEvent_Error(message: dco_decode_String(raw[1]));
       default:
         throw Exception("unreachable");
@@ -5235,8 +5241,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   DelegateAgentDto dco_decode_delegate_agent_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 17)
-      throw Exception('unexpected arr length: expect 17 but see ${arr.length}');
+    if (arr.length != 18)
+      throw Exception('unexpected arr length: expect 18 but see ${arr.length}');
     return DelegateAgentDto(
       name: dco_decode_String(arr[0]),
       provider: dco_decode_String(arr[1]),
@@ -5255,6 +5261,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       roleColor: dco_decode_opt_String(arr[14]),
       roleIcon: dco_decode_opt_String(arr[15]),
       isPreset: dco_decode_bool(arr[16]),
+      allowNestedDelegate: dco_decode_bool(arr[17]),
     );
   }
 
@@ -6010,13 +6017,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           roleIcon: var_roleIcon,
         );
       case 7:
+        var var_fromRole = sse_decode_String(deserializer);
+        var var_toRole = sse_decode_String(deserializer);
+        var var_summary = sse_decode_String(deserializer);
+        return AgentEvent_RoleHandoff(
+          fromRole: var_fromRole,
+          toRole: var_toRole,
+          summary: var_summary,
+        );
+      case 8:
         var var_inputTokens = sse_decode_opt_box_autoadd_u_64(deserializer);
         var var_outputTokens = sse_decode_opt_box_autoadd_u_64(deserializer);
         return AgentEvent_MessageComplete(
           inputTokens: var_inputTokens,
           outputTokens: var_outputTokens,
         );
-      case 8:
+      case 9:
         var var_message = sse_decode_String(deserializer);
         return AgentEvent_Error(message: var_message);
       default:
@@ -6447,6 +6463,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_roleColor = sse_decode_opt_String(deserializer);
     var var_roleIcon = sse_decode_opt_String(deserializer);
     var var_isPreset = sse_decode_bool(deserializer);
+    var var_allowNestedDelegate = sse_decode_bool(deserializer);
     return DelegateAgentDto(
       name: var_name,
       provider: var_provider,
@@ -6465,6 +6482,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       roleColor: var_roleColor,
       roleIcon: var_roleIcon,
       isPreset: var_isPreset,
+      allowNestedDelegate: var_allowNestedDelegate,
     );
   }
 
@@ -7494,15 +7512,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_String(roleName, serializer);
         sse_encode_String(roleColor, serializer);
         sse_encode_String(roleIcon, serializer);
+      case AgentEvent_RoleHandoff(
+        fromRole: final fromRole,
+        toRole: final toRole,
+        summary: final summary,
+      ):
+        sse_encode_i_32(7, serializer);
+        sse_encode_String(fromRole, serializer);
+        sse_encode_String(toRole, serializer);
+        sse_encode_String(summary, serializer);
       case AgentEvent_MessageComplete(
         inputTokens: final inputTokens,
         outputTokens: final outputTokens,
       ):
-        sse_encode_i_32(7, serializer);
+        sse_encode_i_32(8, serializer);
         sse_encode_opt_box_autoadd_u_64(inputTokens, serializer);
         sse_encode_opt_box_autoadd_u_64(outputTokens, serializer);
       case AgentEvent_Error(message: final message):
-        sse_encode_i_32(8, serializer);
+        sse_encode_i_32(9, serializer);
         sse_encode_String(message, serializer);
     }
   }
@@ -7847,6 +7874,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.roleColor, serializer);
     sse_encode_opt_String(self.roleIcon, serializer);
     sse_encode_bool(self.isPreset, serializer);
+    sse_encode_bool(self.allowNestedDelegate, serializer);
   }
 
   @protected

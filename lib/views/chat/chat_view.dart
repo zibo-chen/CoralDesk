@@ -13,6 +13,7 @@ import 'package:coraldesk/views/chat/message_bubble.dart';
 import 'package:coraldesk/views/chat/input_bar.dart';
 import 'package:coraldesk/views/chat/file_attachment_bar.dart';
 import 'package:coraldesk/views/chat/workspace_files_panel.dart';
+import 'package:coraldesk/views/chat/task_plan_overlay.dart';
 import 'package:coraldesk/src/rust/api/agent_api.dart' as agent_api;
 
 /// Main chat view (right main area in reference)
@@ -302,6 +303,9 @@ class _ChatViewState extends ConsumerState<ChatView> {
                 ),
             ],
           ),
+
+          // Task plan floating overlay (top-right of chat area)
+          const TaskPlanOverlay(),
 
           // Drag overlay
           if (_isDragging) _buildDragOverlay(l10n),

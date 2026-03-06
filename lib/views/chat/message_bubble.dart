@@ -345,6 +345,15 @@ class _MessageBubbleState extends State<MessageBubble> {
               roleIcon: roleIcon,
             ),
           );
+        case RoleHandoffPart(:final fromRole, :final toRole, :final summary):
+          if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 4));
+          widgets.add(
+            _RoleHandoffWidget(
+              fromRole: fromRole,
+              toRole: toRole,
+              summary: summary,
+            ),
+          );
       }
     }
     return widgets;
@@ -849,5 +858,86 @@ class _RoleHeaderWidget extends StatelessWidget {
       return Color(int.parse(cleaned, radix: 16));
     }
     return const Color(0xFF6C757D); // fallback grey
+  }
+}
+
+/// A visual marker showing a task handoff between two agent roles.
+class _RoleHandoffWidget extends StatelessWidget {
+  final String fromRole;
+  final String toRole;
+  final String summary;
+
+  const _RoleHandoffWidget({
+    required this.fromRole,
+    required this.toRole,
+    required this.summary,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF2A2A3E) : const Color(0xFFF0F0F8);
+    final borderColor = isDark
+        ? const Color(0xFF4A4A6A)
+        : const Color(0xFFD0D0E0);
+    final textColor = isDark
+        ? const Color(0xFFB0B0CC)
+        : const Color(0xFF6060A0);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor, width: 0.5),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.swap_horiz_rounded, size: 16, color: textColor),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: fromRole,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: textColor,
+                    ),
+                  ),
+                  TextSpan(
+                    text: ' → ',
+                    style: TextStyle(fontSize: 12, color: textColor),
+                  ),
+                  TextSpan(
+                    text: toRole.isEmpty ? 'orchestrator' : toRole,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: textColor,
+                    ),
+                  ),
+                  if (summary.isNotEmpty) ...[
+                    TextSpan(
+                      text: '  · $summary',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: textColor.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

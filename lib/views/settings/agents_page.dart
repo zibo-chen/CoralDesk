@@ -632,6 +632,7 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
       roleLabel: widget.existing?.roleLabel,
       roleColor: widget.existing?.roleColor,
       roleIcon: widget.existing?.roleIcon,
+      allowNestedDelegate: widget.existing?.allowNestedDelegate ?? false,
     );
 
     Navigator.pop(context, dto);

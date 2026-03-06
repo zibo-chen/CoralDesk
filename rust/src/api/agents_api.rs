@@ -29,6 +29,8 @@ pub struct DelegateAgentDto {
     pub role_icon: Option<String>,
     /// Whether this is a built-in preset role
     pub is_preset: bool,
+    /// Whether this sub-agent can delegate to other sub-agents
+    pub allow_nested_delegate: bool,
 }
 
 // ──────────────────── API Functions ──────────────────────────
@@ -62,6 +64,7 @@ pub async fn list_delegate_agents() -> Vec<DelegateAgentDto> {
             role_color: cfg.role_color.clone(),
             role_icon: cfg.role_icon.clone(),
             is_preset: cfg.is_preset,
+            allow_nested_delegate: cfg.allow_nested_delegate,
         })
         .collect();
 
@@ -95,6 +98,7 @@ pub async fn get_delegate_agent(name: String) -> Option<DelegateAgentDto> {
         role_color: cfg.role_color.clone(),
         role_icon: cfg.role_icon.clone(),
         is_preset: cfg.is_preset,
+        allow_nested_delegate: cfg.allow_nested_delegate,
     })
 }
 
@@ -174,6 +178,7 @@ pub async fn upsert_delegate_agent(agent: DelegateAgentDto) -> String {
             .filter(|s| !s.is_empty())
             .map(String::from),
         is_preset: agent.is_preset,
+        allow_nested_delegate: agent.allow_nested_delegate,
     };
 
     {
@@ -341,12 +346,14 @@ pub async fn seed_preset_roles() -> u32 {
                 "file_edit".to_string(),
                 "glob".to_string(),
                 "grep".to_string(),
+                "delegate".to_string(),
             ],
             max_iterations: 10,
             role_label: Some(name.to_string()),
             role_color: Some(color.to_string()),
             role_icon: Some(icon.to_string()),
             is_preset: true,
+            allow_nested_delegate: true,
         };
 
         {
