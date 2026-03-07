@@ -52,6 +52,14 @@ final streamScrollNotifierProvider = StateProvider<int>((ref) => 0);
 class ChatController {
   final Ref _ref;
 
+  /// Per-session throttle timers — ensures we push UI updates at most
+  /// once per [_streamThrottleInterval] during fast streaming.
+  final Map<String, Timer?> _streamThrottleTimers = {};
+  final Map<String, bool> _streamThrottlePending = {};
+  static const Duration _streamThrottleInterval = Duration(
+    milliseconds: 66,
+  ); // ~15 fps
+
   ChatController(this._ref);
 
   // ── Active stream state (per session) ──────────────────
@@ -248,6 +256,7 @@ class ChatController {
   void cancelActiveStream(String sessionId) {
     final state = _activeStreams.remove(sessionId);
     if (state != null) {
+      _cleanupThrottle(sessionId);
       state.subscription.cancel();
       agent_api.cancelGeneration(sessionId: sessionId);
       cancelGeneration(sessionId);
@@ -368,24 +377,87 @@ class ChatController {
         );
       },
       roleSwitch: (roleName, roleColor, roleIcon) {
-        // Finalize any pending text before inserting the role header
+        // Finalize any pending text in the current message
         s.finalizeCurrentTextSegment();
+
+        // If there is accumulated content, finalize the current assistant
+        // message and start a new one for this role.
+        if (s.parts.isNotEmpty) {
+          _ref
+              .read(messagesProvider.notifier)
+              .updateAssistant(
+                s.sessionId,
+                s.computeContent(),
+                isStreaming: false,
+                toolCalls: s.computeToolCalls(),
+                parts: List<MessagePart>.from(s.parts),
+              );
+          _ref
+              .read(sessionsProvider.notifier)
+              .incrementMessageCount(s.sessionId);
+        }
+
+        // Reset stream state for the new role
+        s.parts.clear();
+        s.currentTextBuffer = StringBuffer();
         s.currentRole = roleName;
-        s.parts.add(
-          RoleHeaderPart(
-            roleName: roleName,
-            roleColor: roleColor,
-            roleIcon: roleIcon,
-          ),
+
+        // Create a new assistant placeholder attributed to this role
+        final roleMsg = ChatMessage(
+          id: 'msg_${DateTime.now().millisecondsSinceEpoch}_${roleName.replaceAll(' ', '_')}',
+          role: 'assistant',
+          content: '',
+          timestamp: DateTime.now(),
+          isStreaming: true,
+          agentRole: roleName,
+          agentColor: roleColor,
+          agentIcon: roleIcon,
         );
+        _ref
+            .read(messagesProvider.notifier)
+            .addMessageToSession(s.sessionId, roleMsg);
         _pushStreamState(s);
       },
       roleHandoff: (fromRole, toRole, summary) {
-        // Insert a handoff marker between role sections
+        // Insert a handoff marker at the end of the current role's message
         s.finalizeCurrentTextSegment();
         s.parts.add(
           RoleHandoffPart(fromRole: fromRole, toRole: toRole, summary: summary),
         );
+
+        // Finalize the current role's message so it becomes non-streaming
+        _ref
+            .read(messagesProvider.notifier)
+            .updateAssistant(
+              s.sessionId,
+              s.computeContent(),
+              isStreaming: false,
+              toolCalls: s.computeToolCalls(),
+              parts: List<MessagePart>.from(s.parts),
+            );
+        _ref.read(sessionsProvider.notifier).incrementMessageCount(s.sessionId);
+
+        // Reset stream state — the next RoleSwitch or text will start a
+        // new message (either for the next role or back to orchestrator).
+        s.parts.clear();
+        s.currentTextBuffer = StringBuffer();
+        s.currentRole = null;
+
+        // If there is a next role hint, we create a placeholder so the
+        // transition feels seamless. The next RoleSwitch event will
+        // finalize this and create a proper role message if needed.
+        // For now, create an orchestrator placeholder to receive any
+        // forthcoming text from the orchestrator.
+        final orchestratorMsg = ChatMessage(
+          id: 'msg_${DateTime.now().millisecondsSinceEpoch}_orch',
+          role: 'assistant',
+          content: '',
+          timestamp: DateTime.now(),
+          isStreaming: true,
+        );
+        _ref
+            .read(messagesProvider.notifier)
+            .addMessageToSession(s.sessionId, orchestratorMsg);
         _pushStreamState(s);
       },
       messageComplete: (inputTokens, outputTokens) {
@@ -406,22 +478,73 @@ class ChatController {
 
   void _handleStreamDone(_SessionStreamState s) {
     _activeStreams.remove(s.sessionId);
-    finishAgentTurn(
-      s.sessionId,
-      s.computeContent(),
-      toolCalls: s.computeToolCalls(),
-      parts: List<MessagePart>.from(s.parts),
-    );
+    _cleanupThrottle(s.sessionId);
+
+    // Flush final state before finishing.
+    _dispatchStreamState(s);
+
+    // If the current message has no content (e.g. an empty orchestrator
+    // placeholder after a handoff), remove it instead of finalizing.
+    final content = s.computeContent();
+    if (content.trim().isEmpty && s.parts.isEmpty) {
+      _ref
+          .read(messagesProvider.notifier)
+          .removeLastEmptyAssistant(s.sessionId);
+      _clearProcessing(s.sessionId);
+      persistSession(s.sessionId);
+    } else {
+      finishAgentTurn(
+        s.sessionId,
+        content,
+        toolCalls: s.computeToolCalls(),
+        parts: List<MessagePart>.from(s.parts),
+      );
+    }
   }
 
   void _handleStreamError(_SessionStreamState s, String errorMessage) {
     _activeStreams.remove(s.sessionId);
+    _cleanupThrottle(s.sessionId);
     handleAgentError(s.sessionId, errorMessage);
+  }
+
+  /// Cancel and remove throttle state for a session.
+  void _cleanupThrottle(String sessionId) {
+    _streamThrottleTimers[sessionId]?.cancel();
+    _streamThrottleTimers.remove(sessionId);
+    _streamThrottlePending.remove(sessionId);
   }
 
   /// Push the current accumulated state to the messages provider and
   /// bump the scroll notifier so the UI can auto-scroll.
+  ///
+  /// Updates are throttled to [_streamThrottleInterval] so that very fast
+  /// streaming (many small chunks) doesn't cause excessive Flutter rebuilds.
   void _pushStreamState(_SessionStreamState s) {
+    // If a throttle timer is already active, just mark that a new update
+    // is pending — the timer callback will pick it up.
+    if (_streamThrottleTimers[s.sessionId]?.isActive ?? false) {
+      _streamThrottlePending[s.sessionId] = true;
+      return;
+    }
+
+    // Dispatch immediately.
+    _dispatchStreamState(s);
+
+    // Start a timer to coalesce rapid follow-up updates.
+    _streamThrottleTimers[s.sessionId] = Timer(_streamThrottleInterval, () {
+      if (_streamThrottlePending[s.sessionId] == true) {
+        _streamThrottlePending[s.sessionId] = false;
+        // The session may have ended by now — only push if still active.
+        if (_activeStreams.containsKey(s.sessionId)) {
+          _dispatchStreamState(s);
+        }
+      }
+    });
+  }
+
+  /// Actually write the current stream state to providers.
+  void _dispatchStreamState(_SessionStreamState s) {
     updateStreamingContent(
       s.sessionId,
       s.computeContent(),

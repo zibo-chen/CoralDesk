@@ -517,7 +517,7 @@ pub async fn list_tools_with_status() -> Vec<ToolInfo> {
         ("pdf_read", "Extract PDF text", "file"),
         ("image_info", "Image metadata", "file"),
         ("schedule", "Schedule future tasks", "system"),
-        ("delegate", "Delegate to sub-agent", "agent"),
+        ("collaborate", "Collaborate with role agent", "agent"),
         ("cron_add", "Add cron job", "cron"),
         ("cron_list", "List cron jobs", "cron"),
         ("cron_remove", "Remove cron job", "cron"),

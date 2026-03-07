@@ -233,6 +233,7 @@ class _MessageBubbleState extends State<MessageBubble> {
   Widget _buildAssistantBubble(BuildContext context) {
     final c = CoralDeskColors.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final hasRole = message.agentRole != null && message.agentRole!.isNotEmpty;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovering = true),
@@ -245,51 +246,88 @@ class _MessageBubbleState extends State<MessageBubble> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildAvatar(icon: Icons.pets, bgColor: c.textPrimary),
+                // Role-specific avatar or default pet icon
+                if (hasRole)
+                  _buildRoleAvatar(
+                    message.agentIcon ?? '🤖',
+                    message.agentColor,
+                  )
+                else
+                  _buildAvatar(icon: Icons.pets, bgColor: c.textPrimary),
                 const SizedBox(width: 8),
                 Flexible(
                   flex: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: c.surfaceBg,
-                      borderRadius: BorderRadius.circular(
-                        16,
-                      ).copyWith(bottomLeft: const Radius.circular(4)),
-                      border: Border.all(color: c.chatListBorder),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Prefer ordered parts when available
-                        if (message.parts != null && message.parts!.isNotEmpty)
-                          ..._buildPartsWidgets(c)
-                        else ...[
-                          // Fallback: legacy flat layout
-                          if (message.toolCalls != null) ...[
-                            for (final tc in message.toolCalls!)
-                              _ToolCallCard(toolCall: tc),
-                            const SizedBox(height: 8),
-                          ],
-                          if (message.content.isNotEmpty)
-                            MarkdownBody(
-                              data: message.content,
-                              styleSheet: _mdStyle(c),
-                              selectable: false,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Role name label above the bubble
+                      if (hasRole)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            message.agentRole!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: message.agentColor != null
+                                  ? _RoleHeaderWidget._parseHexColor(
+                                      message.agentColor!,
+                                    )
+                                  : c.textSecondary,
+                              letterSpacing: 0.3,
                             ),
-                        ],
-
-                        // Streaming indicator
-                        if (message.isStreaming)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: _buildStreamingDots(),
                           ),
-                      ],
-                    ),
+                        ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: c.surfaceBg,
+                          borderRadius: BorderRadius.circular(
+                            16,
+                          ).copyWith(bottomLeft: const Radius.circular(4)),
+                          border: Border.all(
+                            color: hasRole && message.agentColor != null
+                                ? _RoleHeaderWidget._parseHexColor(
+                                    message.agentColor!,
+                                  ).withValues(alpha: 0.25)
+                                : c.chatListBorder,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Prefer ordered parts when available
+                            if (message.parts != null &&
+                                message.parts!.isNotEmpty)
+                              ..._buildPartsWidgets(c)
+                            else ...[
+                              // Fallback: legacy flat layout
+                              if (message.toolCalls != null) ...[
+                                for (final tc in message.toolCalls!)
+                                  _ToolCallCard(toolCall: tc),
+                                const SizedBox(height: 8),
+                              ],
+                              if (message.content.isNotEmpty)
+                                MarkdownBody(
+                                  data: message.content,
+                                  styleSheet: _mdStyle(c),
+                                  selectable: false,
+                                ),
+                            ],
+
+                            // Streaming indicator
+                            if (message.isStreaming)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: _buildStreamingDots(),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const Spacer(flex: 2),
@@ -451,6 +489,23 @@ class _MessageBubbleState extends State<MessageBubble> {
       height: 32,
       decoration: BoxDecoration(shape: BoxShape.circle, color: bgColor),
       child: Icon(icon, size: 16, color: Colors.white),
+    );
+  }
+
+  /// Build a circular avatar showing the role's emoji and tinted with its color.
+  Widget _buildRoleAvatar(String emoji, String? colorHex) {
+    final color = colorHex != null && colorHex.isNotEmpty
+        ? _RoleHeaderWidget._parseHexColor(colorHex)
+        : const Color(0xFF6C757D);
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color.withValues(alpha: 0.15),
+        border: Border.all(color: color.withValues(alpha: 0.50), width: 1.5),
+      ),
+      child: Center(child: Text(emoji, style: const TextStyle(fontSize: 16))),
     );
   }
 

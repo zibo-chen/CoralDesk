@@ -1077,19 +1077,19 @@
   "cancelEdit": "Cancel",
   "@cancelEdit": { "description": "Cancel edit button" },
 
-  "navAgents": "Agents",
-  "@navAgents": { "description": "Agents nav item" },
+  "navAgents": "Roles & Agents",
+  "@navAgents": { "description": "Roles and agents nav item" },
 
-  "navAgentWorkspaces": "Agent Workspaces",
-  "@navAgentWorkspaces": { "description": "Agent workspaces nav item" },
+  "navAgentWorkspaces": "Role Workspaces",
+  "@navAgentWorkspaces": { "description": "Role workspaces nav item" },
 
-  "pageAgents": "Sub-Agents",
-  "@pageAgents": { "description": "Sub-agents page title" },
+  "pageAgents": "Roles & Sub-Agents",
+  "@pageAgents": { "description": "Roles and sub-agents page title" },
 
-  "agentOverview": "Sub-Agent Overview",
+  "agentOverview": "Overview",
   "@agentOverview": { "description": "Overview section title" },
 
-  "agentOverviewDesc": "Configure delegate sub-agents for multi-agent workflows. The primary agent can delegate specialized tasks (research, coding, summarization) to these sub-agents.",
+  "agentOverviewDesc": "Manage team roles and custom sub-agents. Built-in roles collaborate as team peers; custom sub-agents handle specialized tasks independently.",
   "@agentOverviewDesc": { "description": "Overview description" },
 
   "agentAgenticCount": "Agentic",
@@ -1101,13 +1101,13 @@
   "agentEdit": "Edit Agent",
   "@agentEdit": { "description": "Edit agent dialog title" },
 
-  "agentNoAgents": "No sub-agents configured",
+  "agentNoAgents": "No custom sub-agents configured",
   "@agentNoAgents": { "description": "Empty state title" },
 
-  "agentNoAgentsHint": "Create a sub-agent to delegate specialized tasks like research, coding, or summarization to different AI models.",
+  "agentNoAgentsHint": "Create a custom sub-agent for specialized tasks like research, coding, or summarization. Built-in roles are already configured.",
   "@agentNoAgentsHint": { "description": "Empty state hint" },
 
-  "agentNameLabel": "Agent Name",
+  "agentNameLabel": "Name",
   "@agentNameLabel": { "description": "Agent name input label" },
 
   "agentSystemPrompt": "System Prompt",
@@ -1125,7 +1125,7 @@
   "agentAgenticMode": "Agentic Mode",
   "@agentAgenticMode": { "description": "Agentic mode toggle" },
 
-  "agentAgenticModeDesc": "Enable multi-turn tool-call loop. The sub-agent can use tools iteratively to complete complex tasks.",
+  "agentAgenticModeDesc": "Enable multi-turn tool-call loop for iterative tool use on complex tasks.",
   "@agentAgenticModeDesc": { "description": "Agentic mode description" },
 
   "agentAllowedTools": "Allowed Tools",
@@ -1163,6 +1163,18 @@
     "description": "Agent updated message",
     "placeholders": { "name": { "type": "String" } }
   },
+
+  "rolesSectionTitle": "Team Roles",
+  "@rolesSectionTitle": { "description": "Roles section header" },
+
+  "rolesSectionDesc": "Built-in roles collaborate as team peers, each with their own workspace, tools, and skills. Roles activate automatically in team mode.",
+  "@rolesSectionDesc": { "description": "Roles section description" },
+
+  "subAgentsSectionTitle": "Custom Sub-Agents",
+  "@subAgentsSectionTitle": { "description": "Sub-agents section header" },
+
+  "subAgentsSectionDesc": "Custom sub-agents handle specialized tasks independently, such as research or summarization.",
+  "@subAgentsSectionDesc": { "description": "Sub-agents section description" },
 
   "navProxy": "Proxy",
   "@navProxy": { "description": "Proxy nav item" },

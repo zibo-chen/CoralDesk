@@ -259,6 +259,23 @@ class MessagesNotifier extends StateNotifier<List<ChatMessage>> {
     }
   }
 
+  /// Remove the last assistant message if it has empty content.
+  /// Used to clean up empty orchestrator placeholder messages after role
+  /// handoffs when no further orchestrator output followed.
+  void removeLastEmptyAssistant(String sessionId) {
+    final messages = _cache[sessionId];
+    if (messages != null &&
+        messages.isNotEmpty &&
+        messages.last.isAssistant &&
+        messages.last.content.trim().isEmpty &&
+        (messages.last.parts == null || messages.last.parts!.isEmpty)) {
+      messages.removeLast();
+    }
+    if (sessionId == _activeSessionId) {
+      state = List.from(_cache[sessionId] ?? []);
+    }
+  }
+
   // ── Read helpers ───────────────────────────────────────
 
   /// Get all messages for a session (used for persistence).

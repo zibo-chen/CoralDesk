@@ -375,7 +375,7 @@ pub async fn seed_preset_roles() -> u32 {
                 "file_edit".to_string(),
                 "glob".to_string(),
                 "grep".to_string(),
-                "delegate".to_string(),
+                "collaborate".to_string(),
             ],
             max_iterations: 10,
             role_label: Some(name.to_string()),

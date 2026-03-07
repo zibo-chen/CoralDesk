@@ -1046,20 +1046,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cancelEdit => '取消';
 
   @override
-  String get navAgents => '子代理';
+  String get navAgents => '角色与子代理';
 
   @override
-  String get navAgentWorkspaces => '角色';
+  String get navAgentWorkspaces => '角色工作区';
 
   @override
-  String get pageAgents => '子代理管理';
+  String get pageAgents => '角色与子代理管理';
 
   @override
-  String get agentOverview => '子代理概览';
+  String get agentOverview => '概览';
 
   @override
   String get agentOverviewDesc =>
-      '配置委派子代理，实现多代理协作。主代理可以将研究、编码、摘要等专项任务委派给这些子代理。';
+      '管理团队角色和自定义子代理。内置角色作为团队成员协作工作，自定义子代理可独立执行专项任务。';
 
   @override
   String get agentAgenticCount => '自主模式';
@@ -1068,16 +1068,17 @@ class AppLocalizationsZh extends AppLocalizations {
   String get agentNew => '新建子代理';
 
   @override
-  String get agentEdit => '编辑子代理';
+  String get agentEdit => '编辑';
 
   @override
-  String get agentNoAgents => '暂无子代理';
+  String get agentNoAgents => '暂无自定义子代理';
 
   @override
-  String get agentNoAgentsHint => '创建子代理可将研究、编码或总结等专项任务委派给不同的 AI 模型执行。';
+  String get agentNoAgentsHint =>
+      '创建自定义子代理可将研究、编码或总结等专项任务交给不同的 AI 模型执行。内置角色已自动配置。';
 
   @override
-  String get agentNameLabel => '代理名称';
+  String get agentNameLabel => '名称';
 
   @override
   String get agentSystemPrompt => '系统提示词';
@@ -1095,7 +1096,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get agentAgenticMode => '自主模式';
 
   @override
-  String get agentAgenticModeDesc => '启用多轮工具调用循环，子代理可迭代使用工具完成复杂任务。';
+  String get agentAgenticModeDesc => '启用多轮工具调用循环，可迭代使用工具完成复杂任务。';
 
   @override
   String get agentAllowedTools => '允许的工具';
@@ -1121,13 +1122,25 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String agentCreated(String name) {
-    return '子代理 \'$name\' 已创建';
+    return '已创建 \'$name\'';
   }
 
   @override
   String agentUpdated(String name) {
-    return '子代理 \'$name\' 已更新';
+    return '已更新 \'$name\'';
   }
+
+  @override
+  String get rolesSectionTitle => '团队角色';
+
+  @override
+  String get rolesSectionDesc => '内置角色作为团队成员协同工作，各有独立工作区、工具和技能。角色在团队模式下自动激活。';
+
+  @override
+  String get subAgentsSectionTitle => '自定义子代理';
+
+  @override
+  String get subAgentsSectionDesc => '自定义子代理可接受委派执行专项任务，如研究、总结等。';
 
   @override
   String get navProxy => '网络代理';

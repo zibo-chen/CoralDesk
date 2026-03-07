@@ -30,15 +30,37 @@ class _ChatViewState extends ConsumerState<ChatView> {
   bool _isDragging = false;
   bool _showFilesPanel = false;
 
+  /// Whether the user has manually scrolled away from the bottom.
+  /// When true, auto-scroll during streaming is suppressed so the user
+  /// can read earlier messages.
+  bool _userHasScrolledUp = false;
+
+  /// Threshold (in logical pixels) from the bottom within which we
+  /// consider the user to be "at the bottom" and auto-scroll is allowed.
+  static const double _scrollBottomThreshold = 150.0;
+
   static const int _totalSuggestions = 8;
   late List<int> _selectedIndices;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     final pool = List<int>.generate(_totalSuggestions, (i) => i)
       ..shuffle(Random());
     _selectedIndices = pool.take(2).toList();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    final isAtBottom =
+        pos.pixels >= pos.maxScrollExtent - _scrollBottomThreshold;
+    if (isAtBottom && _userHasScrolledUp) {
+      setState(() => _userHasScrolledUp = false);
+    } else if (!isAtBottom && !_userHasScrolledUp) {
+      setState(() => _userHasScrolledUp = true);
+    }
   }
 
   void _randomizeSuggestions() {
@@ -73,13 +95,15 @@ class _ChatViewState extends ConsumerState<ChatView> {
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     // Stream subscriptions are managed by ChatController and survive
     // widget disposal — no stream cleanup needed here.
     super.dispose();
   }
 
-  void _scrollToBottom() {
+  void _scrollToBottom({bool force = false}) {
+    if (!force && _userHasScrolledUp) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -241,9 +265,10 @@ class _ChatViewState extends ConsumerState<ChatView> {
       }
     });
 
-    // Auto-scroll when the controller pushes new streaming content.
+    // Auto-scroll when the controller pushes new streaming content,
+    // but only if the user hasn't scrolled up to read earlier messages.
     ref.listen(streamScrollNotifierProvider, (prev, next) {
-      if (prev != next) {
+      if (prev != next && !_userHasScrolledUp) {
         _scrollToBottom();
       }
     });
@@ -279,9 +304,21 @@ class _ChatViewState extends ConsumerState<ChatView> {
 
                     // Main content
                     Expanded(
-                      child: messages.isEmpty
-                          ? _buildWelcomeView(l10n)
-                          : _buildMessageList(messages),
+                      child: Stack(
+                        children: [
+                          messages.isEmpty
+                              ? _buildWelcomeView(l10n)
+                              : _buildMessageList(messages),
+
+                          // "Scroll to bottom" FAB when user has scrolled up
+                          if (_userHasScrolledUp && messages.isNotEmpty)
+                            Positioned(
+                              right: 16,
+                              bottom: 16,
+                              child: _buildScrollToBottomButton(),
+                            ),
+                        ],
+                      ),
                     ),
 
                     // File attachment bar
@@ -608,21 +645,64 @@ class _ChatViewState extends ConsumerState<ChatView> {
     );
   }
 
+  Widget _buildScrollToBottomButton() {
+    return Material(
+      elevation: 4,
+      shape: const CircleBorder(),
+      color: c.surfaceBg,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: () {
+          setState(() => _userHasScrolledUp = false);
+          _scrollToBottom(force: true);
+        },
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: c.chatListBorder),
+          ),
+          child: Icon(
+            Icons.keyboard_arrow_down,
+            color: c.textSecondary,
+            size: 24,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildMessageList(List<ChatMessage> messages) {
     return SelectionArea(
       child: ListView.builder(
         controller: _scrollController,
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
         itemCount: messages.length,
+        findChildIndexCallback: (key) {
+          // Stable key lookup for efficient list updates during streaming.
+          if (key is ValueKey<String>) {
+            final idx = messages.indexWhere((m) => m.id == key.value);
+            return idx >= 0 ? idx : null;
+          }
+          return null;
+        },
         itemBuilder: (context, index) {
           final msg = messages[index];
-          return MessageBubble(
+          final bubble = MessageBubble(
+            key: ValueKey(msg.id),
             message: msg,
             onEdit: msg.isUser
                 ? (newText) => _handleEditMessage(index, newText)
                 : null,
             onRetry: () => _handleRetry(index),
           );
+          // Wrap finished (non-streaming) messages in a RepaintBoundary
+          // so they don't get re-painted when other items update.
+          if (!msg.isStreaming) {
+            return RepaintBoundary(child: bubble);
+          }
+          return bubble;
         },
       ),
     );

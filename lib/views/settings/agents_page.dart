@@ -9,7 +9,7 @@ import 'package:coraldesk/src/rust/api/providers_api.dart' as providers_api;
 import 'package:coraldesk/views/settings/widgets/settings_scaffold.dart';
 import 'package:coraldesk/views/settings/widgets/desktop_dialog.dart';
 
-/// Sub-agent management page: list, create, edit, delete delegate agents
+/// Roles & sub-agent management page: team roles (presets) and custom sub-agents
 class AgentsPage extends ConsumerStatefulWidget {
   const AgentsPage({super.key});
 
@@ -132,89 +132,116 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
             onPressed: () => _openEditor(),
           ),
         ],
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Status message
-            if (_message != null)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: _isError
-                      ? Colors.red.withValues(alpha: 0.1)
-                      : Colors.green.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: _isError
-                        ? Colors.red.withValues(alpha: 0.3)
-                        : Colors.green.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Text(
-                  _message!,
-                  style: TextStyle(
-                    color: _isError ? Colors.red : Colors.green[700],
-                  ),
-                ),
-              ),
+        body: Builder(
+          builder: (context) {
+            final roles = _agents.where((a) => a.isPreset).toList();
+            final customAgents = _agents.where((a) => !a.isPreset).toList();
 
-            // Overview
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: c.cardBg,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: c.chatListBorder),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.agentOverview,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: c.textPrimary,
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Status message
+                if (_message != null)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: _isError
+                          ? Colors.red.withValues(alpha: 0.1)
+                          : Colors.green.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _isError
+                            ? Colors.red.withValues(alpha: 0.3)
+                            : Colors.green.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Text(
+                      _message!,
+                      style: TextStyle(
+                        color: _isError ? Colors.red : Colors.green[700],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    l10n.agentOverviewDesc,
-                    style: TextStyle(fontSize: 13, color: c.textSecondary),
+
+                // Overview
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: c.cardBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: c.chatListBorder),
                   ),
-                  const SizedBox(height: 12),
-                  Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _StatChip(
-                        label: l10n.totalCount,
-                        value: '${_agents.length}',
-                        color: AppColors.primary,
-                        c: c,
+                      Text(
+                        l10n.agentOverview,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: c.textPrimary,
+                        ),
                       ),
-                      const SizedBox(width: 12),
-                      _StatChip(
-                        label: l10n.agentAgenticCount,
-                        value: '${_agents.where((a) => a.agentic).length}',
-                        color: Colors.orange,
-                        c: c,
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.agentOverviewDesc,
+                        style: TextStyle(fontSize: 13, color: c.textSecondary),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          _StatChip(
+                            label: l10n.rolesSectionTitle,
+                            value: '${roles.length}',
+                            color: AppColors.primary,
+                            c: c,
+                          ),
+                          const SizedBox(width: 12),
+                          _StatChip(
+                            label: l10n.subAgentsSectionTitle,
+                            value: '${customAgents.length}',
+                            color: Colors.orange,
+                            c: c,
+                          ),
+                        ],
                       ),
                     ],
                   ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // ── Team Roles section ──
+                if (roles.isNotEmpty) ...[
+                  _SectionHeader(
+                    title: l10n.rolesSectionTitle,
+                    description: l10n.rolesSectionDesc,
+                    icon: Icons.groups_outlined,
+                    c: c,
+                  ),
+                  const SizedBox(height: 12),
+                  ...roles.map((agent) => _buildAgentCard(agent, l10n)),
+                  const SizedBox(height: 24),
                 ],
-              ),
-            ),
 
-            const SizedBox(height: 20),
-
-            // Agent list or empty state
-            if (_agents.isEmpty)
-              _buildEmptyState(l10n)
-            else
-              ..._agents.map((agent) => _buildAgentCard(agent, l10n)),
-          ],
+                // ── Custom Sub-Agents section ──
+                _SectionHeader(
+                  title: l10n.subAgentsSectionTitle,
+                  description: l10n.subAgentsSectionDesc,
+                  icon: Icons.smart_toy_outlined,
+                  c: c,
+                ),
+                const SizedBox(height: 12),
+                if (customAgents.isEmpty)
+                  _buildEmptyState(l10n)
+                else
+                  ...customAgents.map((agent) => _buildAgentCard(agent, l10n)),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -321,7 +348,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    'Preset',
+                    l10n.rolesSectionTitle.split(' ').last, // "角色" / "Roles"
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -374,16 +401,18 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
                 onPressed: () => _openEditor(existing: agent),
                 visualDensity: VisualDensity.compact,
               ),
-              IconButton(
-                icon: const Icon(
-                  Icons.delete_outline,
-                  size: 18,
-                  color: Colors.red,
+              // Only show delete button for custom sub-agents (not preset roles)
+              if (!agent.isPreset)
+                IconButton(
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    size: 18,
+                    color: Colors.red,
+                  ),
+                  tooltip: l10n.delete,
+                  onPressed: () => _deleteAgent(agent.name),
+                  visualDensity: VisualDensity.compact,
                 ),
-                tooltip: l10n.delete,
-                onPressed: () => _deleteAgent(agent.name),
-                visualDensity: VisualDensity.compact,
-              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -998,6 +1027,48 @@ class _InfoTag extends StatelessWidget {
             fontWeight: FontWeight.w500,
             color: c.textSecondary,
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final String description;
+  final IconData icon;
+  final CoralDeskColors c;
+
+  const _SectionHeader({
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.c,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 18, color: c.textSecondary),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: c.textPrimary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          description,
+          style: TextStyle(fontSize: 12, color: c.textSecondary),
         ),
       ],
     );

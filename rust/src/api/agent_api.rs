@@ -1406,32 +1406,34 @@ async fn ensure_session_agent(session_id: &str) -> Result<Arc<TokioMutex<Session
 
             let orchestrator_prompt = format!(
                 "# Team Orchestrator\n\n\
-                 You are an AI team orchestrator coordinating specialized agents.\n\
-                 Each agent has its own independent context space and retains memory \n\
-                 across multiple invocations within this session.\n\n\
+                 You are an AI team orchestrator coordinating specialized role agents \n\
+                 that collaborate as peers.\n\
+                 Each role agent has its own independent workspace, tools, MCP servers, \n\
+                 and skills. They retain memory across multiple invocations within this session.\n\n\
                  ## Your Team\n\
-                 Use the `delegate` tool with the agent name to assign tasks:\n\
+                 Use the `collaborate` tool with the role name to engage them:\n\
                  {roles_desc}\n\n\
-                 ## Inter-Role Collaboration\n\
-                 Agents can also delegate to each other. For example, after architect \n\
-                 designs a solution, architect can hand off directly to coder via delegate.\n\
-                 Each agent retains context from prior calls, so subsequent invocations \n\
-                 build on previous work without losing information.\n\n\
+                 ## Peer Collaboration Model\n\
+                 Role agents are **peers**, not subordinates. They collaborate as a team:\n\
+                 - Each role has full autonomy within its domain of expertise\n\
+                 - Roles can communicate with each other, building on each other's work\n\
+                 - Handoffs between roles are collaboration requests, not task assignments\n\
+                 - Each role retains context from prior interactions for continuous workflow\n\n\
                  ## Workflow\n\
-                 1. Analyze the user's request to determine which agents are needed\n\
-                 2. Use `delegate` with agent=\"<name>\" and prompt=\"<task>\" to invoke roles\n\
-                 3. Agents may hand off tasks to each other — monitor the chain\n\
-                 4. Coordinate results — if critic finds issues, send back to coder\n\
+                 1. Analyze the user's request to determine which roles should collaborate\n\
+                 2. Use `collaborate` with agent=\"<name>\" and prompt=\"<task>\" to engage roles\n\
+                 3. Roles may naturally involve each other — monitor the collaboration chain\n\
+                 4. Coordinate results — if critic identifies issues, involve coder to address them\n\
                  5. Use context_keeper periodically to record key decisions\n\
                  6. Synthesize and present the final result clearly\n\
-                 7. Only conclude when you are satisfied ALL sub-tasks are complete\n\n\
-                 ## Task Handoff Protocol\n\
-                 When an agent finishes its work, it should include a structured handoff:\n\
+                 7. Only conclude when you are satisfied ALL collaborative work is complete\n\n\
+                 ## Handoff Protocol\n\
+                 When a role finishes its contribution, it includes a structured handoff:\n\
                  - **Status**: done | needs-review | blocked\n\
                  - **Summary**: What was accomplished\n\
-                 - **Next**: Recommended next agent and task (if any)\n\
+                 - **Next**: Recommended next role and collaborative task (if any)\n\
                  You decide whether to follow the recommendation or conclude.\n\n\
-                 For simple tasks, use just 1-2 agents. For complex tasks, use the full pipeline.\n"
+                 For simple tasks, engage just 1-2 roles. For complex tasks, use the full pipeline.\n"
             );
 
             // Write orchestrator identity to the session workspace SOUL.md
@@ -1445,6 +1447,52 @@ async fn ensure_session_agent(session_id: &str) -> Result<Arc<TokioMutex<Session
             // Ensure agent teams are enabled
             config.agent.teams.enabled = true;
             config.agent.teams.auto_activate = true;
+
+            // ── Workspace-aware delegate enrichment ──────────────────
+            // For each active role, if there is a corresponding agent workspace
+            // (e.g. "architect" → "preset_architect"), enrich the delegate
+            // agent config with the workspace's SOUL.md, allowed_tools,
+            // allowed_mcp_servers, and allowed_skills.  This ensures that
+            // when the delegate tool invokes a role, the role receives its
+            // full workspace identity instead of a minimal system prompt.
+            for role_name in active_roles {
+                let workspace_id = format!("preset_{}", role_name);
+                if let Some(ws_config) =
+                    super::agent_workspace_api::get_workspace_identity(&workspace_id).await
+                {
+                    if let Some(agent_cfg) = config.agents.get_mut(role_name) {
+                        // Merge workspace SOUL.md into the delegate's system prompt
+                        if !ws_config.soul_md.trim().is_empty() {
+                            let existing = agent_cfg.system_prompt.as_deref().unwrap_or("");
+                            if !existing.contains(&ws_config.soul_md) {
+                                agent_cfg.system_prompt =
+                                    Some(format!("{}\n\n{}", ws_config.soul_md, existing));
+                            }
+                        }
+
+                        // Merge workspace allowed_tools (additive)
+                        if !ws_config.allowed_tools.is_empty() {
+                            for tool in &ws_config.allowed_tools {
+                                if !agent_cfg.allowed_tools.contains(tool) {
+                                    agent_cfg.allowed_tools.push(tool.clone());
+                                }
+                            }
+                        }
+
+                        // Inject workspace identity context into a marker
+                        // so the delegate tool can reference it.
+                        if !ws_config.identity_md.trim().is_empty() {
+                            let prompt = agent_cfg.system_prompt.get_or_insert_with(String::new);
+                            if !prompt.contains("[IDENTITY]") {
+                                prompt.push_str(&format!(
+                                    "\n\n[IDENTITY]\n{}",
+                                    ws_config.identity_md
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -1821,10 +1869,10 @@ pub async fn send_message_stream(
                         let success = parts[1] == "true";
                         let result = parts[2].to_string();
                         tool_active.store(false, Ordering::Relaxed);
-                        // Reset current role when delegate tool completes.
+                        // Reset current role when collaborate tool completes.
                         // Try to parse handoff protocol from the result to emit
                         // a RoleHandoff event for the UI.
-                        if name == "delegate" {
+                        if name == "collaborate" {
                             if let Some(from_role) = current_role.take() {
                                 // Look for handoff markers in the result:
                                 //   **Next**: agent_name: task description
@@ -1919,23 +1967,32 @@ pub async fn send_message_stream(
                     };
                     tool_active.store(true, Ordering::Relaxed);
 
-                    // Detect delegate tool calls → emit RoleSwitch for multi-agent UI
-                    if name == "delegate" {
+                    // Detect collaborate tool calls → emit RoleSwitch for multi-agent UI
+                    if name == "collaborate" {
+                        let mut resolved_key: Option<String> = None;
                         // Try to parse agent name from args JSON
                         if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&args) {
                             if let Some(agent_name) = parsed.get("agent").and_then(|v| v.as_str()) {
-                                let agent_key = agent_name.to_string();
-                                if let Some((label, color, icon)) =
-                                    agent_role_metadata.get(&agent_key)
-                                {
-                                    if !color.is_empty() || !icon.is_empty() {
-                                        send_or_break!(AgentEvent::RoleSwitch {
-                                            role_name: label.clone(),
-                                            role_color: color.clone(),
-                                            role_icon: icon.clone(),
-                                        });
-                                        current_role = Some(agent_key);
-                                    }
+                                let key = agent_name.to_string();
+                                if key != "auto" && agent_role_metadata.contains_key(&key) {
+                                    resolved_key = Some(key);
+                                }
+                            }
+                        }
+                        // Fallback: if only one role is configured, use it
+                        if resolved_key.is_none() && agent_role_metadata.len() == 1 {
+                            resolved_key = agent_role_metadata.keys().next().cloned();
+                        }
+                        if let Some(agent_key) = resolved_key {
+                            if let Some((label, color, icon)) = agent_role_metadata.get(&agent_key)
+                            {
+                                if !color.is_empty() || !icon.is_empty() {
+                                    send_or_break!(AgentEvent::RoleSwitch {
+                                        role_name: label.clone(),
+                                        role_color: color.clone(),
+                                        role_icon: icon.clone(),
+                                    });
+                                    current_role = Some(agent_key);
                                 }
                             }
                         }

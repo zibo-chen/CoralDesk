@@ -492,6 +492,35 @@ pub(crate) async fn get_binding_for_session(session_id: &str) -> Option<String> 
     bindings.get(session_id).cloned()
 }
 
+// ──────────────────── Workspace Identity for Delegate Enrichment ──────
+
+/// Lightweight workspace identity data used to enrich delegate agent configs.
+#[allow(dead_code)]
+pub(crate) struct WorkspaceIdentity {
+    pub soul_md: String,
+    pub identity_md: String,
+    pub allowed_tools: Vec<String>,
+    pub allowed_skills: Vec<String>,
+    pub allowed_mcp_servers: Vec<String>,
+}
+
+/// Retrieve workspace identity for delegate agent enrichment.
+/// Returns None if the workspace doesn't exist or is disabled.
+pub(crate) async fn get_workspace_identity(workspace_id: &str) -> Option<WorkspaceIdentity> {
+    let store = workspace_store().lock().await;
+    store
+        .workspaces
+        .iter()
+        .find(|w| w.id == workspace_id && w.enabled)
+        .map(|w| WorkspaceIdentity {
+            soul_md: w.soul_md.clone(),
+            identity_md: w.identity_md.clone(),
+            allowed_tools: w.allowed_tools.clone(),
+            allowed_skills: w.allowed_skills.clone(),
+            allowed_mcp_servers: w.allowed_mcp_servers.clone(),
+        })
+}
+
 // ──────────────────── Helpers ─────────────────────────────────
 
 fn write_identity_file(dir: &std::path::Path, filename: &str, content: &str) {

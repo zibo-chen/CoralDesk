@@ -2048,34 +2048,34 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get cancelEdit;
 
-  /// Agents nav item
+  /// Roles and agents nav item
   ///
   /// In en, this message translates to:
-  /// **'Agents'**
+  /// **'Roles & Agents'**
   String get navAgents;
 
-  /// Agent workspaces nav item
+  /// Role workspaces nav item
   ///
   /// In en, this message translates to:
-  /// **'Agent Workspaces'**
+  /// **'Role Workspaces'**
   String get navAgentWorkspaces;
 
-  /// Sub-agents page title
+  /// Roles and sub-agents page title
   ///
   /// In en, this message translates to:
-  /// **'Sub-Agents'**
+  /// **'Roles & Sub-Agents'**
   String get pageAgents;
 
   /// Overview section title
   ///
   /// In en, this message translates to:
-  /// **'Sub-Agent Overview'**
+  /// **'Overview'**
   String get agentOverview;
 
   /// Overview description
   ///
   /// In en, this message translates to:
-  /// **'Configure delegate sub-agents for multi-agent workflows. The primary agent can delegate specialized tasks (research, coding, summarization) to these sub-agents.'**
+  /// **'Manage team roles and custom sub-agents. Built-in roles collaborate as team peers; custom sub-agents handle specialized tasks independently.'**
   String get agentOverviewDesc;
 
   /// Agentic agents count label
@@ -2099,19 +2099,19 @@ abstract class AppLocalizations {
   /// Empty state title
   ///
   /// In en, this message translates to:
-  /// **'No sub-agents configured'**
+  /// **'No custom sub-agents configured'**
   String get agentNoAgents;
 
   /// Empty state hint
   ///
   /// In en, this message translates to:
-  /// **'Create a sub-agent to delegate specialized tasks like research, coding, or summarization to different AI models.'**
+  /// **'Create a custom sub-agent for specialized tasks like research, coding, or summarization. Built-in roles are already configured.'**
   String get agentNoAgentsHint;
 
   /// Agent name input label
   ///
   /// In en, this message translates to:
-  /// **'Agent Name'**
+  /// **'Name'**
   String get agentNameLabel;
 
   /// System prompt label
@@ -2147,7 +2147,7 @@ abstract class AppLocalizations {
   /// Agentic mode description
   ///
   /// In en, this message translates to:
-  /// **'Enable multi-turn tool-call loop. The sub-agent can use tools iteratively to complete complex tasks.'**
+  /// **'Enable multi-turn tool-call loop for iterative tool use on complex tasks.'**
   String get agentAgenticModeDesc;
 
   /// Allowed tools label
@@ -2197,6 +2197,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Agent \'\'{name}\'\' updated'**
   String agentUpdated(String name);
+
+  /// Roles section header
+  ///
+  /// In en, this message translates to:
+  /// **'Team Roles'**
+  String get rolesSectionTitle;
+
+  /// Roles section description
+  ///
+  /// In en, this message translates to:
+  /// **'Built-in roles collaborate as team peers, each with their own workspace, tools, and skills. Roles activate automatically in team mode.'**
+  String get rolesSectionDesc;
+
+  /// Sub-agents section header
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Sub-Agents'**
+  String get subAgentsSectionTitle;
+
+  /// Sub-agents section description
+  ///
+  /// In en, this message translates to:
+  /// **'Custom sub-agents handle specialized tasks independently, such as research or summarization.'**
+  String get subAgentsSectionDesc;
 
   /// Proxy nav item
   ///

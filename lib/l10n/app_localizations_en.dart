@@ -1071,20 +1071,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cancelEdit => 'Cancel';
 
   @override
-  String get navAgents => 'Agents';
+  String get navAgents => 'Roles & Agents';
 
   @override
-  String get navAgentWorkspaces => 'Agent Workspaces';
+  String get navAgentWorkspaces => 'Role Workspaces';
 
   @override
-  String get pageAgents => 'Sub-Agents';
+  String get pageAgents => 'Roles & Sub-Agents';
 
   @override
-  String get agentOverview => 'Sub-Agent Overview';
+  String get agentOverview => 'Overview';
 
   @override
   String get agentOverviewDesc =>
-      'Configure delegate sub-agents for multi-agent workflows. The primary agent can delegate specialized tasks (research, coding, summarization) to these sub-agents.';
+      'Manage team roles and custom sub-agents. Built-in roles collaborate as team peers; custom sub-agents handle specialized tasks independently.';
 
   @override
   String get agentAgenticCount => 'Agentic';
@@ -1096,14 +1096,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get agentEdit => 'Edit Agent';
 
   @override
-  String get agentNoAgents => 'No sub-agents configured';
+  String get agentNoAgents => 'No custom sub-agents configured';
 
   @override
   String get agentNoAgentsHint =>
-      'Create a sub-agent to delegate specialized tasks like research, coding, or summarization to different AI models.';
+      'Create a custom sub-agent for specialized tasks like research, coding, or summarization. Built-in roles are already configured.';
 
   @override
-  String get agentNameLabel => 'Agent Name';
+  String get agentNameLabel => 'Name';
 
   @override
   String get agentSystemPrompt => 'System Prompt';
@@ -1122,7 +1122,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get agentAgenticModeDesc =>
-      'Enable multi-turn tool-call loop. The sub-agent can use tools iteratively to complete complex tasks.';
+      'Enable multi-turn tool-call loop for iterative tool use on complex tasks.';
 
   @override
   String get agentAllowedTools => 'Allowed Tools';
@@ -1155,6 +1155,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String agentUpdated(String name) {
     return 'Agent \'\'$name\'\' updated';
   }
+
+  @override
+  String get rolesSectionTitle => 'Team Roles';
+
+  @override
+  String get rolesSectionDesc =>
+      'Built-in roles collaborate as team peers, each with their own workspace, tools, and skills. Roles activate automatically in team mode.';
+
+  @override
+  String get subAgentsSectionTitle => 'Custom Sub-Agents';
+
+  @override
+  String get subAgentsSectionDesc =>
+      'Custom sub-agents handle specialized tasks independently, such as research or summarization.';
 
   @override
   String get navProxy => 'Proxy';
