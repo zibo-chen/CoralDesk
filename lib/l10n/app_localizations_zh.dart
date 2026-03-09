@@ -42,7 +42,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get navWorkspace => '工作区';
 
   @override
-  String get navSkills => '技能';
+  String get navSkills => '技能 (Skills)';
 
   @override
   String get navMcp => 'MCP';
@@ -142,7 +142,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pageSessions => '会话';
 
   @override
-  String get pageSkills => '技能';
+  String get pageSkills => '技能 (Skills)';
 
   @override
   String get pageTools => '工具与 MCP';

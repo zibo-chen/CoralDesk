@@ -478,24 +478,23 @@ class _SkillsPageState extends ConsumerState<SkillsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (localSkills.isNotEmpty) ...[
-          _buildSkillGroupHeader(
+        if (localSkills.isNotEmpty)
+          _buildSkillGroup(
             AppLocalizations.of(context)!.localSkills,
             localSkills.length,
             Icons.folder,
+            localSkills,
+            AppColors.primary,
           ),
-          const SizedBox(height: 12),
-          ...localSkills.map(_buildSkillCard),
-        ],
         if (communitySkills.isNotEmpty) ...[
-          const SizedBox(height: 24),
-          _buildSkillGroupHeader(
+          if (localSkills.isNotEmpty) const SizedBox(height: 24),
+          _buildSkillGroup(
             AppLocalizations.of(context)!.communitySkills,
             communitySkills.length,
             Icons.public,
+            communitySkills,
+            AppColors.success,
           ),
-          const SizedBox(height: 12),
-          ...communitySkills.map(_buildSkillCard),
         ],
       ],
     );
@@ -578,10 +577,16 @@ class _SkillsPageState extends ConsumerState<SkillsPage> {
     );
   }
 
-  Widget _buildSkillGroupHeader(String title, int count, IconData icon) {
+  Widget _buildSkillGroupHeader(
+    String title,
+    int count,
+    IconData icon, {
+    Color? color,
+  }) {
+    final displayColor = color ?? AppColors.primary;
     return Row(
       children: [
-        Icon(icon, size: 18, color: AppColors.primary),
+        Icon(icon, size: 18, color: displayColor),
         const SizedBox(width: 8),
         Text(
           title,
@@ -595,15 +600,15 @@ class _SkillsPageState extends ConsumerState<SkillsPage> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
+            color: displayColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
             '$count',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: AppColors.primary,
+              color: displayColor,
             ),
           ),
         ),
@@ -611,264 +616,240 @@ class _SkillsPageState extends ConsumerState<SkillsPage> {
     );
   }
 
-  Widget _buildSkillCard(skills_api.SkillDto skill) {
-    final isLocal = skill.source == 'local';
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: c.cardBg,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: c.chatListBorder),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header row
-            Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.psychology,
-                    size: 20,
-                    color: AppColors.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        skill.name,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: c.textPrimary,
-                        ),
-                      ),
-                      if (skill.description.isNotEmpty)
-                        Text(
-                          skill.description,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: c.textSecondary,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                    ],
-                  ),
-                ),
-                // Source badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isLocal
-                        ? AppColors.primary.withValues(alpha: 0.1)
-                        : AppColors.success.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    isLocal
-                        ? AppLocalizations.of(context)!.sourceLocal
-                        : AppLocalizations.of(context)!.sourceCommunity,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: isLocal ? AppColors.primary : Colors.green,
-                    ),
-                  ),
-                ),
-                // Remove button (only for local skills)
-                if (isLocal) ...[
-                  const SizedBox(width: 6),
-                  Tooltip(
-                    message: AppLocalizations.of(context)!.removeSkill,
-                    child: InkWell(
-                      onTap: () => _removeSkill(skill.name),
-                      borderRadius: BorderRadius.circular(6),
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(6),
-                          color: AppColors.error.withValues(alpha: 0.08),
-                        ),
-                        child: Icon(
-                          Icons.delete_outline,
-                          size: 16,
-                          color: AppColors.error.withValues(alpha: 0.7),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
+  Widget _buildSkillGroup(
+    String title,
+    int count,
+    IconData icon,
+    List<skills_api.SkillDto> skills,
+    Color color,
+  ) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: c.cardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: c.chatListBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSkillGroupHeader(title, count, icon, color: color),
+          const SizedBox(height: 16),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              // Use grid layout for wider screens
+              final crossAxisCount = constraints.maxWidth > 600 ? 2 : 1;
+              final aspectRatio = crossAxisCount == 2 ? 2.2 : 3.5;
 
-            // Meta info
-            if (skill.version.isNotEmpty || skill.author.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  if (skill.version.isNotEmpty) ...[
-                    Icon(Icons.tag, size: 12, color: c.textHint),
-                    const SizedBox(width: 4),
-                    Text(
-                      'v${skill.version}',
-                      style: TextStyle(fontSize: 11, color: c.textHint),
-                    ),
-                    const SizedBox(width: 12),
-                  ],
-                  if (skill.author.isNotEmpty) ...[
-                    Icon(Icons.person_outline, size: 12, color: c.textHint),
-                    const SizedBox(width: 4),
-                    Text(
-                      skill.author,
-                      style: TextStyle(fontSize: 11, color: c.textHint),
-                    ),
-                  ],
-                ],
-              ),
-            ],
-
-            // Tags
-            if (skill.tags.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 4,
-                children: skill.tags.map((tag) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: c.inputBg,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      tag,
-                      style: TextStyle(fontSize: 10, color: c.textSecondary),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-
-            // Tools
-            if (skill.tools.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                AppLocalizations.of(context)!.includedTools,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: c.textSecondary,
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: aspectRatio,
                 ),
-              ),
-              const SizedBox(height: 6),
-              ...skill.tools.map(
-                (tool) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    children: [
-                      _toolKindIcon(tool.kind),
-                      const SizedBox(width: 8),
-                      Text(
-                        tool.name,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          fontFamily: 'monospace',
-                          color: c.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          tool.description,
-                          style: TextStyle(fontSize: 11, color: c.textHint),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-
-            // Prompts preview
-            if (skill.prompts.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              ExpansionTile(
-                title: Text(
-                  AppLocalizations.of(
-                    context,
-                  )!.promptsWithCount(skill.prompts.length),
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: c.textSecondary,
-                  ),
-                ),
-                tilePadding: EdgeInsets.zero,
-                childrenPadding: const EdgeInsets.only(top: 4),
-                dense: true,
-                children: skill.prompts.take(5).map((prompt) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '•  ',
-                          style: TextStyle(fontSize: 12, color: c.textHint),
-                        ),
-                        Expanded(
-                          child: Text(
-                            prompt,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: c.textSecondary,
-                              height: 1.4,
-                            ),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-          ],
-        ),
+                itemCount: skills.length,
+                itemBuilder: (context, index) =>
+                    _buildCompactSkillCard(skills[index]),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
 
-  Widget _toolKindIcon(String kind) {
-    final (IconData icon, Color color) = switch (kind) {
-      'shell' => (Icons.terminal, Colors.orange),
-      'http' => (Icons.http, Colors.blue),
-      'script' => (Icons.code, Colors.purple),
-      _ => (Icons.extension, c.textHint),
-    };
-    return Icon(icon, size: 14, color: color);
+  Widget _buildCompactSkillCard(skills_api.SkillDto skill) {
+    final isLocal = skill.source == 'local';
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: c.inputBg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: c.inputBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header row with name and actions
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.psychology,
+                  size: 18,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      skill.name,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: c.textPrimary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (skill.version.isNotEmpty)
+                      Text(
+                        'v${skill.version}',
+                        style: TextStyle(fontSize: 10, color: c.textHint),
+                      ),
+                  ],
+                ),
+              ),
+              // Remove button (only for local skills)
+              if (isLocal)
+                Tooltip(
+                  message: AppLocalizations.of(context)!.removeSkill,
+                  child: InkWell(
+                    onTap: () => _removeSkill(skill.name),
+                    borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        color: AppColors.error.withValues(alpha: 0.08),
+                      ),
+                      child: Icon(
+                        Icons.close,
+                        size: 14,
+                        color: AppColors.error.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+
+          // Description
+          if (skill.description.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              skill.description,
+              style: TextStyle(
+                fontSize: 12,
+                color: c.textSecondary,
+                height: 1.3,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+
+          const Spacer(),
+
+          // Bottom row: tags + tools count
+          Row(
+            children: [
+              // Tags (show first 2)
+              if (skill.tags.isNotEmpty) ...[
+                Expanded(
+                  child: Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: skill.tags.take(2).map((tag) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: c.cardBg,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          tag,
+                          style: TextStyle(fontSize: 9, color: c.textHint),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ] else
+                const Spacer(),
+
+              // Tools count badge
+              if (skill.tools.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.build_outlined,
+                        size: 10,
+                        color: Colors.orange,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        '${skill.tools.length}',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.orange,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Prompts count badge
+              if (skill.prompts.isNotEmpty) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.note_outlined, size: 10, color: Colors.purple),
+                      const SizedBox(width: 3),
+                      Text(
+                        '${skill.prompts.length}',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.purple,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildStatChip(
