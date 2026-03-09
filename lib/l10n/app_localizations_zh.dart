@@ -1465,6 +1465,65 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mcpTransportSse => 'Server-Sent Events';
 
   @override
+  String get mcpTestConnection => '测试连接';
+
+  @override
+  String get mcpTesting => '测试中…';
+
+  @override
+  String get mcpConnected => '已连接';
+
+  @override
+  String get mcpDisconnected => '未连接';
+
+  @override
+  String get mcpConnectionError => '连接错误';
+
+  @override
+  String get mcpNotTested => '未测试';
+
+  @override
+  String mcpToolCount(int count) {
+    return '$count 个工具';
+  }
+
+  @override
+  String get mcpTools => '工具列表';
+
+  @override
+  String get mcpNoToolsFound => '未发现工具';
+
+  @override
+  String mcpStatusSummary(int toolCount, int serverCount) {
+    return '$serverCount 个服务器提供 $toolCount 个工具';
+  }
+
+  @override
+  String mcpTestSuccess(int count, int elapsed) {
+    return '连接成功 — 发现 $count 个工具（耗时 ${elapsed}ms）';
+  }
+
+  @override
+  String mcpTestFailed(String error) {
+    return '连接失败：$error';
+  }
+
+  @override
+  String get mcpTestAll => '全部测试';
+
+  @override
+  String get mcpShowTools => '显示工具';
+
+  @override
+  String get mcpHideTools => '隐藏工具';
+
+  @override
+  String get mcpDisabledHint => '启用 MCP 以连接外部工具服务器，扩展 Agent 的能力。';
+
+  @override
+  String get mcpOverviewTitle => '总览';
+
+  @override
   String get retryMessage => '重试';
 
   @override

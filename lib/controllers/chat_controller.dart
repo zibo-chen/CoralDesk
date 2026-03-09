@@ -735,12 +735,24 @@ class ChatController {
   // ── Message editing ────────────────────────────────────
 
   /// Truncate the conversation from [index] and return the truncated list.
+  ///
+  /// Also synchronizes the Rust-side agent history so that a subsequent
+  /// [prepareAndSend] does not carry stale history to the LLM (the root
+  /// cause of the "retry doesn't truly retry" bug).
   void truncateFrom(String sessionId, int index) {
     final current = _ref.read(messagesProvider);
     final truncated = current.sublist(0, index);
     _ref
         .read(messagesProvider.notifier)
         .setSessionMessages(sessionId, truncated);
+
+    // Count remaining user messages so we can trim the Rust agent history
+    // to the same number of user turns.
+    final keepUserTurns = truncated.where((m) => m.isUser).length;
+    agent_api.truncateSessionAgentHistory(
+      sessionId: sessionId,
+      keepUserTurns: keepUserTurns,
+    );
   }
 
   // ── Persistence ────────────────────────────────────────

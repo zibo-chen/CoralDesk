@@ -1507,6 +1507,66 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mcpTransportSse => 'Server-Sent Events';
 
   @override
+  String get mcpTestConnection => 'Test Connection';
+
+  @override
+  String get mcpTesting => 'Testing…';
+
+  @override
+  String get mcpConnected => 'Connected';
+
+  @override
+  String get mcpDisconnected => 'Disconnected';
+
+  @override
+  String get mcpConnectionError => 'Connection Error';
+
+  @override
+  String get mcpNotTested => 'Not Tested';
+
+  @override
+  String mcpToolCount(int count) {
+    return '$count tool(s)';
+  }
+
+  @override
+  String get mcpTools => 'Tools';
+
+  @override
+  String get mcpNoToolsFound => 'No tools discovered';
+
+  @override
+  String mcpStatusSummary(int toolCount, int serverCount) {
+    return '$toolCount tools from $serverCount servers';
+  }
+
+  @override
+  String mcpTestSuccess(int count, int elapsed) {
+    return 'Connection successful — $count tool(s) found in ${elapsed}ms';
+  }
+
+  @override
+  String mcpTestFailed(String error) {
+    return 'Connection failed: $error';
+  }
+
+  @override
+  String get mcpTestAll => 'Test All';
+
+  @override
+  String get mcpShowTools => 'Show Tools';
+
+  @override
+  String get mcpHideTools => 'Hide Tools';
+
+  @override
+  String get mcpDisabledHint =>
+      'Enable MCP to connect to external tool servers and extend your agent\'s capabilities.';
+
+  @override
+  String get mcpOverviewTitle => 'Overview';
+
+  @override
   String get retryMessage => 'Retry';
 
   @override

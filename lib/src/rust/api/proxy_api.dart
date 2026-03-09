@@ -31,7 +31,7 @@ Future<String> resetProxyConfig() =>
     RustLib.instance.api.crateApiProxyApiResetProxyConfig();
 
 /// Get the current runtime proxy configuration status.
-/// This returns the actual state from CoralDesk runtime, useful for debugging sync issues.
+/// This returns the actual state from zeroclaw runtime, useful for debugging sync issues.
 ProxyConfigDto getRuntimeProxyStatus() =>
     RustLib.instance.api.crateApiProxyApiGetRuntimeProxyStatus();
 

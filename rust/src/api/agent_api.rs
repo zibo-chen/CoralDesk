@@ -782,6 +782,74 @@ pub async fn save_config_to_disk() -> String {
     );
 
     // ── Persist feature toggles ──────────────────────────────
+    // [mcp]
+    {
+        let mut mcp_table = table
+            .get("mcp")
+            .and_then(|v| v.as_table())
+            .cloned()
+            .unwrap_or_default();
+        mcp_table.insert("enabled".into(), toml::Value::Boolean(config.mcp.enabled));
+        let servers: Vec<toml::Value> = config
+            .mcp
+            .servers
+            .iter()
+            .map(|s| {
+                let mut t = toml::Table::new();
+                t.insert("name".into(), toml::Value::String(s.name.clone()));
+                let transport_str = match s.transport {
+                    zeroclaw::config::schema::McpTransport::Stdio => "stdio",
+                    zeroclaw::config::schema::McpTransport::Http => "http",
+                    zeroclaw::config::schema::McpTransport::Sse => "sse",
+                };
+                t.insert(
+                    "transport".into(),
+                    toml::Value::String(transport_str.into()),
+                );
+                if let Some(ref url) = s.url {
+                    t.insert("url".into(), toml::Value::String(url.clone()));
+                }
+                if !s.command.is_empty() {
+                    t.insert("command".into(), toml::Value::String(s.command.clone()));
+                }
+                if !s.args.is_empty() {
+                    t.insert(
+                        "args".into(),
+                        toml::Value::Array(
+                            s.args
+                                .iter()
+                                .map(|a| toml::Value::String(a.clone()))
+                                .collect(),
+                        ),
+                    );
+                }
+                if !s.env.is_empty() {
+                    let mut env_table = toml::Table::new();
+                    for (k, v) in &s.env {
+                        env_table.insert(k.clone(), toml::Value::String(v.clone()));
+                    }
+                    t.insert("env".into(), toml::Value::Table(env_table));
+                }
+                if !s.headers.is_empty() {
+                    let mut hdr_table = toml::Table::new();
+                    for (k, v) in &s.headers {
+                        hdr_table.insert(k.clone(), toml::Value::String(v.clone()));
+                    }
+                    t.insert("headers".into(), toml::Value::Table(hdr_table));
+                }
+                if let Some(timeout) = s.tool_timeout_secs {
+                    t.insert(
+                        "tool_timeout_secs".into(),
+                        toml::Value::Integer(timeout as i64),
+                    );
+                }
+                toml::Value::Table(t)
+            })
+            .collect();
+        mcp_table.insert("servers".into(), toml::Value::Array(servers));
+        table.insert("mcp".into(), toml::Value::Table(mcp_table));
+    }
+
     // [web_search]
     let mut ws_table = table
         .get("web_search")
@@ -1274,6 +1342,22 @@ pub async fn clear_session_agent(session_id: String) {
     }
 }
 
+/// Truncate a session agent's history to keep only the first N user turns.
+///
+/// Used by the retry / edit flow so that the Rust-side agent history stays
+/// in sync with the Flutter-side message list after truncation.
+/// A "user turn" = a user message + its subsequent assistant response / tool
+/// calls / tool results.  The system prompt is always preserved.
+pub async fn truncate_session_agent_history(session_id: String, keep_user_turns: u32) {
+    let agents = session_agents().read().await;
+    if let Some(agent_arc) = agents.get(&session_id) {
+        let mut agent_guard = agent_arc.lock().await;
+        agent_guard
+            .agent
+            .truncate_to_n_user_turns(keep_user_turns as usize);
+    }
+}
+
 /// Clear the current/active session (legacy compatibility).
 /// Now a no-op since sessions are independent.
 pub async fn clear_session() {
@@ -1662,8 +1746,43 @@ async fn ensure_session_agent(session_id: &str) -> Result<Arc<TokioMutex<Session
     }
 
     // 8. Create the agent
-    let agent = zeroclaw::agent::Agent::from_config(&config)
+    let mut agent = zeroclaw::agent::Agent::from_config(&config)
         .map_err(|e| format!("Failed to create agent: {e}"))?;
+
+    // 8a. Asynchronously connect MCP servers and inject their tools
+    if config.mcp.enabled && !config.mcp.servers.is_empty() {
+        tracing::info!(
+            "DeskClaw: initializing MCP — {} server(s)",
+            config.mcp.servers.len()
+        );
+        match zeroclaw::tools::McpRegistry::connect_all(&config.mcp.servers).await {
+            Ok(registry) => {
+                let registry = std::sync::Arc::new(registry);
+                let names = registry.tool_names();
+                let mut mcp_tools: Vec<Box<dyn zeroclaw::tools::Tool>> = Vec::new();
+                for name in names {
+                    if let Some(def) = registry.get_tool_def(&name).await {
+                        let wrapper = zeroclaw::tools::McpToolWrapper::new(
+                            name,
+                            def,
+                            std::sync::Arc::clone(&registry),
+                        );
+                        mcp_tools.push(Box::new(wrapper));
+                    }
+                }
+                let count = mcp_tools.len();
+                agent.add_tools(mcp_tools);
+                tracing::info!(
+                    "DeskClaw MCP: {} tool(s) registered from {} server(s)",
+                    count,
+                    registry.server_count()
+                );
+            }
+            Err(e) => {
+                tracing::error!("DeskClaw MCP failed to initialize: {e:#}");
+            }
+        }
+    }
 
     let session_agent = SessionAgent {
         agent,

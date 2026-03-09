@@ -121,6 +121,22 @@ pub async fn list_mcp_servers() -> Vec<McpServerDto> {
     }
 }
 
+/// Helper: synchronise the MCP section from `config_state` into
+/// `global_config` so that `ensure_session_agent` (which reads
+/// `global_config`) picks up the latest MCP settings.
+async fn sync_mcp_to_global() {
+    let mcp_clone = {
+        let cs = super::agent_api::config_state().read().await;
+        cs.config.as_ref().map(|c| c.mcp.clone())
+    };
+    if let Some(mcp) = mcp_clone {
+        let mut gc = super::agent_api::global_config().write().await;
+        if let Some(ref mut gc_config) = gc.config {
+            gc_config.mcp = mcp;
+        }
+    }
+}
+
 /// Enable or disable MCP
 pub async fn set_mcp_enabled(enabled: bool) -> String {
     {
@@ -131,6 +147,7 @@ pub async fn set_mcp_enabled(enabled: bool) -> String {
         };
         config.mcp.enabled = enabled;
     }
+    sync_mcp_to_global().await;
     // Invalidate agent so it rebuilds with updated MCP tools
     super::agent_api::invalidate_all_agents().await;
     super::agent_api::save_config_to_disk().await
@@ -154,6 +171,7 @@ pub async fn add_mcp_server(server: McpServerDto) -> String {
         }
         config.mcp.servers.push(dto_to_server(&server));
     }
+    sync_mcp_to_global().await;
     super::agent_api::invalidate_all_agents().await;
     super::agent_api::save_config_to_disk().await
 }
@@ -175,6 +193,7 @@ pub async fn update_mcp_server(server: McpServerDto) -> String {
             None => return format!("error: server '{}' not found", name),
         }
     }
+    sync_mcp_to_global().await;
     super::agent_api::invalidate_all_agents().await;
     super::agent_api::save_config_to_disk().await
 }
@@ -194,6 +213,7 @@ pub async fn remove_mcp_server(name: String) -> String {
             return format!("error: server '{}' not found", name);
         }
     }
+    sync_mcp_to_global().await;
     super::agent_api::invalidate_all_agents().await;
     super::agent_api::save_config_to_disk().await
 }

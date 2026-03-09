@@ -2834,6 +2834,108 @@ abstract class AppLocalizations {
   /// **'Server-Sent Events'**
   String get mcpTransportSse;
 
+  /// Test MCP server connection button
+  ///
+  /// In en, this message translates to:
+  /// **'Test Connection'**
+  String get mcpTestConnection;
+
+  /// MCP connection test in progress
+  ///
+  /// In en, this message translates to:
+  /// **'Testing…'**
+  String get mcpTesting;
+
+  /// MCP server connected status
+  ///
+  /// In en, this message translates to:
+  /// **'Connected'**
+  String get mcpConnected;
+
+  /// MCP server disconnected status
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnected'**
+  String get mcpDisconnected;
+
+  /// MCP server connection error status
+  ///
+  /// In en, this message translates to:
+  /// **'Connection Error'**
+  String get mcpConnectionError;
+
+  /// MCP server not yet tested
+  ///
+  /// In en, this message translates to:
+  /// **'Not Tested'**
+  String get mcpNotTested;
+
+  /// Number of tools from MCP server
+  ///
+  /// In en, this message translates to:
+  /// **'{count} tool(s)'**
+  String mcpToolCount(int count);
+
+  /// MCP tools section title
+  ///
+  /// In en, this message translates to:
+  /// **'Tools'**
+  String get mcpTools;
+
+  /// No tools found from server
+  ///
+  /// In en, this message translates to:
+  /// **'No tools discovered'**
+  String get mcpNoToolsFound;
+
+  /// MCP status summary
+  ///
+  /// In en, this message translates to:
+  /// **'{toolCount} tools from {serverCount} servers'**
+  String mcpStatusSummary(int toolCount, int serverCount);
+
+  /// Test connection success message
+  ///
+  /// In en, this message translates to:
+  /// **'Connection successful — {count} tool(s) found in {elapsed}ms'**
+  String mcpTestSuccess(int count, int elapsed);
+
+  /// Test connection failure message
+  ///
+  /// In en, this message translates to:
+  /// **'Connection failed: {error}'**
+  String mcpTestFailed(String error);
+
+  /// Test all MCP server connections
+  ///
+  /// In en, this message translates to:
+  /// **'Test All'**
+  String get mcpTestAll;
+
+  /// Show tools from MCP server
+  ///
+  /// In en, this message translates to:
+  /// **'Show Tools'**
+  String get mcpShowTools;
+
+  /// Hide tools list
+  ///
+  /// In en, this message translates to:
+  /// **'Hide Tools'**
+  String get mcpHideTools;
+
+  /// Hint shown when MCP is disabled
+  ///
+  /// In en, this message translates to:
+  /// **'Enable MCP to connect to external tool servers and extend your agent\'s capabilities.'**
+  String get mcpDisabledHint;
+
+  /// MCP overview section title
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get mcpOverviewTitle;
+
   /// Retry message button tooltip
   ///
   /// In en, this message translates to:

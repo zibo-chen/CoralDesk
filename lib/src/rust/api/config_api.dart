@@ -12,7 +12,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 List<ProviderInfo> listProviders() =>
     RustLib.instance.api.crateApiConfigApiListProviders();
 
-/// Load config from the CoralDesk runtime state
+/// Load config from the zeroclaw runtime state
 Future<AppConfig> loadConfig() =>
     RustLib.instance.api.crateApiConfigApiLoadConfig();
 

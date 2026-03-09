@@ -9,7 +9,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 // These functions are ignored because they are not marked as `pub`: `copy_dir_no_symlinks`, `count_skills_in_dir`, `count_skills_recursive`, `install_git_skill`, `install_local_skill`, `is_git_scp_source`, `is_git_source`, `load_skills_from_dir_recursive`, `load_skills_from_dir`, `parse_skill_md`, `parse_skill_toml`, `sync_open_skills_repo`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`
 
-/// Get skills configuration from CoralDesk config
+/// Get skills configuration from zeroclaw config
 Future<SkillsConfigDto> getSkillsConfig() =>
     RustLib.instance.api.crateApiSkillsApiGetSkillsConfig();
 

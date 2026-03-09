@@ -44,7 +44,7 @@ Future<String> respondToToolApprovalById({
   decision: decision,
 );
 
-/// Initialize the agent runtime: load CoralDesk config from ~/.coraldesk/config.toml.
+/// Initialize the agent runtime: load zeroclaw config from ~/.coraldesk/config.toml.
 /// Returns a status string describing what was loaded.
 Future<String> initRuntime() =>
     RustLib.instance.api.crateApiAgentApiInitRuntime();
@@ -96,6 +96,20 @@ Future<void> clearSessionAgent({required String sessionId}) => RustLib
     .api
     .crateApiAgentApiClearSessionAgent(sessionId: sessionId);
 
+/// Truncate a session agent's history to keep only the first N user turns.
+///
+/// Used by the retry / edit flow so that the Rust-side agent history stays
+/// in sync with the Flutter-side message list after truncation.
+/// A "user turn" = a user message + its subsequent assistant response / tool
+/// calls / tool results.  The system prompt is always preserved.
+Future<void> truncateSessionAgentHistory({
+  required String sessionId,
+  required int keepUserTurns,
+}) => RustLib.instance.api.crateApiAgentApiTruncateSessionAgentHistory(
+  sessionId: sessionId,
+  keepUserTurns: keepUserTurns,
+);
+
 /// Clear the current/active session (legacy compatibility).
 /// Now a no-op since sessions are independent.
 Future<void> clearSession() =>
@@ -113,7 +127,7 @@ Future<void> removeSessionAgent({required String sessionId}) => RustLib
     .api
     .crateApiAgentApiRemoveSessionAgent(sessionId: sessionId);
 
-/// Send a message to the CoralDesk agent and get response events.
+/// Send a message to the zeroclaw agent and get response events.
 /// This calls the real LLM provider and executes tools as needed.
 /// Each session has its own agent, allowing concurrent requests.
 Future<List<AgentEvent>> sendMessage({
@@ -126,7 +140,7 @@ Future<List<AgentEvent>> sendMessage({
 
 /// Streaming version: sends agent events in real-time through a StreamSink.
 ///
-/// Uses CoralDesk's `Agent::turn_streaming()` which delegates to the internal
+/// Uses zeroclaw's `Agent::turn_streaming()` which delegates to the internal
 /// `run_tool_call_loop` with an `on_delta` channel.  Tool-start / tool-end /
 /// thinking events are streamed **as they happen**, not after the full turn
 /// completes.
