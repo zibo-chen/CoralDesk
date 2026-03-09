@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// Brand / accent colors — constant across light & dark modes
 class AppColors {
@@ -155,6 +157,94 @@ class CoralDeskColors extends ThemeExtension<CoralDeskColors> {
 class AppTheme {
   AppTheme._();
 
+  // ── Platform-aware font helpers ────────────────────────
+
+  /// CJK / system font fallback chain per platform.
+  static List<String> get fontFamilyFallback {
+    if (kIsWeb) return const [];
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.windows => const [
+        'Microsoft YaHei UI',
+        'Segoe UI',
+        'sans-serif',
+      ],
+      TargetPlatform.linux => const [
+        'Noto Sans CJK SC',
+        'WenQuanYi Micro Hei',
+        'sans-serif',
+      ],
+      _ => const [], // macOS / iOS have excellent built-in fallback
+    };
+  }
+
+  /// Build [TextTheme] with Inter (via google_fonts) + platform CJK fallback.
+  static TextTheme _buildTextTheme(TextTheme base) {
+    var theme = GoogleFonts.interTextTheme(base);
+    final fallback = fontFamilyFallback;
+    if (fallback.isNotEmpty) {
+      theme = _applyFontFallback(theme, fallback);
+    }
+    return theme;
+  }
+
+  /// Attach [fontFamilyFallback] to every style in [theme] so that CJK
+  /// glyphs resolve to a high-quality system font instead of the engine's
+  /// arbitrary fallback.
+  static TextTheme _applyFontFallback(TextTheme theme, List<String> fallback) {
+    TextStyle? fb(TextStyle? s) => s?.copyWith(fontFamilyFallback: fallback);
+    return theme.copyWith(
+      displayLarge: fb(theme.displayLarge),
+      displayMedium: fb(theme.displayMedium),
+      displaySmall: fb(theme.displaySmall),
+      headlineLarge: fb(theme.headlineLarge),
+      headlineMedium: fb(theme.headlineMedium),
+      headlineSmall: fb(theme.headlineSmall),
+      titleLarge: fb(theme.titleLarge),
+      titleMedium: fb(theme.titleMedium),
+      titleSmall: fb(theme.titleSmall),
+      bodyLarge: fb(theme.bodyLarge),
+      bodyMedium: fb(theme.bodyMedium),
+      bodySmall: fb(theme.bodySmall),
+      labelLarge: fb(theme.labelLarge),
+      labelMedium: fb(theme.labelMedium),
+      labelSmall: fb(theme.labelSmall),
+    );
+  }
+
+  /// Slim, macOS-like scrollbar styling for all platforms.
+  static ScrollbarThemeData _scrollbarTheme(CoralDeskColors c) {
+    return ScrollbarThemeData(
+      thickness: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.hovered) ||
+            states.contains(WidgetState.dragged))
+          return 8.0;
+        return 4.0;
+      }),
+      radius: const Radius.circular(8),
+      thumbColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.dragged)) {
+          return c.textHint.withValues(alpha: 0.6);
+        }
+        if (states.contains(WidgetState.hovered)) {
+          return c.textHint.withValues(alpha: 0.5);
+        }
+        return c.textHint.withValues(alpha: 0.3);
+      }),
+      crossAxisMargin: 2,
+      mainAxisMargin: 4,
+    );
+  }
+
+  /// Platform-appropriate monospace font family for code blocks.
+  static String get monoFontFamily {
+    if (kIsWeb) return 'monospace';
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.windows => 'Cascadia Mono',
+      TargetPlatform.macOS => 'SF Mono',
+      _ => 'monospace',
+    };
+  }
+
   static ThemeData get light {
     const c = CoralDeskColors.light;
     return ThemeData(
@@ -162,8 +252,11 @@ class AppTheme {
       brightness: Brightness.light,
       colorSchemeSeed: AppColors.primary,
       scaffoldBackgroundColor: c.mainBg,
-      fontFamily: 'Inter',
+      fontFamily: GoogleFonts.inter().fontFamily,
+      textTheme: _buildTextTheme(ThemeData.light().textTheme),
+      visualDensity: VisualDensity.standard,
       extensions: const [c],
+      scrollbarTheme: _scrollbarTheme(c),
       appBarTheme: AppBarTheme(
         backgroundColor: c.surfaceBg,
         foregroundColor: c.textPrimary,
@@ -241,8 +334,11 @@ class AppTheme {
       brightness: Brightness.dark,
       colorSchemeSeed: AppColors.primary,
       scaffoldBackgroundColor: c.mainBg,
-      fontFamily: 'Inter',
+      fontFamily: GoogleFonts.inter().fontFamily,
+      textTheme: _buildTextTheme(ThemeData.dark().textTheme),
+      visualDensity: VisualDensity.standard,
       extensions: const [c],
+      scrollbarTheme: _scrollbarTheme(c),
       appBarTheme: AppBarTheme(
         backgroundColor: c.surfaceBg,
         foregroundColor: c.textPrimary,

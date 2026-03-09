@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -42,7 +43,22 @@ class CoralDeskApp extends ConsumerWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('en'), Locale('zh')],
+      builder: _platformTextStyleBuilder,
       home: const AppShell(),
     );
   }
+}
+
+/// On Windows / Linux, merge a CJK [fontFamilyFallback] into the inherited
+/// [DefaultTextStyle] so that *all* [Text] widgets — including those with
+/// inline [TextStyle] that only set fontSize — resolve CJK glyphs through
+/// a high-quality system font rather than the engine's arbitrary fallback.
+Widget _platformTextStyleBuilder(BuildContext context, Widget? child) {
+  if (kIsWeb) return child!;
+  final fallback = AppTheme.fontFamilyFallback;
+  if (fallback.isEmpty) return child!;
+  return DefaultTextStyle.merge(
+    style: TextStyle(fontFamilyFallback: fallback),
+    child: child!,
+  );
 }
