@@ -16,7 +16,7 @@ class SettingsScaffold extends StatelessWidget {
     required this.body,
     this.actions,
     this.useScrollView = true,
-    this.topBarHeight = 56.0,
+    this.topBarHeight = AppConstants.titleBarHeight,
   });
 
   final String title;
@@ -30,7 +30,7 @@ class SettingsScaffold extends StatelessWidget {
   /// own scroll view, e.g. [ListView]).
   final bool useScrollView;
 
-  /// Override the default top-bar height (56). Some pages use 64.
+  /// Override the default top-bar height (48). Matches [AppConstants.titleBarHeight].
   final double topBarHeight;
 
   @override

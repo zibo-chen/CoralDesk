@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:coraldesk/constants.dart';
 import 'package:coraldesk/l10n/app_localizations.dart';
 import 'package:coraldesk/theme/app_theme.dart';
 
@@ -22,7 +23,7 @@ class PlaceholderPage extends StatelessWidget {
       children: [
         // Top bar
         Container(
-          height: 56,
+          height: AppConstants.titleBarHeight,
           padding: const EdgeInsets.symmetric(horizontal: 24),
           decoration: BoxDecoration(
             color: c.surfaceBg,

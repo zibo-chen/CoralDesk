@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:coraldesk/constants.dart';
 import 'package:coraldesk/l10n/app_localizations.dart';
 import 'package:coraldesk/providers/providers.dart';
 import 'package:coraldesk/theme/app_theme.dart';
@@ -46,7 +47,7 @@ class NotificationPanel extends ConsumerWidget {
     CronNotificationState state,
   ) {
     return Container(
-      height: 56,
+      height: AppConstants.titleBarHeight,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [

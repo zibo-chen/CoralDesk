@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:coraldesk/constants.dart';
 import 'package:coraldesk/l10n/app_localizations.dart';
 import 'package:coraldesk/providers/providers.dart';
 import 'package:coraldesk/theme/app_theme.dart';
@@ -135,6 +136,11 @@ class _WorkspaceFilesPanelState extends ConsumerState<WorkspaceFilesPanel> {
       if (prev != next) _refresh();
     });
 
+    // On Windows/Linux the absolute-positioned window controls overlap
+    // the top-right corner, so add extra top padding to push content below.
+    final isDesktopNotMac = AppConstants.isDesktop && !AppConstants.isMacOS;
+    final topInset = isDesktopNotMac ? AppConstants.windowControlHeight : 0.0;
+
     return Container(
       width: 280,
       decoration: BoxDecoration(
@@ -145,8 +151,8 @@ class _WorkspaceFilesPanelState extends ConsumerState<WorkspaceFilesPanel> {
         children: [
           // Header
           Container(
-            height: 56,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            height: AppConstants.titleBarHeight + topInset,
+            padding: EdgeInsets.only(left: 16, right: 16, top: topInset),
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(color: c.chatListBorder, width: 1),

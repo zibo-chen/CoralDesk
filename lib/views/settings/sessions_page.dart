@@ -170,7 +170,6 @@ class _SessionsPageState extends ConsumerState<SessionsPage> {
       title: AppLocalizations.of(context)!.pageSessions,
       icon: Icons.history,
       isLoading: _loading,
-      topBarHeight: 64,
       useScrollView: false,
       actions: [
         if (_stats != null) ...[

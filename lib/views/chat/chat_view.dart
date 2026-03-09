@@ -409,8 +409,9 @@ class _ChatViewState extends ConsumerState<ChatView> {
     final isMacOS = AppConstants.isMacOS;
     final isDesktop = AppConstants.isDesktop;
 
-    // 减少高度: macOS 从 56+28 减少到 48+20, Windows/Linux 从 56 减少到 48
-    final topBarHeight = isMacOS ? 48 + AppConstants.macOSTopInset : 48.0;
+    final topBarHeight =
+        AppConstants.titleBarHeight +
+        (isMacOS ? AppConstants.macOSTopInset : 0);
 
     return Container(
       height: topBarHeight,

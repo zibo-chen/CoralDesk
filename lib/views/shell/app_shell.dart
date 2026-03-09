@@ -269,7 +269,7 @@ class _AppShellState extends ConsumerState<AppShell> with WindowListener {
 }
 
 /// Window controls for Windows & Linux (minimize, maximize/restore, close).
-/// Features smooth hover animations and modern Windows 11 style design.
+/// Modern Windows 11 style with smooth hover animations and custom-painted icons.
 class _WindowControls extends StatelessWidget {
   const _WindowControls({required this.isMaximized});
 
@@ -278,55 +278,112 @@ class _WindowControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = CoralDeskColors.of(context);
-    return Container(
-      height: AppConstants.windowControlHeight,
-      decoration: BoxDecoration(color: c.mainBg),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _WindowControlButton(
-            icon: Icons.horizontal_rule_rounded,
-            tooltip: 'Minimize',
-            defaultColor: c.textSecondary,
-            hoverBgColor: c.inputBg,
-            hoverIconColor: c.textPrimary,
-            onTap: () => windowManager.minimize(),
-          ),
-          _WindowControlButton(
-            icon: isMaximized
-                ? Icons.filter_none_rounded
-                : Icons.crop_square_rounded,
-            tooltip: isMaximized ? 'Restore' : 'Maximize',
-            defaultColor: c.textSecondary,
-            hoverBgColor: c.inputBg,
-            hoverIconColor: c.textPrimary,
-            onTap: () async {
-              if (await windowManager.isMaximized()) {
-                await windowManager.unmaximize();
-              } else {
-                await windowManager.maximize();
-              }
-            },
-          ),
-          _WindowControlButton(
-            icon: Icons.close_rounded,
-            tooltip: 'Close',
-            defaultColor: c.textSecondary,
-            hoverBgColor: AppColors.error,
-            hoverIconColor: Colors.white,
-            isClose: true,
-            onTap: () => windowManager.close(),
-          ),
-        ],
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _WindowControlButton(
+          iconType: _WinIconType.minimize,
+          tooltip: 'Minimize',
+          defaultColor: c.textSecondary,
+          hoverBgColor: c.inputBg,
+          hoverIconColor: c.textPrimary,
+          onTap: () => windowManager.minimize(),
+        ),
+        _WindowControlButton(
+          iconType: isMaximized ? _WinIconType.restore : _WinIconType.maximize,
+          tooltip: isMaximized ? 'Restore' : 'Maximize',
+          defaultColor: c.textSecondary,
+          hoverBgColor: c.inputBg,
+          hoverIconColor: c.textPrimary,
+          onTap: () async {
+            if (await windowManager.isMaximized()) {
+              await windowManager.unmaximize();
+            } else {
+              await windowManager.maximize();
+            }
+          },
+        ),
+        _WindowControlButton(
+          iconType: _WinIconType.close,
+          tooltip: 'Close',
+          defaultColor: c.textSecondary,
+          hoverBgColor: AppColors.error,
+          hoverIconColor: Colors.white,
+          isClose: true,
+          onTap: () => windowManager.close(),
+        ),
+      ],
     );
   }
+}
+
+/// The type of icon drawn by [_WinIconPainter].
+enum _WinIconType { minimize, maximize, restore, close }
+
+/// Custom painter that draws crisp Windows 11-style window control icons.
+class _WinIconPainter extends CustomPainter {
+  _WinIconPainter({required this.type, required this.color});
+
+  final _WinIconType type;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+
+    switch (type) {
+      case _WinIconType.minimize:
+        // Thin horizontal line
+        final y = size.height / 2;
+        canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+
+      case _WinIconType.maximize:
+        // Clean square outline
+        canvas.drawRect(
+          Rect.fromLTWH(0.5, 0.5, size.width - 1, size.height - 1),
+          paint,
+        );
+
+      case _WinIconType.restore:
+        final w = size.width;
+        final h = size.height;
+        final d = (w * 0.22).roundToDouble(); // offset between two rectangles
+        final rw = w - d; // rectangle width/height
+
+        // Front rectangle (bottom-left)
+        canvas.drawRect(Rect.fromLTWH(0, d, rw, rw), paint);
+
+        // Back rectangle visible portions (top & right edges)
+        final path = Path()
+          ..moveTo(d, 0)
+          ..lineTo(w, 0)
+          ..lineTo(w, h - d)
+          ..moveTo(w, 0); // sharp corner
+        canvas.drawPath(path, paint);
+
+        // Small connectors from back rect to front rect
+        canvas.drawLine(Offset(d, 0), Offset(d, d), paint);
+        canvas.drawLine(Offset(w, h - d), Offset(rw, h - d), paint);
+
+      case _WinIconType.close:
+        // Clean X shape
+        canvas.drawLine(Offset.zero, Offset(size.width, size.height), paint);
+        canvas.drawLine(Offset(size.width, 0), Offset(0, size.height), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _WinIconPainter old) =>
+      old.type != type || old.color != color;
 }
 
 /// Individual window control button with smooth hover animation.
 class _WindowControlButton extends StatefulWidget {
   const _WindowControlButton({
-    required this.icon,
+    required this.iconType,
     required this.tooltip,
     required this.defaultColor,
     required this.hoverBgColor,
@@ -335,7 +392,7 @@ class _WindowControlButton extends StatefulWidget {
     this.isClose = false,
   });
 
-  final IconData icon;
+  final _WinIconType iconType;
   final String tooltip;
   final Color defaultColor;
   final Color hoverBgColor;
@@ -406,18 +463,15 @@ class _WindowControlButtonState extends State<_WindowControlButton>
 
               return Container(
                 width: AppConstants.windowControlWidth,
-                height: double.infinity,
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: widget.isClose
-                      ? const BorderRadius.only(bottomLeft: Radius.circular(8))
-                      : null,
-                ),
+                height: AppConstants.windowControlHeight,
+                decoration: BoxDecoration(color: bgColor),
                 alignment: Alignment.center,
-                child: Icon(
-                  widget.icon,
-                  size: widget.isClose ? 18 : 16,
-                  color: iconColor,
+                child: CustomPaint(
+                  size: const Size(10, 10),
+                  painter: _WinIconPainter(
+                    type: widget.iconType,
+                    color: iconColor,
+                  ),
                 ),
               );
             },

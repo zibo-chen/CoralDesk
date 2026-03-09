@@ -190,7 +190,6 @@ class _CronJobsPageState extends ConsumerState<CronJobsPage> {
       title: AppLocalizations.of(context)!.pageCronJobs,
       icon: Icons.schedule,
       isLoading: _loading,
-      topBarHeight: 64,
       useScrollView: false,
       actions: [
         if (_config != null) ...[

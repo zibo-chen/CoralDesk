@@ -52,7 +52,10 @@ class AppConstants {
   /// Reduced from 28 to 20 for a more space-efficient layout.
   static const double macOSTopInset = 20.0;
 
+  /// Unified title-bar / top-bar height across all pages.
+  static const double titleBarHeight = 48.0;
+
   /// Window control button dimensions for Windows/Linux
   static const double windowControlWidth = 46.0;
-  static const double windowControlHeight = 32.0;
+  static const double windowControlHeight = 36.0;
 }

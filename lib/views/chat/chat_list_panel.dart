@@ -32,9 +32,9 @@ class ChatListPanel extends ConsumerWidget {
             child: Padding(
               padding: EdgeInsets.fromLTRB(
                 20,
-                AppConstants.isMacOS ? 32 : 12,
+                AppConstants.isMacOS ? 32 : 8,
                 12,
-                12,
+                8,
               ),
               child: Row(
                 children: [

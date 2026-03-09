@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:coraldesk/constants.dart';
 import 'package:coraldesk/l10n/app_localizations.dart';
 import 'package:coraldesk/models/models.dart';
 import 'package:coraldesk/providers/providers.dart';
@@ -157,8 +158,9 @@ class _ProjectDetailViewState extends ConsumerState<ProjectDetailView>
   Future<void> _showAddRoleDialog(Project project) async {
     final l10n = AppLocalizations.of(context)!;
     final workspaces = ref.read(agentWorkspacesProvider);
-    final available =
-        workspaces.where((w) => !project.roleIds.contains(w.id)).toList();
+    final available = workspaces
+        .where((w) => !project.roleIds.contains(w.id))
+        .toList();
 
     if (available.isEmpty) {
       _showMessage(l10n.projectAllRolesAdded);
@@ -182,8 +184,7 @@ class _ProjectDetailViewState extends ConsumerState<ProjectDetailView>
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Center(
-                    child:
-                        Text(w.avatar, style: const TextStyle(fontSize: 16)),
+                    child: Text(w.avatar, style: const TextStyle(fontSize: 16)),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -341,13 +342,11 @@ class _ProjectDetailViewState extends ConsumerState<ProjectDetailView>
   Widget _buildHeaderBar(String title, Project? project) {
     final l10n = AppLocalizations.of(context)!;
     return Container(
-      height: 56,
+      height: AppConstants.titleBarHeight,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: c.surfaceBg,
-        border: Border(
-          bottom: BorderSide(color: c.chatListBorder, width: 1),
-        ),
+        border: Border(bottom: BorderSide(color: c.chatListBorder, width: 1)),
       ),
       child: Row(
         children: [
@@ -391,9 +390,7 @@ class _ProjectDetailViewState extends ConsumerState<ProjectDetailView>
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
       decoration: BoxDecoration(
         color: c.surfaceBg,
-        border: Border(
-          bottom: BorderSide(color: c.chatListBorder, width: 1),
-        ),
+        border: Border(bottom: BorderSide(color: c.chatListBorder, width: 1)),
       ),
       child: Row(
         children: [
@@ -549,10 +546,7 @@ class _ProjectDetailViewState extends ConsumerState<ProjectDetailView>
         children: [
           Icon(icon, size: 12, color: c.textHint),
           const SizedBox(width: 4),
-          Text(
-            text,
-            style: TextStyle(fontSize: 11, color: c.textHint),
-          ),
+          Text(text, style: TextStyle(fontSize: 11, color: c.textHint)),
         ],
       ),
     );
@@ -686,8 +680,9 @@ class _ProjectDetailViewState extends ConsumerState<ProjectDetailView>
 
   Widget _buildRolesSection(Project project, AppLocalizations l10n) {
     final workspaces = ref.watch(agentWorkspacesProvider);
-    final projectRoles =
-        workspaces.where((w) => project.roleIds.contains(w.id)).toList();
+    final projectRoles = workspaces
+        .where((w) => project.roleIds.contains(w.id))
+        .toList();
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -740,8 +735,7 @@ class _ProjectDetailViewState extends ConsumerState<ProjectDetailView>
                 return _RoleTile(
                   role: role,
                   isDefault: isDefault,
-                  onSetDefault: () =>
-                      _setDefaultRole(project, role.id),
+                  onSetDefault: () => _setDefaultRole(project, role.id),
                   onRemove: () => _removeRole(project, role.id),
                 );
               }).toList(),
@@ -755,15 +749,17 @@ class _ProjectDetailViewState extends ConsumerState<ProjectDetailView>
 
   Widget _buildSessionsTab(Project project, AppLocalizations l10n) {
     final allSessions = ref.watch(sessionsProvider);
-    final projectSessions =
-        allSessions.where((s) => project.sessionIds.contains(s.id)).toList();
+    final projectSessions = allSessions
+        .where((s) => project.sessionIds.contains(s.id))
+        .toList();
 
     // Filter by search
     var filtered = projectSessions;
     if (_sessionSearch.isNotEmpty) {
       final q = _sessionSearch.toLowerCase();
-      filtered =
-          filtered.where((s) => s.title.toLowerCase().contains(q)).toList();
+      filtered = filtered
+          .where((s) => s.title.toLowerCase().contains(q))
+          .toList();
     }
 
     return Column(
@@ -777,8 +773,7 @@ class _ProjectDetailViewState extends ConsumerState<ProjectDetailView>
               onChanged: (v) => setState(() => _sessionSearch = v),
               decoration: InputDecoration(
                 hintText: l10n.projectSearchSessions,
-                prefixIcon:
-                    Icon(Icons.search, size: 18, color: c.textHint),
+                prefixIcon: Icon(Icons.search, size: 18, color: c.textHint),
                 filled: true,
                 fillColor: c.inputBg,
                 border: OutlineInputBorder(
@@ -814,8 +809,7 @@ class _ProjectDetailViewState extends ConsumerState<ProjectDetailView>
                         session.id,
                         defaultRoleId: project.defaultRoleId,
                       ),
-                      onRemove: () =>
-                          _removeSession(project, session.id),
+                      onRemove: () => _removeSession(project, session.id),
                     );
                   },
                 ),
@@ -996,8 +990,7 @@ class _ProjectDetailViewState extends ConsumerState<ProjectDetailView>
                     statusLabel,
                     style: TextStyle(
                       fontSize: 12,
-                      fontWeight:
-                          isActive ? FontWeight.w600 : FontWeight.w400,
+                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                       color: isActive ? statusColor : c.textSecondary,
                     ),
                   ),
@@ -1014,17 +1007,16 @@ class _ProjectDetailViewState extends ConsumerState<ProjectDetailView>
     return Column(
       children: [
         _infoRow(l10n.projectName, project.name),
-        _infoRow(l10n.projectDescription,
-            project.description.isEmpty ? '—' : project.description),
+        _infoRow(
+          l10n.projectDescription,
+          project.description.isEmpty ? '—' : project.description,
+        ),
         _infoRow(l10n.projectType, project.projectType.label),
         _infoRow(
           l10n.projectDirectory,
           project.hasProjectDir ? project.projectDir : '—',
         ),
-        _infoRow(
-          'Created',
-          _formatDate(project.createdAt),
-        ),
+        _infoRow('Created', _formatDate(project.createdAt)),
       ],
     );
   }
@@ -1148,8 +1140,8 @@ class _RoleTileState extends State<_RoleTile> {
           color: widget.isDefault
               ? AppColors.primary.withValues(alpha: 0.06)
               : _hovering
-                  ? c.inputBg
-                  : Colors.transparent,
+              ? c.inputBg
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: widget.isDefault
@@ -1230,23 +1222,23 @@ class _RoleTileState extends State<_RoleTile> {
                     icon: const Icon(Icons.star_border, size: 16),
                     onPressed: widget.onSetDefault,
                     padding: EdgeInsets.zero,
-                    constraints:
-                        const BoxConstraints(minWidth: 28, minHeight: 28),
+                    constraints: const BoxConstraints(
+                      minWidth: 28,
+                      minHeight: 28,
+                    ),
                     splashRadius: 14,
                   ),
                 ),
               Tooltip(
                 message: l10n.delete,
                 child: IconButton(
-                  icon: Icon(
-                    Icons.close,
-                    size: 16,
-                    color: c.textHint,
-                  ),
+                  icon: Icon(Icons.close, size: 16, color: c.textHint),
                   onPressed: widget.onRemove,
                   padding: EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints(minWidth: 28, minHeight: 28),
+                  constraints: const BoxConstraints(
+                    minWidth: 28,
+                    minHeight: 28,
+                  ),
                   splashRadius: 14,
                 ),
               ),
@@ -1338,8 +1330,10 @@ class _SessionTileState extends State<_SessionTile> {
                     icon: Icon(Icons.link_off, size: 16, color: c.textHint),
                     onPressed: widget.onRemove,
                     padding: EdgeInsets.zero,
-                    constraints:
-                        const BoxConstraints(minWidth: 28, minHeight: 28),
+                    constraints: const BoxConstraints(
+                      minWidth: 28,
+                      minHeight: 28,
+                    ),
                     splashRadius: 14,
                   ),
                 ),
