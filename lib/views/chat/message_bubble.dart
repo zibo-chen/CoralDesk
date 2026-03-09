@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +9,78 @@ import 'package:coraldesk/models/models.dart';
 import 'package:coraldesk/theme/app_theme.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:coraldesk/src/rust/api/agent_api.dart' as agent_api;
+
+// ── Think-block parsing utilities ────────────────────────
+
+/// A segment of text parsed from `<think>...</think>` blocks.
+class _TextSegment {
+  final String text;
+  final bool isThinking;
+
+  /// `false` when the `<think>` tag was opened but no matching `</think>`
+  /// was found yet (still streaming).
+  final bool isComplete;
+  const _TextSegment(
+    this.text, {
+    this.isThinking = false,
+    this.isComplete = true,
+  });
+}
+
+/// Parse a raw text string into interleaved normal / thinking segments.
+/// Handles `<think>...</think>` blocks, including unclosed ones (streaming).
+List<_TextSegment> _parseThinkingBlocks(String text) {
+  if (!text.contains('<think>') && !text.contains('<think')) {
+    return [_TextSegment(text)];
+  }
+
+  final segments = <_TextSegment>[];
+  final thinkOpen = RegExp(r'<think\s*>', caseSensitive: false);
+  final thinkClose = RegExp(r'</think\s*>', caseSensitive: false);
+
+  int pos = 0;
+  while (pos < text.length) {
+    final openMatch = thinkOpen.firstMatch(text.substring(pos));
+    if (openMatch == null) {
+      // No more think blocks
+      final remaining = text.substring(pos).trim();
+      if (remaining.isNotEmpty) {
+        segments.add(_TextSegment(remaining));
+      }
+      break;
+    }
+
+    // Add text before <think>
+    final beforeThink = text.substring(pos, pos + openMatch.start).trim();
+    if (beforeThink.isNotEmpty) {
+      segments.add(_TextSegment(beforeThink));
+    }
+
+    pos += openMatch.end;
+
+    // Find closing </think>
+    final closeMatch = thinkClose.firstMatch(text.substring(pos));
+    if (closeMatch == null) {
+      // Unclosed think block → still streaming
+      final thinkContent = text.substring(pos).trim();
+      segments.add(
+        _TextSegment(thinkContent, isThinking: true, isComplete: false),
+      );
+      break;
+    }
+
+    // Complete think block
+    final thinkContent = text.substring(pos, pos + closeMatch.start).trim();
+    if (thinkContent.isNotEmpty) {
+      segments.add(
+        _TextSegment(thinkContent, isThinking: true, isComplete: true),
+      );
+    }
+    pos += closeMatch.end;
+  }
+
+  return segments;
+}
 
 /// Individual message bubble with hover-based action bar (copy / edit / retry).
 class MessageBubble extends StatefulWidget {
@@ -311,11 +384,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                                 const SizedBox(height: 8),
                               ],
                               if (message.content.isNotEmpty)
-                                MarkdownBody(
-                                  data: message.content,
-                                  styleSheet: _mdStyle(c),
-                                  selectable: false,
-                                ),
+                                ..._buildTextWithThinking(message.content, c),
                             ],
 
                             // Streaming indicator
@@ -362,14 +431,33 @@ class _MessageBubbleState extends State<MessageBubble> {
       switch (part) {
         case TextPart(:final text):
           if (text.isNotEmpty) {
-            if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 8));
-            widgets.add(
-              MarkdownBody(
-                data: text,
-                styleSheet: _mdStyle(c),
-                selectable: false,
-              ),
-            );
+            final segments = _parseThinkingBlocks(text);
+            for (final seg in segments) {
+              if (seg.isThinking) {
+                if (widgets.isNotEmpty) {
+                  widgets.add(const SizedBox(height: 6));
+                }
+                widgets.add(
+                  _ThinkingBlock(
+                    content: seg.text,
+                    isComplete: seg.isComplete,
+                    colors: c,
+                    mdStyle: _mdStyle(c),
+                  ),
+                );
+              } else {
+                if (widgets.isNotEmpty) {
+                  widgets.add(const SizedBox(height: 8));
+                }
+                widgets.add(
+                  MarkdownBody(
+                    data: seg.text,
+                    styleSheet: _mdStyle(c),
+                    selectable: false,
+                  ),
+                );
+              }
+            }
           }
         case ToolCallPart(:final toolCall):
           if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 4));
@@ -392,6 +480,34 @@ class _MessageBubbleState extends State<MessageBubble> {
               summary: summary,
             ),
           );
+      }
+    }
+    return widgets;
+  }
+
+  /// Parse text for `<think>` blocks and return widgets accordingly.
+  /// Used by the fallback (non-parts) rendering path.
+  List<Widget> _buildTextWithThinking(String text, CoralDeskColors c) {
+    final segments = _parseThinkingBlocks(text);
+    final widgets = <Widget>[];
+    for (final seg in segments) {
+      if (seg.isThinking) {
+        widgets.add(
+          _ThinkingBlock(
+            content: seg.text,
+            isComplete: seg.isComplete,
+            colors: c,
+            mdStyle: _mdStyle(c),
+          ),
+        );
+      } else {
+        widgets.add(
+          MarkdownBody(
+            data: seg.text,
+            styleSheet: _mdStyle(c),
+            selectable: false,
+          ),
+        );
       }
     }
     return widgets;
@@ -543,7 +659,271 @@ class _MessageBubbleState extends State<MessageBubble> {
   }
 }
 
-/// Expandable tool call card showing name, status, arguments, and result
+// ── Thinking Block Widget ────────────────────────────────
+
+/// Collapsible card for `<think>...</think>` reasoning content.
+///
+/// * Default state: **collapsed** (only header visible).
+/// * While the LLM is still streaming thinking content ([isComplete] == false),
+///   a pulsing sparkle animation is shown.
+/// * Tapping the header toggles expand / collapse with a smooth animation.
+class _ThinkingBlock extends StatefulWidget {
+  final String content;
+  final bool isComplete;
+  final CoralDeskColors colors;
+  final MarkdownStyleSheet mdStyle;
+
+  const _ThinkingBlock({
+    required this.content,
+    required this.isComplete,
+    required this.colors,
+    required this.mdStyle,
+  });
+
+  @override
+  State<_ThinkingBlock> createState() => _ThinkingBlockState();
+}
+
+class _ThinkingBlockState extends State<_ThinkingBlock>
+    with TickerProviderStateMixin {
+  bool _expanded = false;
+
+  /// Pulsing glow animation for the "thinking in progress" indicator.
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulseAnimation;
+
+  /// Sparkle rotation animation.
+  late final AnimationController _rotateController;
+  late final Animation<double> _rotateAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    );
+    _pulseAnimation = CurvedAnimation(
+      parent: _pulseController,
+      curve: Curves.easeInOut,
+    );
+
+    _rotateController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    );
+    _rotateAnimation = CurvedAnimation(
+      parent: _rotateController,
+      curve: Curves.linear,
+    );
+
+    if (!widget.isComplete) {
+      _pulseController.repeat(reverse: true);
+      _rotateController.repeat();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _ThinkingBlock oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isComplete && !oldWidget.isComplete) {
+      // Thinking just finished — stop animations gracefully
+      _pulseController.animateTo(0.0).then((_) {
+        if (mounted) _pulseController.stop();
+      });
+      _rotateController.stop();
+    } else if (!widget.isComplete && oldWidget.isComplete) {
+      _pulseController.repeat(reverse: true);
+      _rotateController.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _rotateController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = widget.colors;
+    final l10n = AppLocalizations.of(context)!;
+    final thinkLabel = widget.isComplete
+        ? l10n.thinking.replaceAll('💭 ', '').replaceAll('...', '')
+        : l10n.thinking.replaceAll('💭 ', '');
+
+    // Accent colour for the thinking card
+    final accent = const Color(0xFF9B8AE0); // soft purple
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 2),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: accent.withValues(alpha: 0.20)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header (always visible, tappable) ──
+          InkWell(
+            onTap: () => setState(() => _expanded = !_expanded),
+            borderRadius: BorderRadius.circular(10),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                children: [
+                  // Animated sparkle icon
+                  _buildSparkleIcon(accent),
+                  const SizedBox(width: 8),
+                  Text(
+                    thinkLabel,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: accent,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  // Streaming dots
+                  if (!widget.isComplete) ...[
+                    const SizedBox(width: 4),
+                    _ThinkingDots(color: accent),
+                  ],
+                  const Spacer(),
+                  AnimatedRotation(
+                    turns: _expanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(Icons.expand_more, size: 18, color: accent),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Expandable content ──
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Divider(height: 1, color: accent.withValues(alpha: 0.15)),
+                  const SizedBox(height: 8),
+                  MarkdownBody(
+                    data: widget.content,
+                    styleSheet: widget.mdStyle.copyWith(
+                      p: widget.mdStyle.p?.copyWith(
+                        fontSize: 13,
+                        color: c.textSecondary,
+                        height: 1.5,
+                      ),
+                    ),
+                    selectable: true,
+                  ),
+                ],
+              ),
+            ),
+            crossFadeState: _expanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 250),
+            sizeCurve: Curves.easeInOut,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// A sparkle ✦ icon that gently rotates and pulses while thinking.
+  Widget _buildSparkleIcon(Color accent) {
+    if (widget.isComplete) {
+      return Icon(Icons.auto_awesome, size: 15, color: accent);
+    }
+    return AnimatedBuilder(
+      animation: Listenable.merge([_pulseAnimation, _rotateAnimation]),
+      builder: (context, child) {
+        final pulse = 0.5 + 0.5 * _pulseAnimation.value;
+        return Transform.rotate(
+          angle: _rotateAnimation.value * 2 * math.pi,
+          child: Opacity(
+            opacity: pulse,
+            child: Icon(Icons.auto_awesome, size: 15, color: accent),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Three small dots that fade in/out sequentially — used in the thinking
+/// header while content is still streaming.
+class _ThinkingDots extends StatefulWidget {
+  final Color color;
+  const _ThinkingDots({required this.color});
+
+  @override
+  State<_ThinkingDots> createState() => _ThinkingDotsState();
+}
+
+class _ThinkingDotsState extends State<_ThinkingDots>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, _) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(3, (i) {
+            // Each dot fades at a slightly different phase
+            final phase = (_ctrl.value + i * 0.25) % 1.0;
+            final opacity = (math.sin(phase * math.pi)).clamp(0.2, 1.0);
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 1),
+              child: Opacity(
+                opacity: opacity,
+                child: Text(
+                  '·',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: widget.color,
+                  ),
+                ),
+              ),
+            );
+          }),
+        );
+      },
+    );
+  }
+}
+
+/// Expandable tool call card — refined design matching ThinkingBlock style.
+///
+/// Shows a compact header with tool name, status icon, and animated spinner
+/// while running.  Expands to reveal arguments and result in styled code panels.
 class _ToolCallCard extends StatefulWidget {
   final ToolCallInfo toolCall;
 
@@ -553,10 +933,14 @@ class _ToolCallCard extends StatefulWidget {
   State<_ToolCallCard> createState() => _ToolCallCardState();
 }
 
-class _ToolCallCardState extends State<_ToolCallCard> {
+class _ToolCallCardState extends State<_ToolCallCard>
+    with SingleTickerProviderStateMixin {
   bool _expanded = false;
 
   ToolCallInfo get toolCall => widget.toolCall;
+
+  /// Spinning animation for the running state icon.
+  late final AnimationController _spinController;
 
   /// Tool names that produce files
   static const _fileToolNames = {
@@ -570,6 +954,37 @@ class _ToolCallCardState extends State<_ToolCallCard> {
     'editfile',
   };
 
+  /// Map common tool names to descriptive icons.
+  static IconData _toolIcon(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('file') || n.contains('read') || n.contains('write')) {
+      return Icons.description_outlined;
+    }
+    if (n.contains('search') || n.contains('grep') || n.contains('find')) {
+      return Icons.search_rounded;
+    }
+    if (n.contains('bash') ||
+        n.contains('shell') ||
+        n.contains('exec') ||
+        n.contains('command') ||
+        n.contains('terminal')) {
+      return Icons.terminal_rounded;
+    }
+    if (n.contains('edit') || n.contains('patch') || n.contains('replace')) {
+      return Icons.edit_note_rounded;
+    }
+    if (n.contains('list') || n.contains('dir') || n.contains('ls')) {
+      return Icons.folder_open_rounded;
+    }
+    if (n.contains('web') || n.contains('http') || n.contains('fetch')) {
+      return Icons.language_rounded;
+    }
+    if (n.contains('task') || n.contains('plan')) {
+      return Icons.checklist_rounded;
+    }
+    return Icons.handyman_rounded;
+  }
+
   /// Try to extract the file path from tool call arguments
   String? get _filePath {
     if (!_fileToolNames.contains(toolCall.name)) return null;
@@ -582,18 +997,19 @@ class _ToolCallCardState extends State<_ToolCallCard> {
     }
   }
 
-  Color _statusColor(CoralDeskColors c) => switch (toolCall.status) {
-    ToolCallStatus.pending => c.textHint,
-    ToolCallStatus.running => AppColors.warning,
+  /// Status-aware accent colour.
+  Color get _accent => switch (toolCall.status) {
+    ToolCallStatus.pending => const Color(0xFF9498A8),
+    ToolCallStatus.running => AppColors.primary,
     ToolCallStatus.completed => AppColors.success,
     ToolCallStatus.failed => AppColors.error,
   };
 
   IconData get _statusIcon => switch (toolCall.status) {
-    ToolCallStatus.pending => Icons.hourglass_empty,
-    ToolCallStatus.running => Icons.sync,
-    ToolCallStatus.completed => Icons.check_circle,
-    ToolCallStatus.failed => Icons.error,
+    ToolCallStatus.pending => Icons.hourglass_empty_rounded,
+    ToolCallStatus.running => Icons.sync_rounded,
+    ToolCallStatus.completed => Icons.check_circle_rounded,
+    ToolCallStatus.failed => Icons.cancel_rounded,
   };
 
   /// Try to pretty-print JSON, fall back to raw string
@@ -606,122 +1022,252 @@ class _ToolCallCardState extends State<_ToolCallCard> {
     }
   }
 
+  /// Build a short summary from tool arguments for the collapsed header.
+  String _argsSummary() {
+    if (toolCall.arguments.isEmpty) return '';
+    try {
+      final obj = jsonDecode(toolCall.arguments) as Map<String, dynamic>;
+      // Show first meaningful short value
+      for (final key in [
+        'path',
+        'command',
+        'query',
+        'url',
+        'pattern',
+        'file_path',
+        'regex',
+      ]) {
+        if (obj.containsKey(key)) {
+          final val = obj[key].toString();
+          if (val.length <= 60) return val;
+          return '${val.substring(0, 57)}...';
+        }
+      }
+    } catch (_) {}
+    return '';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _spinController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    if (toolCall.status == ToolCallStatus.running) {
+      _spinController.repeat();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _ToolCallCard old) {
+    super.didUpdateWidget(old);
+    if (toolCall.status == ToolCallStatus.running &&
+        old.toolCall.status != ToolCallStatus.running) {
+      _spinController.repeat();
+    } else if (toolCall.status != ToolCallStatus.running &&
+        old.toolCall.status == ToolCallStatus.running) {
+      _spinController.stop();
+      _spinController.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _spinController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = CoralDeskColors.of(context);
-    final statusColor = _statusColor(c);
+    final accent = _accent;
+    final summary = _argsSummary();
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 4),
+      margin: const EdgeInsets.only(bottom: 2),
       decoration: BoxDecoration(
-        color: c.inputBg,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: c.chatListBorder),
+        color: accent.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: accent.withValues(alpha: 0.18)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header row — always visible, clickable
+          // ── Header ──
           InkWell(
             onTap: () => setState(() => _expanded = !_expanded),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(10),
             child: Padding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
                 children: [
-                  Icon(_statusIcon, size: 16, color: statusColor),
+                  // Status icon (animated spin while running)
+                  _buildStatusIcon(accent),
                   const SizedBox(width: 8),
-                  Icon(Icons.build, size: 14, color: c.textSecondary),
+                  // Tool-type icon
+                  Icon(
+                    _toolIcon(toolCall.name),
+                    size: 14,
+                    color: accent.withValues(alpha: 0.70),
+                  ),
                   const SizedBox(width: 6),
-                  Expanded(
+                  // Tool name
+                  Flexible(
                     child: Text(
                       toolCall.name,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: c.textPrimary,
+                        letterSpacing: 0.2,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  if (toolCall.result != null)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
+                  // Brief argument summary
+                  if (summary.isNotEmpty && !_expanded) ...[
+                    const SizedBox(width: 8),
+                    Flexible(
                       child: Text(
-                        toolCall.success == true
-                            ? AppLocalizations.of(context)!.toolCallSuccess
-                            : AppLocalizations.of(context)!.toolCallFailed,
-                        style: TextStyle(fontSize: 12, color: statusColor),
+                        summary,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: c.textHint,
+                          fontFamily: 'monospace',
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ),
-                  // File action buttons for file-writing tools
-                  if (_filePath != null) ...[
-                    _FileActionButtons(filePath: _filePath!),
-                    const SizedBox(width: 4),
                   ],
+                  const SizedBox(width: 6),
+                  // Status badge
+                  if (toolCall.result != null) _buildStatusBadge(c, accent),
+                  // File action buttons
+                  if (_filePath != null) ...[
+                    const SizedBox(width: 4),
+                    _FileActionButtons(filePath: _filePath!),
+                  ],
+                  const SizedBox(width: 4),
+                  // Expand chevron
                   AnimatedRotation(
                     turns: _expanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 200),
-                    child: Icon(Icons.expand_more, size: 18, color: c.textHint),
+                    child: Icon(
+                      Icons.expand_more_rounded,
+                      size: 16,
+                      color: accent.withValues(alpha: 0.60),
+                    ),
                   ),
                 ],
               ),
             ),
           ),
 
-          // Expanded details
+          // ── Expandable details ──
           AnimatedCrossFade(
             firstChild: const SizedBox.shrink(),
-            secondChild: _buildDetails(c),
+            secondChild: _buildDetails(c, accent),
             crossFadeState: _expanded
                 ? CrossFadeState.showSecond
                 : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 200),
+            duration: const Duration(milliseconds: 220),
+            sizeCurve: Curves.easeInOut,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDetails(CoralDeskColors c) {
+  /// Status icon — spins while running.
+  Widget _buildStatusIcon(Color accent) {
+    if (toolCall.status == ToolCallStatus.running) {
+      return AnimatedBuilder(
+        animation: _spinController,
+        builder: (_, __) => Transform.rotate(
+          angle: _spinController.value * 2 * math.pi,
+          child: Icon(_statusIcon, size: 14, color: accent),
+        ),
+      );
+    }
+    return Icon(_statusIcon, size: 14, color: accent);
+  }
+
+  /// Small rounded "success/failed" badge.
+  Widget _buildStatusBadge(CoralDeskColors c, Color accent) {
+    final isOk = toolCall.success == true;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        isOk
+            ? AppLocalizations.of(context)!.toolCallSuccess
+            : AppLocalizations.of(context)!.toolCallFailed,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: accent,
+          letterSpacing: 0.3,
+        ),
+      ),
+    );
+  }
+
+  /// Expanded details panel with arguments & result.
+  Widget _buildDetails(CoralDeskColors c, Color accent) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Divider(height: 1),
+          Divider(height: 1, color: accent.withValues(alpha: 0.12)),
           const SizedBox(height: 8),
 
-          // Arguments section
+          // Arguments
           if (toolCall.arguments.isNotEmpty) ...[
-            _buildSectionHeader(c, 'Arguments'),
+            _buildSectionHeader(c, accent, 'Arguments', isArgs: true),
             const SizedBox(height: 4),
-            _buildCodeBlock(c, _formatJson(toolCall.arguments)),
+            _buildCodeBlock(c, accent, _formatJson(toolCall.arguments)),
           ],
 
-          // Result section
+          // Result
           if (toolCall.result != null && toolCall.result!.isNotEmpty) ...[
             const SizedBox(height: 8),
-            _buildSectionHeader(c, 'Result'),
+            _buildSectionHeader(c, accent, 'Result', isArgs: false),
             const SizedBox(height: 4),
-            _buildCodeBlock(c, toolCall.result!),
+            _buildCodeBlock(c, accent, toolCall.result!),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildSectionHeader(CoralDeskColors c, String title) {
+  Widget _buildSectionHeader(
+    CoralDeskColors c,
+    Color accent,
+    String title, {
+    required bool isArgs,
+  }) {
     return Row(
       children: [
+        Icon(
+          isArgs ? Icons.input_rounded : Icons.output_rounded,
+          size: 12,
+          color: accent.withValues(alpha: 0.50),
+        ),
+        const SizedBox(width: 4),
         Text(
           title,
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
             color: c.textSecondary,
-            letterSpacing: 0.5,
+            letterSpacing: 0.4,
           ),
         ),
         const Spacer(),
@@ -731,17 +1277,19 @@ class _ToolCallCardState extends State<_ToolCallCard> {
           width: 22,
           child: IconButton(
             padding: EdgeInsets.zero,
-            iconSize: 14,
-            icon: Icon(Icons.copy, color: c.textHint),
-            tooltip: title == 'Arguments' ? 'Copy arguments' : 'Copy result',
+            iconSize: 13,
+            icon: Icon(Icons.copy_rounded, color: c.textHint),
+            tooltip: isArgs ? 'Copy arguments' : 'Copy result',
             onPressed: () {
-              final text = title == 'Arguments'
+              final text = isArgs
                   ? _formatJson(toolCall.arguments)
                   : toolCall.result ?? '';
               Clipboard.setData(ClipboardData(text: text));
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Copied to clipboard'),
+                  content: Text(
+                    AppLocalizations.of(context)!.copiedToClipboard,
+                  ),
                   duration: const Duration(seconds: 1),
                   behavior: SnackBarBehavior.floating,
                 ),
@@ -753,15 +1301,15 @@ class _ToolCallCardState extends State<_ToolCallCard> {
     );
   }
 
-  Widget _buildCodeBlock(CoralDeskColors c, String content) {
+  Widget _buildCodeBlock(CoralDeskColors c, Color accent, String content) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(10),
       constraints: const BoxConstraints(maxHeight: 200),
       decoration: BoxDecoration(
         color: c.mainBg,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: c.chatListBorder),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: accent.withValues(alpha: 0.10)),
       ),
       child: SingleChildScrollView(
         child: SelectableText(
@@ -770,7 +1318,7 @@ class _ToolCallCardState extends State<_ToolCallCard> {
             fontSize: 12,
             fontFamily: 'monospace',
             height: 1.5,
-            color: c.textPrimary,
+            color: c.textPrimary.withValues(alpha: 0.85),
           ),
         ),
       ),

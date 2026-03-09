@@ -37,11 +37,12 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
     final c = CoralDeskColors.of(context);
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
+      duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
       width: isCollapsed
           ? AppConstants.sidebarCollapsedWidth
           : AppConstants.sidebarWidth,
+      clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
         color: c.sidebarBg,
         border: Border(right: BorderSide(color: c.chatListBorder, width: 1)),
@@ -87,6 +88,14 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
                       label: l10n.navChat,
                       section: NavSection.chat,
                       isActive: currentNav == NavSection.chat,
+                    ),
+                    _buildNavItem(
+                      c,
+                      ref: ref,
+                      icon: Icons.folder_outlined,
+                      label: l10n.navProjects,
+                      section: NavSection.projects,
+                      isActive: currentNav == NavSection.projects,
                     ),
                   ],
                 ),
@@ -220,6 +229,14 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
                       section: NavSection.proxy,
                       isActive: currentNav == NavSection.proxy,
                     ),
+                    _buildNavItem(
+                      c,
+                      ref: ref,
+                      icon: Icons.bug_report_outlined,
+                      label: 'LLM Debug',
+                      section: NavSection.llmDebug,
+                      isActive: currentNav == NavSection.llmDebug,
+                    ),
                   ],
                 ),
               ],
@@ -249,6 +266,7 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
     // All nav items as (icon, section, label)
     final navItems = [
       (Icons.circle_outlined, NavSection.chat, l10n.navChat),
+      (Icons.folder_outlined, NavSection.projects, l10n.navProjects),
       (Icons.wifi, NavSection.channels, l10n.navChannels),
       (Icons.people_outline, NavSection.sessions, l10n.navSessions),
       (Icons.schedule, NavSection.cronJobs, l10n.navCronJobs),
@@ -265,6 +283,7 @@ class _SidebarNavState extends ConsumerState<SidebarNav> {
       (Icons.settings, NavSection.configuration, l10n.navConfiguration),
       (Icons.model_training, NavSection.models, l10n.navModels),
       (Icons.vpn_key, NavSection.proxy, l10n.navProxy),
+      (Icons.bug_report_outlined, NavSection.llmDebug, 'LLM Debug'),
     ];
 
     return Column(

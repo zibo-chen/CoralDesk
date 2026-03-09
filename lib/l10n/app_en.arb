@@ -444,6 +444,12 @@
   "delete": "Delete",
   "@delete": { "description": "Delete button" },
 
+  "back": "Back",
+  "@back": { "description": "Back button label" },
+
+  "edit": "Edit",
+  "@edit": { "description": "Edit button label" },
+
   "sessionDeleted": "Session deleted",
   "@sessionDeleted": { "description": "Session deleted message" },
 
@@ -1219,10 +1225,10 @@
   "@proxyScopeDescription": { "description": "Proxy scope description" },
 
   "proxyScopeZeroclaw": "All Traffic",
-  "@proxyScopeZeroclaw": { "description": "ZeroClaw scope label" },
+  "@proxyScopeZeroclaw": { "description": "CoralDesk scope label" },
 
-  "proxyScopeZeroclawDesc": "All ZeroClaw-managed HTTP traffic",
-  "@proxyScopeZeroclawDesc": { "description": "ZeroClaw scope description" },
+  "proxyScopeZeroclawDesc": "All CoralDesk-managed HTTP traffic",
+  "@proxyScopeZeroclawDesc": { "description": "CoralDesk scope description" },
 
   "proxyScopeServices": "Selected Services",
   "@proxyScopeServices": { "description": "Services scope label" },
@@ -1890,5 +1896,182 @@
   "@multiAgentApply": { "description": "Apply button in multi-agent dialog" },
 
   "presetBadge": "Preset",
-  "@presetBadge": { "description": "Badge label for built-in preset agents" }
+  "@presetBadge": { "description": "Badge label for built-in preset agents" },
+
+  "navProjects": "Projects",
+  "@navProjects": { "description": "Sidebar navigation item for projects" },
+
+  "projectCreate": "New Project",
+  "@projectCreate": { "description": "Button to create a new project" },
+
+  "projectCreated": "Project created",
+  "@projectCreated": { "description": "Toast when project creation succeeds" },
+
+  "projectCreateFailed": "Failed to create project",
+  "@projectCreateFailed": { "description": "Toast when project creation fails" },
+
+  "projectDeleted": "Project deleted",
+  "@projectDeleted": { "description": "Toast when project deletion succeeds" },
+
+  "projectDeleteTitle": "Delete Project",
+  "@projectDeleteTitle": { "description": "Title of delete confirmation dialog" },
+
+  "projectDeleteConfirm": "Are you sure you want to delete project \"{name}\"? Sessions will not be deleted.",
+  "@projectDeleteConfirm": { "placeholders": { "name": { "type": "String" } } },
+
+  "projectEmpty": "No projects yet",
+  "@projectEmpty": { "description": "Empty state title" },
+
+  "projectEmptyHint": "Create a project to organize your long-running tasks and sessions",
+  "@projectEmptyHint": { "description": "Empty state subtitle" },
+
+  "projectName": "Project Name",
+  "@projectName": { "description": "Label for project name field" },
+
+  "projectNameHint": "Enter project name…",
+  "@projectNameHint": { "description": "Hint for project name field" },
+
+  "projectDescription": "Description",
+  "@projectDescription": { "description": "Label for project description field" },
+
+  "projectDescriptionHint": "Briefly describe this project…",
+  "@projectDescriptionHint": { "description": "Hint for project description field" },
+
+  "projectType": "Project Type",
+  "@projectType": { "description": "Label for project type selector" },
+
+  "projectIcon": "Icon",
+  "@projectIcon": { "description": "Label for icon selector" },
+
+  "projectColor": "Color",
+  "@projectColor": { "description": "Label for color selector" },
+
+  "projectDirectory": "Project Directory (optional)",
+  "@projectDirectory": { "description": "Label for project directory field" },
+
+  "projectDirectoryHint": "Select or enter a local directory path…",
+  "@projectDirectoryHint": { "description": "Hint for project directory field" },
+
+  "projectSessionCount": "{count} sessions",
+  "@projectSessionCount": { "placeholders": { "count": { "type": "int" } } },
+
+  "projectNewSession": "New Session",
+  "@projectNewSession": { "description": "Button to create a new session within a project" },
+
+  "projectSessions": "Project Sessions",
+  "@projectSessions": { "description": "Section title for sessions in a project" },
+
+  "projectNoSessions": "No sessions in this project yet",
+  "@projectNoSessions": { "description": "Empty sessions state" },
+
+  "projectPinnedContext": "Pinned Context",
+  "@projectPinnedContext": { "description": "Section title for project pinned context" },
+
+  "projectContextHint": "Record project background, tech stack, key decisions here. This context is automatically injected when creating new sessions within the project.",
+  "@projectContextHint": { "description": "Hint for context editing" },
+
+  "projectContextEmpty": "No project context yet. Click edit to add background information.",
+  "@projectContextEmpty": { "description": "Empty context placeholder" },
+
+  "projectContextSaved": "Project context saved",
+  "@projectContextSaved": { "description": "Toast when context is saved" },
+
+  "projectNotFound": "Project not found",
+  "@projectNotFound": { "description": "Error when project is not found" },
+
+  "projectEdit": "Edit Project",
+  "@projectEdit": { "description": "Title for project edit dialog" },
+
+  "projectUpdated": "Project updated",
+  "@projectUpdated": { "description": "Toast when project update succeeds" },
+
+  "projectUpdateFailed": "Failed to update project",
+  "@projectUpdateFailed": { "description": "Toast when project update fails" },
+
+  "projectStatusActive": "Active",
+  "@projectStatusActive": { "description": "Active project status" },
+
+  "projectStatusPaused": "Paused",
+  "@projectStatusPaused": { "description": "Paused project status" },
+
+  "projectStatusArchived": "Archived",
+  "@projectStatusArchived": { "description": "Archived project status" },
+
+  "projectStatusCompleted": "Completed",
+  "@projectStatusCompleted": { "description": "Completed project status" },
+
+  "projectFilterAll": "All",
+  "@projectFilterAll": { "description": "Filter tab for all projects" },
+
+  "projectSearchHint": "Search projects…",
+  "@projectSearchHint": { "description": "Hint for project search field" },
+
+  "projectRoles": "Roles",
+  "@projectRoles": { "description": "Section title for project roles" },
+
+  "projectAddRole": "Add Role",
+  "@projectAddRole": { "description": "Button to add a role to project" },
+
+  "projectNoRoles": "No roles assigned. Add roles to customize agent behavior.",
+  "@projectNoRoles": { "description": "Empty roles placeholder" },
+
+  "projectRoleAdded": "Role added",
+  "@projectRoleAdded": { "description": "Toast when role is added" },
+
+  "projectRoleRemoved": "Role removed",
+  "@projectRoleRemoved": { "description": "Toast when role is removed" },
+
+  "projectAllRolesAdded": "All available roles are already added",
+  "@projectAllRolesAdded": { "description": "Toast when no more roles to add" },
+
+  "projectSetDefaultRole": "Set as Default",
+  "@projectSetDefaultRole": { "description": "Menu item to set default role" },
+
+  "projectDefaultRoleBadge": "Default",
+  "@projectDefaultRoleBadge": { "description": "Badge for default role" },
+
+  "projectRoleCount": "{count} roles",
+  "@projectRoleCount": { "placeholders": { "count": { "type": "int" } } },
+
+  "projectTabOverview": "Overview",
+  "@projectTabOverview": { "description": "Tab label for project overview" },
+
+  "projectTabSessions": "Sessions",
+  "@projectTabSessions": { "description": "Tab label for project sessions" },
+
+  "projectTabSettings": "Settings",
+  "@projectTabSettings": { "description": "Tab label for project settings" },
+
+  "projectQuickActions": "Quick Actions",
+  "@projectQuickActions": { "description": "Section title for quick actions" },
+
+  "projectRemoveSession": "Remove from Project",
+  "@projectRemoveSession": { "description": "Context menu item to remove session from project" },
+
+  "projectSessionRemoved": "Session removed from project",
+  "@projectSessionRemoved": { "description": "Toast when session is removed from project" },
+
+  "projectDangerZone": "Danger Zone",
+  "@projectDangerZone": { "description": "Section title for destructive actions" },
+
+  "projectDangerDeleteHint": "Permanently delete this project. Sessions will not be deleted.",
+  "@projectDangerDeleteHint": { "description": "Hint text for delete action" },
+
+  "projectTemplate": "Template",
+  "@projectTemplate": { "description": "Label for template selector" },
+
+  "projectTemplateBlank": "Blank",
+  "@projectTemplateBlank": { "description": "Blank template name" },
+
+  "projectStatusChanged": "Status updated",
+  "@projectStatusChanged": { "description": "Toast when project status changes" },
+
+  "projectOpenSession": "Open Session",
+  "@projectOpenSession": { "description": "Tooltip to open a session" },
+
+  "projectSearchSessions": "Search sessions…",
+  "@projectSearchSessions": { "description": "Hint for session search field" },
+
+  "navLlmDebug": "LLM Debug",
+  "@navLlmDebug": { "description": "LLM Debug nav item" }
 }

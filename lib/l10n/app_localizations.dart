@@ -944,6 +944,18 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get delete;
 
+  /// Back button label
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get back;
+
+  /// Edit button label
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
   /// Session deleted message
   ///
   /// In en, this message translates to:
@@ -2306,16 +2318,16 @@ abstract class AppLocalizations {
   /// **'Choose which outbound traffic should be routed through the proxy.'**
   String get proxyScopeDescription;
 
-  /// ZeroClaw scope label
+  /// CoralDesk scope label
   ///
   /// In en, this message translates to:
   /// **'All Traffic'**
   String get proxyScopeZeroclaw;
 
-  /// ZeroClaw scope description
+  /// CoralDesk scope description
   ///
   /// In en, this message translates to:
-  /// **'All ZeroClaw-managed HTTP traffic'**
+  /// **'All CoralDesk-managed HTTP traffic'**
   String get proxyScopeZeroclawDesc;
 
   /// Services scope label
@@ -3673,6 +3685,360 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Preset'**
   String get presetBadge;
+
+  /// Sidebar navigation item for projects
+  ///
+  /// In en, this message translates to:
+  /// **'Projects'**
+  String get navProjects;
+
+  /// Button to create a new project
+  ///
+  /// In en, this message translates to:
+  /// **'New Project'**
+  String get projectCreate;
+
+  /// Toast when project creation succeeds
+  ///
+  /// In en, this message translates to:
+  /// **'Project created'**
+  String get projectCreated;
+
+  /// Toast when project creation fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create project'**
+  String get projectCreateFailed;
+
+  /// Toast when project deletion succeeds
+  ///
+  /// In en, this message translates to:
+  /// **'Project deleted'**
+  String get projectDeleted;
+
+  /// Title of delete confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Project'**
+  String get projectDeleteTitle;
+
+  /// No description provided for @projectDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete project \"{name}\"? Sessions will not be deleted.'**
+  String projectDeleteConfirm(String name);
+
+  /// Empty state title
+  ///
+  /// In en, this message translates to:
+  /// **'No projects yet'**
+  String get projectEmpty;
+
+  /// Empty state subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Create a project to organize your long-running tasks and sessions'**
+  String get projectEmptyHint;
+
+  /// Label for project name field
+  ///
+  /// In en, this message translates to:
+  /// **'Project Name'**
+  String get projectName;
+
+  /// Hint for project name field
+  ///
+  /// In en, this message translates to:
+  /// **'Enter project name…'**
+  String get projectNameHint;
+
+  /// Label for project description field
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get projectDescription;
+
+  /// Hint for project description field
+  ///
+  /// In en, this message translates to:
+  /// **'Briefly describe this project…'**
+  String get projectDescriptionHint;
+
+  /// Label for project type selector
+  ///
+  /// In en, this message translates to:
+  /// **'Project Type'**
+  String get projectType;
+
+  /// Label for icon selector
+  ///
+  /// In en, this message translates to:
+  /// **'Icon'**
+  String get projectIcon;
+
+  /// Label for color selector
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get projectColor;
+
+  /// Label for project directory field
+  ///
+  /// In en, this message translates to:
+  /// **'Project Directory (optional)'**
+  String get projectDirectory;
+
+  /// Hint for project directory field
+  ///
+  /// In en, this message translates to:
+  /// **'Select or enter a local directory path…'**
+  String get projectDirectoryHint;
+
+  /// No description provided for @projectSessionCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} sessions'**
+  String projectSessionCount(int count);
+
+  /// Button to create a new session within a project
+  ///
+  /// In en, this message translates to:
+  /// **'New Session'**
+  String get projectNewSession;
+
+  /// Section title for sessions in a project
+  ///
+  /// In en, this message translates to:
+  /// **'Project Sessions'**
+  String get projectSessions;
+
+  /// Empty sessions state
+  ///
+  /// In en, this message translates to:
+  /// **'No sessions in this project yet'**
+  String get projectNoSessions;
+
+  /// Section title for project pinned context
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned Context'**
+  String get projectPinnedContext;
+
+  /// Hint for context editing
+  ///
+  /// In en, this message translates to:
+  /// **'Record project background, tech stack, key decisions here. This context is automatically injected when creating new sessions within the project.'**
+  String get projectContextHint;
+
+  /// Empty context placeholder
+  ///
+  /// In en, this message translates to:
+  /// **'No project context yet. Click edit to add background information.'**
+  String get projectContextEmpty;
+
+  /// Toast when context is saved
+  ///
+  /// In en, this message translates to:
+  /// **'Project context saved'**
+  String get projectContextSaved;
+
+  /// Error when project is not found
+  ///
+  /// In en, this message translates to:
+  /// **'Project not found'**
+  String get projectNotFound;
+
+  /// Title for project edit dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Project'**
+  String get projectEdit;
+
+  /// Toast when project update succeeds
+  ///
+  /// In en, this message translates to:
+  /// **'Project updated'**
+  String get projectUpdated;
+
+  /// Toast when project update fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update project'**
+  String get projectUpdateFailed;
+
+  /// Active project status
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get projectStatusActive;
+
+  /// Paused project status
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get projectStatusPaused;
+
+  /// Archived project status
+  ///
+  /// In en, this message translates to:
+  /// **'Archived'**
+  String get projectStatusArchived;
+
+  /// Completed project status
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get projectStatusCompleted;
+
+  /// Filter tab for all projects
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get projectFilterAll;
+
+  /// Hint for project search field
+  ///
+  /// In en, this message translates to:
+  /// **'Search projects…'**
+  String get projectSearchHint;
+
+  /// Section title for project roles
+  ///
+  /// In en, this message translates to:
+  /// **'Roles'**
+  String get projectRoles;
+
+  /// Button to add a role to project
+  ///
+  /// In en, this message translates to:
+  /// **'Add Role'**
+  String get projectAddRole;
+
+  /// Empty roles placeholder
+  ///
+  /// In en, this message translates to:
+  /// **'No roles assigned. Add roles to customize agent behavior.'**
+  String get projectNoRoles;
+
+  /// Toast when role is added
+  ///
+  /// In en, this message translates to:
+  /// **'Role added'**
+  String get projectRoleAdded;
+
+  /// Toast when role is removed
+  ///
+  /// In en, this message translates to:
+  /// **'Role removed'**
+  String get projectRoleRemoved;
+
+  /// Toast when no more roles to add
+  ///
+  /// In en, this message translates to:
+  /// **'All available roles are already added'**
+  String get projectAllRolesAdded;
+
+  /// Menu item to set default role
+  ///
+  /// In en, this message translates to:
+  /// **'Set as Default'**
+  String get projectSetDefaultRole;
+
+  /// Badge for default role
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get projectDefaultRoleBadge;
+
+  /// No description provided for @projectRoleCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} roles'**
+  String projectRoleCount(int count);
+
+  /// Tab label for project overview
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get projectTabOverview;
+
+  /// Tab label for project sessions
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions'**
+  String get projectTabSessions;
+
+  /// Tab label for project settings
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get projectTabSettings;
+
+  /// Section title for quick actions
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Actions'**
+  String get projectQuickActions;
+
+  /// Context menu item to remove session from project
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from Project'**
+  String get projectRemoveSession;
+
+  /// Toast when session is removed from project
+  ///
+  /// In en, this message translates to:
+  /// **'Session removed from project'**
+  String get projectSessionRemoved;
+
+  /// Section title for destructive actions
+  ///
+  /// In en, this message translates to:
+  /// **'Danger Zone'**
+  String get projectDangerZone;
+
+  /// Hint text for delete action
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently delete this project. Sessions will not be deleted.'**
+  String get projectDangerDeleteHint;
+
+  /// Label for template selector
+  ///
+  /// In en, this message translates to:
+  /// **'Template'**
+  String get projectTemplate;
+
+  /// Blank template name
+  ///
+  /// In en, this message translates to:
+  /// **'Blank'**
+  String get projectTemplateBlank;
+
+  /// Toast when project status changes
+  ///
+  /// In en, this message translates to:
+  /// **'Status updated'**
+  String get projectStatusChanged;
+
+  /// Tooltip to open a session
+  ///
+  /// In en, this message translates to:
+  /// **'Open Session'**
+  String get projectOpenSession;
+
+  /// Hint for session search field
+  ///
+  /// In en, this message translates to:
+  /// **'Search sessions…'**
+  String get projectSearchSessions;
+
+  /// LLM Debug nav item
+  ///
+  /// In en, this message translates to:
+  /// **'LLM Debug'**
+  String get navLlmDebug;
 }
 
 class _AppLocalizationsDelegate

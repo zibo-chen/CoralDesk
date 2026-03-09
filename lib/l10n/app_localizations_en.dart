@@ -446,6 +446,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get delete => 'Delete';
 
   @override
+  String get back => 'Back';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
   String get sessionDeleted => 'Session deleted';
 
   @override
@@ -1222,7 +1228,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get proxyScopeZeroclaw => 'All Traffic';
 
   @override
-  String get proxyScopeZeroclawDesc => 'All ZeroClaw-managed HTTP traffic';
+  String get proxyScopeZeroclawDesc => 'All CoralDesk-managed HTTP traffic';
 
   @override
   String get proxyScopeServices => 'Selected Services';
@@ -1959,4 +1965,192 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get presetBadge => 'Preset';
+
+  @override
+  String get navProjects => 'Projects';
+
+  @override
+  String get projectCreate => 'New Project';
+
+  @override
+  String get projectCreated => 'Project created';
+
+  @override
+  String get projectCreateFailed => 'Failed to create project';
+
+  @override
+  String get projectDeleted => 'Project deleted';
+
+  @override
+  String get projectDeleteTitle => 'Delete Project';
+
+  @override
+  String projectDeleteConfirm(String name) {
+    return 'Are you sure you want to delete project \"$name\"? Sessions will not be deleted.';
+  }
+
+  @override
+  String get projectEmpty => 'No projects yet';
+
+  @override
+  String get projectEmptyHint =>
+      'Create a project to organize your long-running tasks and sessions';
+
+  @override
+  String get projectName => 'Project Name';
+
+  @override
+  String get projectNameHint => 'Enter project name…';
+
+  @override
+  String get projectDescription => 'Description';
+
+  @override
+  String get projectDescriptionHint => 'Briefly describe this project…';
+
+  @override
+  String get projectType => 'Project Type';
+
+  @override
+  String get projectIcon => 'Icon';
+
+  @override
+  String get projectColor => 'Color';
+
+  @override
+  String get projectDirectory => 'Project Directory (optional)';
+
+  @override
+  String get projectDirectoryHint => 'Select or enter a local directory path…';
+
+  @override
+  String projectSessionCount(int count) {
+    return '$count sessions';
+  }
+
+  @override
+  String get projectNewSession => 'New Session';
+
+  @override
+  String get projectSessions => 'Project Sessions';
+
+  @override
+  String get projectNoSessions => 'No sessions in this project yet';
+
+  @override
+  String get projectPinnedContext => 'Pinned Context';
+
+  @override
+  String get projectContextHint =>
+      'Record project background, tech stack, key decisions here. This context is automatically injected when creating new sessions within the project.';
+
+  @override
+  String get projectContextEmpty =>
+      'No project context yet. Click edit to add background information.';
+
+  @override
+  String get projectContextSaved => 'Project context saved';
+
+  @override
+  String get projectNotFound => 'Project not found';
+
+  @override
+  String get projectEdit => 'Edit Project';
+
+  @override
+  String get projectUpdated => 'Project updated';
+
+  @override
+  String get projectUpdateFailed => 'Failed to update project';
+
+  @override
+  String get projectStatusActive => 'Active';
+
+  @override
+  String get projectStatusPaused => 'Paused';
+
+  @override
+  String get projectStatusArchived => 'Archived';
+
+  @override
+  String get projectStatusCompleted => 'Completed';
+
+  @override
+  String get projectFilterAll => 'All';
+
+  @override
+  String get projectSearchHint => 'Search projects…';
+
+  @override
+  String get projectRoles => 'Roles';
+
+  @override
+  String get projectAddRole => 'Add Role';
+
+  @override
+  String get projectNoRoles =>
+      'No roles assigned. Add roles to customize agent behavior.';
+
+  @override
+  String get projectRoleAdded => 'Role added';
+
+  @override
+  String get projectRoleRemoved => 'Role removed';
+
+  @override
+  String get projectAllRolesAdded => 'All available roles are already added';
+
+  @override
+  String get projectSetDefaultRole => 'Set as Default';
+
+  @override
+  String get projectDefaultRoleBadge => 'Default';
+
+  @override
+  String projectRoleCount(int count) {
+    return '$count roles';
+  }
+
+  @override
+  String get projectTabOverview => 'Overview';
+
+  @override
+  String get projectTabSessions => 'Sessions';
+
+  @override
+  String get projectTabSettings => 'Settings';
+
+  @override
+  String get projectQuickActions => 'Quick Actions';
+
+  @override
+  String get projectRemoveSession => 'Remove from Project';
+
+  @override
+  String get projectSessionRemoved => 'Session removed from project';
+
+  @override
+  String get projectDangerZone => 'Danger Zone';
+
+  @override
+  String get projectDangerDeleteHint =>
+      'Permanently delete this project. Sessions will not be deleted.';
+
+  @override
+  String get projectTemplate => 'Template';
+
+  @override
+  String get projectTemplateBlank => 'Blank';
+
+  @override
+  String get projectStatusChanged => 'Status updated';
+
+  @override
+  String get projectOpenSession => 'Open Session';
+
+  @override
+  String get projectSearchSessions => 'Search sessions…';
+
+  @override
+  String get navLlmDebug => 'LLM Debug';
 }

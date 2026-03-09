@@ -362,7 +362,7 @@ async fn load_embedding_api_key(config_path: &std::path::Path) -> Option<String>
         .map(String::from)
 }
 
-/// Initialize the agent runtime: load zeroclaw config from ~/.zeroclaw/config.toml.
+/// Initialize the agent runtime: load zeroclaw config from ~/.coraldesk/config.toml.
 /// Returns a status string describing what was loaded.
 pub async fn init_runtime() -> String {
     crate::logging::init_rust_logging();
@@ -394,6 +394,83 @@ pub async fn init_runtime() -> String {
             // Sync embedding_api_key to config.memory for zeroclaw to use
             if embedding_api_key.is_some() {
                 config.memory.embedding_api_key = embedding_api_key.clone();
+            }
+
+            // ── Reconcile default_provider/default_model with default_profile_id ──
+            // If a default profile is set, ensure the top-level provider/model match
+            // that profile. This prevents stale or wrong provider/model from persisting
+            // (e.g., user selected profile A but top-level still says "gemini").
+            if let Some(ref pid) = default_profile_id {
+                if let Some(profile) = config.model_providers.get(pid) {
+                    let base_url = profile
+                        .base_url
+                        .as_deref()
+                        .map(str::trim)
+                        .filter(|s| !s.is_empty());
+                    let provider_name = profile
+                        .name
+                        .as_deref()
+                        .map(str::trim)
+                        .filter(|s| !s.is_empty());
+
+                    const KNOWN_PROVIDERS: &[&str] = &[
+                        "openai",
+                        "anthropic",
+                        "google",
+                        "gemini",
+                        "azure",
+                        "ollama",
+                        "openrouter",
+                        "bedrock",
+                        "vertexai",
+                        "databricks",
+                        "mistral",
+                        "cerebras",
+                        "deepseek",
+                        "groq",
+                        "xai",
+                    ];
+
+                    let effective_provider = if let Some(url) = base_url {
+                        if let Some(name) = provider_name {
+                            let name_lower = name.to_lowercase();
+                            if KNOWN_PROVIDERS.iter().any(|p| *p == name_lower) {
+                                name.to_string()
+                            } else {
+                                format!("custom:{}", url)
+                            }
+                        } else {
+                            format!("custom:{}", url)
+                        }
+                    } else if let Some(name) = provider_name {
+                        name.to_string()
+                    } else {
+                        pid.clone()
+                    };
+
+                    let effective_model = profile.default_model.clone().unwrap_or_default();
+
+                    tracing::info!(
+                        profile_id = pid.as_str(),
+                        provider = effective_provider.as_str(),
+                        model = effective_model.as_str(),
+                        "Reconciled default provider/model from default_profile_id"
+                    );
+
+                    config.default_provider = Some(effective_provider);
+                    if !effective_model.is_empty() {
+                        config.default_model = Some(effective_model);
+                    }
+
+                    if let Some(ref key) = profile.api_key {
+                        if !key.trim().is_empty() {
+                            config.api_key = Some(key.trim().to_string());
+                        }
+                    }
+                    if let Some(url) = base_url {
+                        config.api_url = Some(url.to_string());
+                    }
+                }
             }
 
             // Update global config
@@ -479,6 +556,72 @@ pub async fn reload_config_from_disk() -> String {
             // Sync embedding_api_key to config.memory for zeroclaw to use
             if embedding_api_key.is_some() {
                 config.memory.embedding_api_key = embedding_api_key.clone();
+            }
+
+            // ── Reconcile default_provider/default_model with default_profile_id ──
+            if let Some(ref pid) = default_profile_id {
+                if let Some(profile) = config.model_providers.get(pid) {
+                    let base_url = profile
+                        .base_url
+                        .as_deref()
+                        .map(str::trim)
+                        .filter(|s| !s.is_empty());
+                    let provider_name = profile
+                        .name
+                        .as_deref()
+                        .map(str::trim)
+                        .filter(|s| !s.is_empty());
+
+                    const KNOWN_PROVIDERS: &[&str] = &[
+                        "openai",
+                        "anthropic",
+                        "google",
+                        "gemini",
+                        "azure",
+                        "ollama",
+                        "openrouter",
+                        "bedrock",
+                        "vertexai",
+                        "databricks",
+                        "mistral",
+                        "cerebras",
+                        "deepseek",
+                        "groq",
+                        "xai",
+                    ];
+
+                    let effective_provider = if let Some(url) = base_url {
+                        if let Some(name) = provider_name {
+                            let name_lower = name.to_lowercase();
+                            if KNOWN_PROVIDERS.iter().any(|p| *p == name_lower) {
+                                name.to_string()
+                            } else {
+                                format!("custom:{}", url)
+                            }
+                        } else {
+                            format!("custom:{}", url)
+                        }
+                    } else if let Some(name) = provider_name {
+                        name.to_string()
+                    } else {
+                        pid.clone()
+                    };
+
+                    let effective_model = profile.default_model.clone().unwrap_or_default();
+
+                    config.default_provider = Some(effective_provider);
+                    if !effective_model.is_empty() {
+                        config.default_model = Some(effective_model);
+                    }
+                    if let Some(ref key) = profile.api_key {
+                        if !key.trim().is_empty() {
+                            config.api_key = Some(key.trim().to_string());
+                        }
+                    }
+                    if let Some(url) = base_url {
+                        config.api_url = Some(url.to_string());
+                    }
+                }
             }
 
             // Update global config
@@ -583,7 +726,7 @@ pub async fn update_config(
     "ok".into()
 }
 
-/// Persist current config to disk (~/.zeroclaw/config.toml).
+/// Persist current config to disk (~/.coraldesk/config.toml).
 /// Reads the existing file, merges relevant fields, and writes back.
 pub async fn save_config_to_disk() -> String {
     let cs = config_state().read().await;
@@ -1301,6 +1444,20 @@ async fn ensure_session_agent(session_id: &str) -> Result<Arc<TokioMutex<Session
     // Check if this session is bound to an agent workspace
     let agent_binding = super::agent_workspace_api::get_binding_for_session(session_id).await;
 
+    // 6a. Check if this session belongs to a project and inject project context
+    let session_project_id = super::project_api::get_session_project(session_id.to_string()).await;
+    if let Some(ref proj_id) = session_project_id {
+        if let Some(project) = super::project_api::get_project(proj_id.clone()).await {
+            // Inject project directory into allowed_roots
+            if !project.project_dir.is_empty() {
+                let proj_dir = project.project_dir.clone();
+                if !config.autonomy.allowed_roots.contains(&proj_dir) {
+                    config.autonomy.allowed_roots.push(proj_dir);
+                }
+            }
+        }
+    }
+
     let session_workspace = if let Some(ref ws_id) = agent_binding {
         // Use agent workspace directory — independent identity/personality
         if let Err(e) =
@@ -1310,7 +1467,7 @@ async fn ensure_session_agent(session_id: &str) -> Result<Arc<TokioMutex<Session
             // Fall back to default session workspace
             let fallback = dirs::home_dir()
                 .unwrap_or_default()
-                .join(".zeroclaw")
+                .join(".coraldesk")
                 .join("workspace")
                 .join("session")
                 .join(session_id);
@@ -1324,7 +1481,7 @@ async fn ensure_session_agent(session_id: &str) -> Result<Arc<TokioMutex<Session
         // Default: session-specific workspace
         let ws = dirs::home_dir()
             .unwrap_or_default()
-            .join(".zeroclaw")
+            .join(".coraldesk")
             .join("workspace")
             .join("session")
             .join(session_id);
@@ -1336,7 +1493,7 @@ async fn ensure_session_agent(session_id: &str) -> Result<Arc<TokioMutex<Session
     // Symlink shared memory directory
     let global_memory_dir = dirs::home_dir()
         .unwrap_or_default()
-        .join(".zeroclaw")
+        .join(".coraldesk")
         .join("workspace")
         .join("memory");
     let session_memory_link = session_workspace.join("memory");
@@ -2331,7 +2488,7 @@ pub struct SessionFileEntry {
 pub fn get_session_workspace_dir(session_id: String) -> String {
     dirs::home_dir()
         .unwrap_or_default()
-        .join(".zeroclaw")
+        .join(".coraldesk")
         .join("workspace")
         .join("session")
         .join(&session_id)
@@ -2343,7 +2500,7 @@ pub fn get_session_workspace_dir(session_id: String) -> String {
 pub fn list_session_workspace_files(session_id: String) -> Vec<SessionFileEntry> {
     let dir = dirs::home_dir()
         .unwrap_or_default()
-        .join(".zeroclaw")
+        .join(".coraldesk")
         .join("workspace")
         .join("session")
         .join(&session_id);

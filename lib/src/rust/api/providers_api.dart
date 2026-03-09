@@ -50,7 +50,7 @@ int modelProviderProfileCount() =>
     RustLib.instance.api.crateApiProvidersApiModelProviderProfileCount();
 
 /// A configured model provider profile exposed to Flutter UI.
-/// Maps to zeroclaw's `[model_providers.<id>]` config section.
+/// Maps to CoralDesk's `[model_providers.<id>]` config section.
 class ModelProviderProfileDto {
   /// Unique profile id (config key)
   final String id;

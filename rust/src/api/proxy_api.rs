@@ -7,7 +7,7 @@ use flutter_rust_bridge::frb;
 pub enum ProxyScopeDto {
     /// Use system environment proxy variables only.
     Environment,
-    /// Apply proxy to all ZeroClaw-managed HTTP traffic (default).
+    /// Apply proxy to all CoralDesk-managed HTTP traffic (default).
     Zeroclaw,
     /// Apply proxy only to explicitly listed service selectors.
     Services,
@@ -162,7 +162,7 @@ pub async fn update_proxy_config(config: ProxyConfigDto) -> String {
     "ok".into()
 }
 
-/// Save the current proxy configuration to disk (~/.zeroclaw/config.toml).
+/// Save the current proxy configuration to disk (~/.coraldesk/config.toml).
 /// This is called separately from update so the user can test settings
 /// before persisting.
 pub async fn save_proxy_to_disk() -> String {

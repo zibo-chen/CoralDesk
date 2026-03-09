@@ -1,12 +1,16 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:coraldesk/models/models.dart';
+import 'package:coraldesk/providers/agent_workspace_provider.dart';
 import 'package:coraldesk/providers/chat_provider.dart';
+import 'package:coraldesk/providers/project_provider.dart';
 import 'package:coraldesk/providers/task_plan_provider.dart';
 import 'package:coraldesk/src/rust/api/agent_api.dart' as agent_api;
 import 'package:coraldesk/src/rust/api/sessions_api.dart' as sessions_api;
+import 'package:coraldesk/src/rust/api/project_api.dart' as project_api;
 
 /// Riverpod provider for [ChatController].
 final chatControllerProvider = Provider<ChatController>((ref) {
@@ -77,6 +81,109 @@ class ChatController {
     return id;
   }
 
+  /// Create an ephemeral (temporary) session that won't be persisted.
+  /// Ideal for quick chats that don't need to be saved.
+  String createEphemeralSession() {
+    _ref.read(messagesProvider.notifier).syncActiveToCache();
+    final id = _ref
+        .read(sessionsProvider.notifier)
+        .createSession(ephemeral: true);
+    _ref.read(activeSessionIdProvider.notifier).state = id;
+    _ref.read(messagesProvider.notifier).switchToSession(id);
+    return id;
+  }
+
+  /// Upgrade an existing session (or ephemeral session) into a project.
+  /// Creates a new project and moves the session into it.
+  /// Returns the new project ID, or null on failure.
+  Future<String?> upgradeSessionToProject({
+    required String sessionId,
+    required String projectName,
+    String description = '',
+    String icon = '📁',
+    ProjectType projectType = ProjectType.general,
+  }) async {
+    // Create the project
+    final projectId = await _ref
+        .read(projectsProvider.notifier)
+        .createProject(
+          name: projectName,
+          description: description,
+          icon: icon,
+          projectType: projectType,
+        );
+    if (projectId == null) return null;
+
+    // Add the session to the project
+    await _ref.read(projectsProvider.notifier).addSession(projectId, sessionId);
+
+    // Update the session's projectId and mark it non-ephemeral
+    _ref
+        .read(sessionsProvider.notifier)
+        .upgradeSession(sessionId, projectId: projectId);
+
+    // Persist metadata change to Rust store
+    await sessions_api.updateSessionMetadata(
+      sessionId: sessionId,
+      projectId: projectId,
+      ephemeral: 0, // force non-ephemeral
+      agentBinding: '',
+    );
+
+    // Persist the session now that it belongs to a project
+    await persistSession(sessionId);
+
+    return projectId;
+  }
+
+  /// Create a new session within a project and switch to it.
+  /// The session is tagged with [projectId] and will automatically
+  /// inject the project's pinned context into the system prompt.
+  /// If [defaultRoleId] is provided and non-empty, the new session
+  /// is bound to that workspace so it reuses the same agent identity.
+  String createSessionInProject(String projectId, {String defaultRoleId = ''}) {
+    _ref.read(messagesProvider.notifier).syncActiveToCache();
+    final id = _ref
+        .read(sessionsProvider.notifier)
+        .createSession(projectId: projectId);
+    _ref.read(activeSessionIdProvider.notifier).state = id;
+    _ref.read(messagesProvider.notifier).switchToSession(id);
+
+    // Bind session to the project's default role so all sessions
+    // within the project use the same workspace / identity.
+    if (defaultRoleId.isNotEmpty) {
+      _ref.read(sessionAgentBindingProvider.notifier).bind(id, defaultRoleId);
+    }
+
+    // Inject project context as the first system message
+    _injectProjectContext(id, projectId);
+
+    return id;
+  }
+
+  /// Inject the project's pinned context as a system message at the
+  /// beginning of a new session.
+  Future<void> _injectProjectContext(String sessionId, String projectId) async {
+    try {
+      final pinnedContext = await project_api.getProjectPinnedContext(
+        projectId: projectId,
+      );
+      if (pinnedContext.isNotEmpty) {
+        final contextMsg = ChatMessage(
+          id: 'msg_project_ctx_${DateTime.now().millisecondsSinceEpoch}',
+          role: 'system',
+          content: '[Project Context]\n$pinnedContext',
+          timestamp: DateTime.now(),
+        );
+        _ref
+            .read(messagesProvider.notifier)
+            .addMessageToSession(sessionId, contextMsg);
+      }
+    } catch (e) {
+      debugPrint('Failed to inject project context: $e');
+    }
+  }
+
   /// Switch to an existing session.  Handles cache save/load, Rust-side
   /// context switch, and loading persisted messages when the cache is empty.
   Future<void> switchSession(String sessionId) async {
@@ -114,6 +221,11 @@ class ChatController {
                   timestamp: DateTime.fromMillisecondsSinceEpoch(
                     (m.timestamp * 1000).toInt(),
                   ),
+                  toolCalls: _deserializeToolCalls(m.toolCallsJson),
+                  parts: _deserializeParts(m.partsJson),
+                  agentRole: m.agentRole.isEmpty ? null : m.agentRole,
+                  agentColor: m.agentColor.isEmpty ? null : m.agentColor,
+                  agentIcon: m.agentIcon.isEmpty ? null : m.agentIcon,
                 ),
               )
               .toList();
@@ -138,6 +250,8 @@ class ChatController {
       _ref.read(activeSessionIdProvider.notifier).state = null;
       agent_api.clearSession();
     }
+    // Persist deletion to disk so it survives app restart
+    sessions_api.deleteSession(sessionId: sessionId);
   }
 
   // ── Agent message send ─────────────────────────────────
@@ -632,11 +746,9 @@ class ChatController {
   // ── Persistence ────────────────────────────────────────
 
   /// Persist a session's messages to Rust-side storage.
+  /// Ephemeral sessions are skipped.
   Future<void> persistSession(String sessionId) async {
     try {
-      final messages = _ref
-          .read(messagesProvider.notifier)
-          .getSessionMessages(sessionId);
       final sessions = _ref.read(sessionsProvider);
       final session = sessions.firstWhere(
         (s) => s.id == sessionId,
@@ -648,6 +760,13 @@ class ChatController {
         ),
       );
 
+      // Skip persistence for ephemeral sessions
+      if (session.ephemeral) return;
+
+      final messages = _ref
+          .read(messagesProvider.notifier)
+          .getSessionMessages(sessionId);
+
       final sessionMessages = messages
           .map(
             (m) => sessions_api.SessionMessage(
@@ -655,17 +774,170 @@ class ChatController {
               role: m.role,
               content: m.content,
               timestamp: m.timestamp.millisecondsSinceEpoch ~/ 1000,
+              toolCallsJson: _serializeToolCalls(m.toolCalls),
+              partsJson: _serializeParts(m.parts),
+              agentRole: m.agentRole ?? '',
+              agentColor: m.agentColor ?? '',
+              agentIcon: m.agentIcon ?? '',
             ),
           )
           .toList();
+
+      // Get agent binding for this session
+      final binding = _ref
+          .read(sessionAgentBindingProvider.notifier)
+          .getBinding(sessionId);
 
       await sessions_api.saveSession(
         sessionId: sessionId,
         title: session.title,
         messages: sessionMessages,
+        projectId: session.projectId ?? '',
+        ephemeral: session.ephemeral,
+        agentBinding: binding ?? '',
       );
     } catch (e) {
       debugPrint('Failed to persist session: $e');
+    }
+  }
+
+  // ── Serialization helpers ──────────────────────────────────
+
+  /// Serialize tool calls to JSON string for persistence.
+  static String _serializeToolCalls(List<ToolCallInfo>? toolCalls) {
+    if (toolCalls == null || toolCalls.isEmpty) return '';
+    try {
+      final list = toolCalls
+          .map(
+            (tc) => {
+              'id': tc.id,
+              'name': tc.name,
+              'arguments': tc.arguments,
+              'result': tc.result,
+              'success': tc.success,
+              'status': tc.status.name,
+            },
+          )
+          .toList();
+      return jsonEncode(list);
+    } catch (_) {
+      return '';
+    }
+  }
+
+  /// Deserialize tool calls from JSON string.
+  static List<ToolCallInfo>? _deserializeToolCalls(String json) {
+    if (json.isEmpty) return null;
+    try {
+      final list = jsonDecode(json) as List;
+      final toolCalls = list
+          .map(
+            (item) => ToolCallInfo(
+              id: item['id'] ?? '',
+              name: item['name'] ?? '',
+              arguments: item['arguments'] ?? '',
+              result: item['result'],
+              success: item['success'],
+              status: ToolCallStatus.values.firstWhere(
+                (s) => s.name == item['status'],
+                orElse: () => ToolCallStatus.completed,
+              ),
+            ),
+          )
+          .toList();
+      return toolCalls.isNotEmpty ? toolCalls : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Serialize message parts to JSON string for persistence.
+  static String _serializeParts(List<MessagePart>? parts) {
+    if (parts == null || parts.isEmpty) return '';
+    try {
+      final list = parts.map((p) {
+        if (p is TextPart) {
+          return {'type': 'text', 'text': p.text};
+        } else if (p is ToolCallPart) {
+          return {
+            'type': 'tool_call',
+            'id': p.toolCall.id,
+            'name': p.toolCall.name,
+            'arguments': p.toolCall.arguments,
+            'result': p.toolCall.result,
+            'success': p.toolCall.success,
+            'status': p.toolCall.status.name,
+          };
+        } else if (p is RoleHeaderPart) {
+          return {
+            'type': 'role_header',
+            'roleName': p.roleName,
+            'roleColor': p.roleColor,
+            'roleIcon': p.roleIcon,
+          };
+        } else if (p is RoleHandoffPart) {
+          return {
+            'type': 'role_handoff',
+            'fromRole': p.fromRole,
+            'toRole': p.toRole,
+            'summary': p.summary,
+          };
+        }
+        return {'type': 'unknown'};
+      }).toList();
+      return jsonEncode(list);
+    } catch (_) {
+      return '';
+    }
+  }
+
+  /// Deserialize message parts from JSON string.
+  static List<MessagePart>? _deserializeParts(String json) {
+    if (json.isEmpty) return null;
+    try {
+      final list = jsonDecode(json) as List;
+      final parts = <MessagePart>[];
+      for (final item in list) {
+        switch (item['type']) {
+          case 'text':
+            parts.add(TextPart(item['text'] ?? ''));
+          case 'tool_call':
+            parts.add(
+              ToolCallPart(
+                ToolCallInfo(
+                  id: item['id'] ?? '',
+                  name: item['name'] ?? '',
+                  arguments: item['arguments'] ?? '',
+                  result: item['result'],
+                  success: item['success'],
+                  status: ToolCallStatus.values.firstWhere(
+                    (s) => s.name == item['status'],
+                    orElse: () => ToolCallStatus.completed,
+                  ),
+                ),
+              ),
+            );
+          case 'role_header':
+            parts.add(
+              RoleHeaderPart(
+                roleName: item['roleName'] ?? '',
+                roleColor: item['roleColor'] ?? '',
+                roleIcon: item['roleIcon'] ?? '',
+              ),
+            );
+          case 'role_handoff':
+            parts.add(
+              RoleHandoffPart(
+                fromRole: item['fromRole'] ?? '',
+                toRole: item['toRole'] ?? '',
+                summary: item['summary'] ?? '',
+              ),
+            );
+        }
+      }
+      return parts.isNotEmpty ? parts : null;
+    } catch (_) {
+      return null;
     }
   }
 }

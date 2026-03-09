@@ -98,7 +98,7 @@ class DelegateAgentDto {
   /// Whether this is a built-in preset role
   final bool isPreset;
 
-  /// Whether this agent can delegate to other agents (nested delegation)
+  /// Whether this sub-agent can delegate to other sub-agents
   final bool allowNestedDelegate;
 
   const DelegateAgentDto({

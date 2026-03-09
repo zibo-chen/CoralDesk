@@ -6,8 +6,8 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `agent_workspace_base_dir`, `get_binding_for_session`, `persist_store`, `resolve_workspace_config`, `session_bindings`, `store_file_path`, `workspace_store`, `write_identity_file`
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `AgentWorkspaceStore`, `PersistedAgentWorkspace`
+// These functions are ignored because they are not marked as `pub`: `agent_workspace_base_dir`, `get_binding_for_session`, `get_workspace_identity`, `persist_store`, `resolve_workspace_config`, `session_bindings_mut`, `session_bindings`, `store_file_path`, `workspace_store`, `write_identity_file`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `AgentWorkspaceStore`, `PersistedAgentWorkspace`, `WorkspaceIdentity`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`
 // These functions are ignored (category: IgnoreBecauseOwnerTyShouldIgnore): `default`
 
@@ -50,6 +50,7 @@ Future<String> getAgentWorkspaceDir({required String workspaceId}) => RustLib
 
 /// Bind a session to an agent workspace. The next time the session's agent
 /// is created, it will use this workspace's identity files.
+/// Also persists the binding to the session store for restart recovery.
 Future<String> bindSessionToAgent({
   required String sessionId,
   required String workspaceId,

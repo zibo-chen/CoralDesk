@@ -30,10 +30,16 @@ Future<String> saveSession({
   required String sessionId,
   required String title,
   required List<SessionMessage> messages,
+  required String projectId,
+  required bool ephemeral,
+  required String agentBinding,
 }) => RustLib.instance.api.crateApiSessionsApiSaveSession(
   sessionId: sessionId,
   title: title,
   messages: messages,
+  projectId: projectId,
+  ephemeral: ephemeral,
+  agentBinding: agentBinding,
 );
 
 /// Delete a session
@@ -47,6 +53,24 @@ Future<String> renameSession({
 }) => RustLib.instance.api.crateApiSessionsApiRenameSession(
   sessionId: sessionId,
   newTitle: newTitle,
+);
+
+/// Update session metadata (project_id, ephemeral, agent_binding) without
+/// touching messages. Useful when upgrading a session to a project or
+/// changing the bound agent workspace.
+/// Pass empty string for project_id or agent_binding to leave unchanged.
+/// Use the special value \"__CLEAR__\" to explicitly clear a field.
+/// For ephemeral: -1 = no change, 0 = set false, 1 = set true.
+Future<String> updateSessionMetadata({
+  required String sessionId,
+  required String projectId,
+  required int ephemeral,
+  required String agentBinding,
+}) => RustLib.instance.api.crateApiSessionsApiUpdateSessionMetadata(
+  sessionId: sessionId,
+  projectId: projectId,
+  ephemeral: ephemeral,
+  agentBinding: agentBinding,
 );
 
 /// Get session statistics
@@ -139,16 +163,44 @@ class SessionMessage {
   final String content;
   final PlatformInt64 timestamp;
 
+  /// JSON-serialized tool calls (empty string = none)
+  final String toolCallsJson;
+
+  /// JSON-serialized message parts (empty string = none)
+  final String partsJson;
+
+  /// Agent role name for multi-agent sessions (empty = none)
+  final String agentRole;
+
+  /// Hex color for the agent role (empty = none)
+  final String agentColor;
+
+  /// Emoji icon for the agent role (empty = none)
+  final String agentIcon;
+
   const SessionMessage({
     required this.id,
     required this.role,
     required this.content,
     required this.timestamp,
+    required this.toolCallsJson,
+    required this.partsJson,
+    required this.agentRole,
+    required this.agentColor,
+    required this.agentIcon,
   });
 
   @override
   int get hashCode =>
-      id.hashCode ^ role.hashCode ^ content.hashCode ^ timestamp.hashCode;
+      id.hashCode ^
+      role.hashCode ^
+      content.hashCode ^
+      timestamp.hashCode ^
+      toolCallsJson.hashCode ^
+      partsJson.hashCode ^
+      agentRole.hashCode ^
+      agentColor.hashCode ^
+      agentIcon.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -158,7 +210,12 @@ class SessionMessage {
           id == other.id &&
           role == other.role &&
           content == other.content &&
-          timestamp == other.timestamp;
+          timestamp == other.timestamp &&
+          toolCallsJson == other.toolCallsJson &&
+          partsJson == other.partsJson &&
+          agentRole == other.agentRole &&
+          agentColor == other.agentColor &&
+          agentIcon == other.agentIcon;
 }
 
 /// Session statistics
@@ -199,6 +256,15 @@ class SessionSummary {
   final String lastMessagePreview;
   final List<String> attachedFiles;
 
+  /// Project this session belongs to (empty = free/independent)
+  final String projectId;
+
+  /// Whether this session is ephemeral (should not be persisted)
+  final bool ephemeral;
+
+  /// Agent workspace ID bound to this session (empty = none)
+  final String agentBinding;
+
   const SessionSummary({
     required this.id,
     required this.title,
@@ -207,6 +273,9 @@ class SessionSummary {
     required this.messageCount,
     required this.lastMessagePreview,
     required this.attachedFiles,
+    required this.projectId,
+    required this.ephemeral,
+    required this.agentBinding,
   });
 
   @override
@@ -217,7 +286,10 @@ class SessionSummary {
       updatedAt.hashCode ^
       messageCount.hashCode ^
       lastMessagePreview.hashCode ^
-      attachedFiles.hashCode;
+      attachedFiles.hashCode ^
+      projectId.hashCode ^
+      ephemeral.hashCode ^
+      agentBinding.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -230,5 +302,8 @@ class SessionSummary {
           updatedAt == other.updatedAt &&
           messageCount == other.messageCount &&
           lastMessagePreview == other.lastMessagePreview &&
-          attachedFiles == other.attachedFiles;
+          attachedFiles == other.attachedFiles &&
+          projectId == other.projectId &&
+          ephemeral == other.ephemeral &&
+          agentBinding == other.agentBinding;
 }

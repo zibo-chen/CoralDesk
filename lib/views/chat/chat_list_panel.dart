@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:coraldesk/constants.dart';
 import 'package:coraldesk/l10n/app_localizations.dart';
+import 'package:coraldesk/models/chat_session.dart';
 import 'package:coraldesk/providers/providers.dart';
 import 'package:coraldesk/theme/app_theme.dart';
 
@@ -64,29 +65,52 @@ class ChatListPanel extends ConsumerWidget {
             ),
           ),
 
-          // New Chat button
+          // New Chat button + Quick Chat
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  ref.read(chatControllerProvider).createSession();
-                },
-                icon: const Icon(Icons.add, size: 18),
-                label: Text(
-                  l10n.newChat,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      ref.read(chatControllerProvider).createSession();
+                    },
+                    icon: const Icon(Icons.add, size: 18),
+                    label: Text(
+                      l10n.newChat,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: 'Quick Chat (not saved)',
+                  child: ElevatedButton(
+                    onPressed: () {
+                      ref.read(chatControllerProvider).createEphemeralSession();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: c.cardBg,
+                      foregroundColor: c.textSecondary,
+                      padding: const EdgeInsets.all(12),
+                      minimumSize: const Size(44, 44),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        side: BorderSide(color: c.inputBorder),
+                      ),
+                    ),
+                    child: const Icon(Icons.bolt, size: 18),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
@@ -115,9 +139,51 @@ class ChatListPanel extends ConsumerWidget {
                               .read(chatControllerProvider)
                               .deleteSession(session.id);
                         },
+                        onUpgradeToProject: () async {
+                          final name = await _showUpgradeDialog(
+                            context,
+                            session.title,
+                          );
+                          if (name != null && name.isNotEmpty) {
+                            await ref
+                                .read(chatControllerProvider)
+                                .upgradeSessionToProject(
+                                  sessionId: session.id,
+                                  projectName: name,
+                                );
+                          }
+                        },
                       );
                     },
                   ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<String?> _showUpgradeDialog(BuildContext ctx, String defaultName) {
+    final controller = TextEditingController(text: defaultName);
+    return showDialog<String>(
+      context: ctx,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Save as Project'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Project Name',
+            hintText: 'Enter a project name',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogCtx, controller.text.trim()),
+            child: const Text('Create'),
           ),
         ],
       ),
@@ -147,16 +213,18 @@ class ChatListPanel extends ConsumerWidget {
 }
 
 class _ChatSessionTile extends StatefulWidget {
-  final dynamic session;
+  final ChatSession session;
   final bool isActive;
   final VoidCallback onTap;
   final VoidCallback onDelete;
+  final VoidCallback? onUpgradeToProject;
 
   const _ChatSessionTile({
     required this.session,
     required this.isActive,
     required this.onTap,
     required this.onDelete,
+    this.onUpgradeToProject,
   });
 
   @override
@@ -167,58 +235,111 @@ class _ChatSessionTileState extends State<_ChatSessionTile> {
   CoralDeskColors get c => CoralDeskColors.of(context);
   bool _hovering = false;
 
+  void _showContextMenu(Offset position) {
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        position & const Size(1, 1),
+        Offset.zero & overlay.size,
+      ),
+      items: [
+        if (widget.session.ephemeral == true ||
+            (widget.session.projectId == null ||
+                (widget.session.projectId?.isEmpty ?? true)))
+          const PopupMenuItem(
+            value: 'upgrade',
+            child: Row(
+              children: [
+                Icon(Icons.rocket_launch, size: 16),
+                SizedBox(width: 8),
+                Text('Save as Project'),
+              ],
+            ),
+          ),
+        const PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete_outline, size: 16),
+              SizedBox(width: 8),
+              Text('Delete'),
+            ],
+          ),
+        ),
+      ],
+    ).then((value) {
+      if (value == 'upgrade' && widget.onUpgradeToProject != null) {
+        widget.onUpgradeToProject!();
+      } else if (value == 'delete') {
+        widget.onDelete();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bool isEphemeral = widget.session.ephemeral == true;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 2),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          child: InkWell(
+      child: GestureDetector(
+        onSecondaryTapUp: (details) => _showContextMenu(details.globalPosition),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 2),
+          child: Material(
+            color: Colors.transparent,
             borderRadius: BorderRadius.circular(8),
-            onTap: widget.onTap,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                color: widget.isActive ? c.sidebarActiveBg : Colors.transparent,
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.chat_bubble_outline,
-                    size: 16,
-                    color: widget.isActive
-                        ? c.sidebarActiveText
-                        : c.textSecondary,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      widget.session.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: widget.isActive
-                            ? c.sidebarActiveText
-                            : c.textPrimary,
-                        fontWeight: widget.isActive
-                            ? FontWeight.w600
-                            : FontWeight.w400,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: widget.onTap,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: widget.isActive
+                      ? c.sidebarActiveBg
+                      : Colors.transparent,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isEphemeral ? Icons.bolt : Icons.chat_bubble_outline,
+                      size: 16,
+                      color: isEphemeral
+                          ? Colors.amber
+                          : widget.isActive
+                          ? c.sidebarActiveText
+                          : c.textSecondary,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        widget.session.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: widget.isActive
+                              ? c.sidebarActiveText
+                              : c.textPrimary,
+                          fontWeight: widget.isActive
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
                       ),
                     ),
-                  ),
-                  if (_hovering)
-                    InkWell(
-                      onTap: widget.onDelete,
-                      borderRadius: BorderRadius.circular(4),
-                      child: Icon(Icons.close, size: 14, color: c.textHint),
-                    ),
-                ],
+                    if (_hovering)
+                      InkWell(
+                        onTap: widget.onDelete,
+                        borderRadius: BorderRadius.circular(4),
+                        child: Icon(Icons.close, size: 14, color: c.textHint),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),

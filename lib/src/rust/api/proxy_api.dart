@@ -19,7 +19,7 @@ Future<ProxyConfigDto> getProxyConfig() =>
 Future<String> updateProxyConfig({required ProxyConfigDto config}) =>
     RustLib.instance.api.crateApiProxyApiUpdateProxyConfig(config: config);
 
-/// Save the current proxy configuration to disk (~/.zeroclaw/config.toml).
+/// Save the current proxy configuration to disk (~/.coraldesk/config.toml).
 /// This is called separately from update so the user can test settings
 /// before persisting.
 Future<String> saveProxyToDisk() =>
@@ -31,7 +31,7 @@ Future<String> resetProxyConfig() =>
     RustLib.instance.api.crateApiProxyApiResetProxyConfig();
 
 /// Get the current runtime proxy configuration status.
-/// This returns the actual state from zeroclaw runtime, useful for debugging sync issues.
+/// This returns the actual state from CoralDesk runtime, useful for debugging sync issues.
 ProxyConfigDto getRuntimeProxyStatus() =>
     RustLib.instance.api.crateApiProxyApiGetRuntimeProxyStatus();
 
@@ -109,7 +109,7 @@ enum ProxyScopeDto {
   /// Use system environment proxy variables only.
   environment,
 
-  /// Apply proxy to all ZeroClaw-managed HTTP traffic (default).
+  /// Apply proxy to all CoralDesk-managed HTTP traffic (default).
   zeroclaw,
 
   /// Apply proxy only to explicitly listed service selectors.

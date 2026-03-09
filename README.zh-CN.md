@@ -140,12 +140,12 @@ flutter pub get
 flutter_rust_bridge_codegen generate
 ```
 
-### 4. 配置 ZeroClaw
+### 4. 配置 CoralDesk
 
-CoralDesk 启动时从 `~/.zeroclaw/config.toml` 读取配置，若文件不存在请手动创建：
+CoralDesk 启动时从 `~/.coraldesk/config.toml` 读取配置，若文件不存在请手动创建：
 
 ```toml
-# ~/.zeroclaw/config.toml
+# ~/.coraldesk/config.toml
 provider     = "openrouter"
 model        = "anthropic/claude-sonnet-4-20250514"
 api_key      = "sk-or-..."

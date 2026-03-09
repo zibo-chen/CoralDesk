@@ -44,7 +44,7 @@ Future<String> respondToToolApprovalById({
   decision: decision,
 );
 
-/// Initialize the agent runtime: load zeroclaw config from ~/.zeroclaw/config.toml.
+/// Initialize the agent runtime: load CoralDesk config from ~/.coraldesk/config.toml.
 /// Returns a status string describing what was loaded.
 Future<String> initRuntime() =>
     RustLib.instance.api.crateApiAgentApiInitRuntime();
@@ -76,7 +76,7 @@ Future<String> updateConfig({
   temperature: temperature,
 );
 
-/// Persist current config to disk (~/.zeroclaw/config.toml).
+/// Persist current config to disk (~/.coraldesk/config.toml).
 /// Reads the existing file, merges relevant fields, and writes back.
 Future<String> saveConfigToDisk() =>
     RustLib.instance.api.crateApiAgentApiSaveConfigToDisk();
@@ -113,7 +113,7 @@ Future<void> removeSessionAgent({required String sessionId}) => RustLib
     .api
     .crateApiAgentApiRemoveSessionAgent(sessionId: sessionId);
 
-/// Send a message to the zeroclaw agent and get response events.
+/// Send a message to the CoralDesk agent and get response events.
 /// This calls the real LLM provider and executes tools as needed.
 /// Each session has its own agent, allowing concurrent requests.
 Future<List<AgentEvent>> sendMessage({
@@ -126,7 +126,7 @@ Future<List<AgentEvent>> sendMessage({
 
 /// Streaming version: sends agent events in real-time through a StreamSink.
 ///
-/// Uses zeroclaw's `Agent::turn_streaming()` which delegates to the internal
+/// Uses CoralDesk's `Agent::turn_streaming()` which delegates to the internal
 /// `run_tool_call_loop` with an `on_delta` channel.  Tool-start / tool-end /
 /// thinking events are streamed **as they happen**, not after the full turn
 /// completes.
@@ -224,7 +224,8 @@ sealed class AgentEvent with _$AgentEvent {
     required String roleIcon,
   }) = AgentEvent_RoleSwitch;
 
-  /// A role has finished its task and is handing off to the next role.
+  /// A delegate agent role has finished and handed off to another role.
+  /// Emitted when a sub-agent completes and suggests the next agent/task.
   const factory AgentEvent.roleHandoff({
     required String fromRole,
     required String toRole,

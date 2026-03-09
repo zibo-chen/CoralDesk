@@ -19,6 +19,8 @@ pub struct CronJobDto {
     pub model: String,
     pub enabled: bool,
     pub delete_after_run: bool,
+    /// Project this cron job belongs to (empty = global)
+    pub project_id: String,
     pub created_at: i64,
     pub next_run: i64,
     pub last_run: Option<i64>,
@@ -51,7 +53,7 @@ pub struct CronConfigDto {
 // ──────────────────── DB Helpers ──────────────────────────
 
 fn db_path() -> PathBuf {
-    let state_dir = dirs::home_dir().unwrap_or_default().join(".zeroclaw");
+    let state_dir = dirs::home_dir().unwrap_or_default().join(".coraldesk");
     state_dir.join("workspace").join("cron").join("jobs.db")
 }
 
@@ -103,6 +105,12 @@ fn open_db() -> Result<Connection, String> {
     // Migration: add target_session_id column (ignore error if column already exists)
     let _ = conn.execute(
         "ALTER TABLE cron_jobs ADD COLUMN target_session_id TEXT",
+        [],
+    );
+
+    // Migration: add project_id column for project-scoped cron jobs
+    let _ = conn.execute(
+        "ALTER TABLE cron_jobs ADD COLUMN project_id TEXT DEFAULT ''",
         [],
     );
 
@@ -181,6 +189,7 @@ fn row_to_dto(row: &rusqlite::Row<'_>) -> Result<CronJobDto, rusqlite::Error> {
         last_status: row.get::<_, Option<String>>(15)?.unwrap_or_default(),
         last_output: row.get::<_, Option<String>>(16)?.unwrap_or_default(),
         target_session_id: row.get::<_, Option<String>>(17)?.unwrap_or_default(),
+        project_id: row.get::<_, Option<String>>(18)?.unwrap_or_default(),
     })
 }
 
@@ -233,7 +242,8 @@ pub fn list_cron_jobs() -> Vec<CronJobDto> {
 
     let sql = "SELECT id, expression, command, schedule, job_type, prompt, name, \
                session_target, model, enabled, delivery, delete_after_run, \
-               created_at, next_run, last_run, last_status, last_output, target_session_id \
+               created_at, next_run, last_run, last_status, last_output, target_session_id, \
+               project_id \
                FROM cron_jobs ORDER BY next_run ASC";
 
     let mut stmt = match conn.prepare(sql) {
@@ -456,7 +466,8 @@ pub fn update_cron_job(
     // Read current job first
     let sql = "SELECT id, expression, command, schedule, job_type, prompt, name, \
                session_target, model, enabled, delivery, delete_after_run, \
-               created_at, next_run, last_run, last_status, last_output, target_session_id \
+               created_at, next_run, last_run, last_status, last_output, target_session_id, \
+               project_id \
                FROM cron_jobs WHERE id = ?1";
     let current = conn.query_row(sql, params![job_id], |row| row_to_dto(row));
     let current = match current {
@@ -577,7 +588,8 @@ pub async fn run_cron_job_now(job_id: String) -> String {
 
     let sql = "SELECT id, expression, command, schedule, job_type, prompt, name, \
                session_target, model, enabled, delivery, delete_after_run, \
-               created_at, next_run, last_run, last_status, last_output, target_session_id \
+               created_at, next_run, last_run, last_status, last_output, target_session_id, \
+               project_id \
                FROM cron_jobs WHERE id = ?1";
     let job = match conn.query_row(sql, params![job_id], |row| row_to_dto(row)) {
         Ok(j) => j,

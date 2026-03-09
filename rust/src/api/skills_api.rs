@@ -56,7 +56,7 @@ pub async fn get_skills_config() -> SkillsConfigDto {
                 .unwrap_or_else(|| {
                     dirs::home_dir()
                         .unwrap_or_default()
-                        .join(".zeroclaw")
+                        .join(".coraldesk")
                         .join("open-skills")
                 });
             count_skills_in_dir(&open_dir)
@@ -107,7 +107,7 @@ pub async fn list_skills() -> Vec<SkillDto> {
                 .unwrap_or_else(|| {
                     dirs::home_dir()
                         .unwrap_or_default()
-                        .join(".zeroclaw")
+                        .join(".coraldesk")
                         .join("open-skills")
                 });
             load_skills_from_dir(&open_dir, "community", &mut skills);

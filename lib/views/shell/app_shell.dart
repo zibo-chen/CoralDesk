@@ -20,7 +20,9 @@ import 'package:coraldesk/views/settings/proxy_page.dart';
 import 'package:coraldesk/views/settings/sessions_page.dart';
 import 'package:coraldesk/views/settings/cron_jobs_page.dart';
 import 'package:coraldesk/views/settings/knowledge_page.dart';
+import 'package:coraldesk/views/settings/llm_debug_page.dart';
 import 'package:coraldesk/views/notification/notification_panel.dart';
+import 'package:coraldesk/views/project/projects_page.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:coraldesk/services/tray_service.dart';
 
@@ -39,8 +41,17 @@ class _AppShellState extends ConsumerState<AppShell> with WindowListener {
   void initState() {
     super.initState();
     // Load persisted sessions from Rust store on startup
-    Future.microtask(() {
-      ref.read(sessionsProvider.notifier).loadPersistedSessions();
+    Future.microtask(() async {
+      final bindings = await ref
+          .read(sessionsProvider.notifier)
+          .loadPersistedSessions();
+      if (bindings.isNotEmpty) {
+        ref
+            .read(sessionAgentBindingProvider.notifier)
+            .initFromPersisted(bindings);
+      }
+      // Load projects
+      ref.read(projectsProvider.notifier).load();
       // Eagerly initialise the cron notification subscription so events
       // are received even before the user navigates to any cron page.
       ref.read(cronNotificationProvider);
@@ -145,7 +156,6 @@ class _AppShellState extends ConsumerState<AppShell> with WindowListener {
     final currentNav = ref.watch(currentNavProvider);
     final isChatSection = currentNav == NavSection.chat;
     final isCollapsed = ref.watch(chatListCollapsedProvider);
-    final showChatList = isChatSection && !isCollapsed;
 
     // Listen for new cron notifications and show SnackBar
     ref.listen<CronNotificationState>(cronNotificationProvider, (prev, next) {
@@ -160,8 +170,21 @@ class _AppShellState extends ConsumerState<AppShell> with WindowListener {
               // Left sidebar navigation
               const SidebarNav(),
 
-              // Chat list panel (only visible in Chat section & not collapsed)
-              if (showChatList) const ChatListPanel(),
+              // Chat list panel (animated collapse in Chat section)
+              if (isChatSection)
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  width: isCollapsed ? 0 : AppConstants.chatListWidth,
+                  clipBehavior: Clip.hardEdge,
+                  decoration: const BoxDecoration(),
+                  child: OverflowBox(
+                    alignment: Alignment.centerLeft,
+                    minWidth: AppConstants.chatListWidth,
+                    maxWidth: AppConstants.chatListWidth,
+                    child: const ChatListPanel(),
+                  ),
+                ),
 
               // Main content area
               Expanded(
@@ -202,6 +225,7 @@ class _AppShellState extends ConsumerState<AppShell> with WindowListener {
   static Widget _buildMainContent(BuildContext context, NavSection section) {
     return switch (section) {
       NavSection.chat => const ChatView(),
+      NavSection.projects => const ProjectsPage(),
       NavSection.models => const ModelsPage(),
       NavSection.channels => const ChannelsPage(),
       NavSection.workspace => const WorkspacePage(),
@@ -214,6 +238,7 @@ class _AppShellState extends ConsumerState<AppShell> with WindowListener {
       NavSection.agents => const AgentsPage(),
       NavSection.agentWorkspaces => const AgentWorkspacesPage(),
       NavSection.proxy => const ProxyPage(),
+      NavSection.llmDebug => const LlmDebugPage(),
     };
   }
 

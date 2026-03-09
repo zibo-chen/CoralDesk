@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:coraldesk/constants.dart';
 import 'package:coraldesk/l10n/app_localizations.dart';
+import 'package:coraldesk/models/project.dart';
 import 'package:coraldesk/providers/providers.dart';
 import 'package:coraldesk/theme/app_theme.dart';
 import 'package:coraldesk/src/rust/api/agent_api.dart' as agent_api;
@@ -460,6 +461,7 @@ class _AgentSelectorButtonState extends ConsumerState<_AgentSelectorButton> {
     final l10n = AppLocalizations.of(context)!;
     final workspaces = ref.watch(agentWorkspacesProvider);
     final activeAgentId = ref.watch(activeSessionAgentProvider);
+    final sessionProject = ref.watch(activeSessionProjectProvider);
 
     // Find active workspace name
     String displayName = l10n.agentSelectorDefault;
@@ -478,6 +480,9 @@ class _AgentSelectorButtonState extends ConsumerState<_AgentSelectorButton> {
         ? '${displayName.substring(0, 14)}…'
         : displayName;
 
+    // Show project icon prefix when in project session
+    final isProjectSession = sessionProject != null;
+
     return PopupMenuButton<String?>(
       tooltip: l10n.agentSelectorTitle,
       offset: const Offset(0, -200),
@@ -486,7 +491,12 @@ class _AgentSelectorButtonState extends ConsumerState<_AgentSelectorButton> {
       onSelected: (choice) => _switchAgent(choice),
       itemBuilder: (context) {
         ref.read(agentWorkspacesProvider.notifier).refresh(); // Refresh on open
-        return _buildMenuItems(context, workspaces, activeAgentId);
+        return _buildMenuItems(
+          context,
+          workspaces,
+          activeAgentId,
+          sessionProject,
+        );
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -494,11 +504,17 @@ class _AgentSelectorButtonState extends ConsumerState<_AgentSelectorButton> {
           borderRadius: BorderRadius.circular(6),
           color: activeAgentId != null
               ? AppColors.primary.withValues(alpha: 0.12)
+              : isProjectSession
+              ? AppColors.primary.withValues(alpha: 0.06)
               : c.inputBg,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (isProjectSession) ...[
+              Text(sessionProject.icon, style: const TextStyle(fontSize: 10)),
+              const SizedBox(width: 2),
+            ],
             Text(displayEmoji, style: const TextStyle(fontSize: 13)),
             const SizedBox(width: 4),
             Text(
@@ -521,6 +537,7 @@ class _AgentSelectorButtonState extends ConsumerState<_AgentSelectorButton> {
     BuildContext context,
     List<workspace_api.AgentWorkspaceSummary> workspaces,
     String? activeAgentId,
+    Project? sessionProject,
   ) {
     final c = CoralDeskColors.of(context);
     final l10n = AppLocalizations.of(context)!;
@@ -551,71 +568,205 @@ class _AgentSelectorButtonState extends ConsumerState<_AgentSelectorButton> {
       ),
     );
 
-    if (workspaces.isNotEmpty) {
+    // ── Project roles section ──
+    if (sessionProject != null && sessionProject.hasRoles) {
       items.add(const PopupMenuDivider());
-    }
-
-    // Enabled workspaces
-    for (final ws in workspaces.where((w) => w.enabled)) {
-      final isCurrent = activeAgentId == ws.id;
-      items.add(
-        PopupMenuItem<String?>(
-          value: ws.id,
-          child: Row(
-            children: [
-              if (isCurrent)
-                const Icon(Icons.check, size: 16, color: AppColors.primary)
-              else
-                const SizedBox(width: 16),
-              const SizedBox(width: 8),
-              Text(
-                ws.avatar.isNotEmpty ? ws.avatar : '🤖',
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      ws.name,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: isCurrent
-                            ? FontWeight.w600
-                            : FontWeight.normal,
-                        color: c.textPrimary,
-                      ),
-                    ),
-                    if (ws.description.isNotEmpty)
-                      Text(
-                        ws.description,
-                        style: TextStyle(fontSize: 11, color: c.textHint),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (workspaces.where((w) => w.enabled).isEmpty) {
+      // Section header
       items.add(
         PopupMenuItem<String?>(
           enabled: false,
+          height: 28,
           child: Text(
-            l10n.agentWorkspaceNoWorkspaces,
-            style: TextStyle(fontSize: 12, color: c.textHint),
+            '${sessionProject.icon} ${sessionProject.name} roles',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primary,
+              letterSpacing: 0.5,
+            ),
           ),
         ),
       );
+
+      final projectRoleIds = sessionProject.roleIds.toSet();
+      for (final roleId in sessionProject.roleIds) {
+        final ws = workspaces
+            .cast<workspace_api.AgentWorkspaceSummary?>()
+            .firstWhere((w) => w?.id == roleId, orElse: () => null);
+        if (ws == null) continue;
+
+        final isCurrent = activeAgentId == ws.id;
+        final isDefaultRole = sessionProject.defaultRoleId == ws.id;
+        items.add(
+          PopupMenuItem<String?>(
+            value: ws.id,
+            child: Row(
+              children: [
+                if (isCurrent)
+                  const Icon(Icons.check, size: 16, color: AppColors.primary)
+                else
+                  const SizedBox(width: 16),
+                const SizedBox(width: 8),
+                Text(
+                  ws.avatar.isNotEmpty ? ws.avatar : '🤖',
+                  style: const TextStyle(fontSize: 16),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            ws.name,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: isCurrent
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                              color: c.textPrimary,
+                            ),
+                          ),
+                          if (isDefaultRole) ...[
+                            const SizedBox(width: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.12,
+                                ),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'default',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      if (ws.description.isNotEmpty)
+                        Text(
+                          ws.description,
+                          style: TextStyle(fontSize: 11, color: c.textHint),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      // Other workspaces section (non-project roles)
+      final otherWorkspaces = workspaces
+          .where((w) => w.enabled && !projectRoleIds.contains(w.id))
+          .toList();
+      if (otherWorkspaces.isNotEmpty) {
+        items.add(const PopupMenuDivider());
+        items.add(
+          PopupMenuItem<String?>(
+            enabled: false,
+            height: 28,
+            child: Text(
+              l10n.agentSelectorTitle,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: c.textHint,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+        );
+        for (final ws in otherWorkspaces) {
+          final isCurrent = activeAgentId == ws.id;
+          items.add(_buildWorkspaceMenuItem(ws, isCurrent, c));
+        }
+      }
+    } else {
+      // ── No project: show all workspaces flat ──
+      if (workspaces.isNotEmpty) {
+        items.add(const PopupMenuDivider());
+      }
+
+      // Enabled workspaces
+      for (final ws in workspaces.where((w) => w.enabled)) {
+        final isCurrent = activeAgentId == ws.id;
+        items.add(_buildWorkspaceMenuItem(ws, isCurrent, c));
+      }
+
+      if (workspaces.where((w) => w.enabled).isEmpty) {
+        items.add(
+          PopupMenuItem<String?>(
+            enabled: false,
+            child: Text(
+              l10n.agentWorkspaceNoWorkspaces,
+              style: TextStyle(fontSize: 12, color: c.textHint),
+            ),
+          ),
+        );
+      }
     }
 
     return items;
+  }
+
+  PopupMenuItem<String?> _buildWorkspaceMenuItem(
+    workspace_api.AgentWorkspaceSummary ws,
+    bool isCurrent,
+    CoralDeskColors c,
+  ) {
+    return PopupMenuItem<String?>(
+      value: ws.id,
+      child: Row(
+        children: [
+          if (isCurrent)
+            const Icon(Icons.check, size: 16, color: AppColors.primary)
+          else
+            const SizedBox(width: 16),
+          const SizedBox(width: 8),
+          Text(
+            ws.avatar.isNotEmpty ? ws.avatar : '🤖',
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  ws.name,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: isCurrent ? FontWeight.w600 : FontWeight.normal,
+                    color: c.textPrimary,
+                  ),
+                ),
+                if (ws.description.isNotEmpty)
+                  Text(
+                    ws.description,
+                    style: TextStyle(fontSize: 11, color: c.textHint),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

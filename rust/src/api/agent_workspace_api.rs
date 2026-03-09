@@ -114,14 +114,14 @@ fn workspace_store() -> &'static TokioMutex<AgentWorkspaceStore> {
 fn store_file_path() -> PathBuf {
     dirs::home_dir()
         .unwrap_or_default()
-        .join(".zeroclaw")
+        .join(".coraldesk")
         .join("coraldesk_agent_workspaces.json")
 }
 
 fn agent_workspace_base_dir() -> PathBuf {
     dirs::home_dir()
         .unwrap_or_default()
-        .join(".zeroclaw")
+        .join(".coraldesk")
         .join("agent_workspaces")
 }
 
@@ -465,11 +465,30 @@ fn session_bindings() -> &'static TokioMutex<std::collections::HashMap<String, S
     SESSION_AGENT_BINDINGS.get_or_init(|| TokioMutex::new(std::collections::HashMap::new()))
 }
 
+/// Expose mutable access to session bindings for init-time restoration
+/// from persisted session metadata. This avoids a circular dependency.
+pub(crate) async fn session_bindings_mut(
+) -> tokio::sync::MutexGuard<'static, std::collections::HashMap<String, String>> {
+    session_bindings().lock().await
+}
+
 /// Bind a session to an agent workspace. The next time the session's agent
 /// is created, it will use this workspace's identity files.
+/// Also persists the binding to the session store for restart recovery.
 pub async fn bind_session_to_agent(session_id: String, workspace_id: String) -> String {
     let mut bindings = session_bindings().lock().await;
-    bindings.insert(session_id, workspace_id);
+    bindings.insert(session_id.clone(), workspace_id.clone());
+    drop(bindings);
+
+    // Persist binding to session store so it survives restart
+    let _ = super::sessions_api::update_session_metadata(
+        session_id,
+        String::new(), // don't change project_id — use empty to keep existing
+        -1,            // don't change ephemeral
+        workspace_id,
+    )
+    .await;
+
     "ok".into()
 }
 
@@ -477,6 +496,17 @@ pub async fn bind_session_to_agent(session_id: String, workspace_id: String) -> 
 pub async fn unbind_session_agent(session_id: String) -> String {
     let mut bindings = session_bindings().lock().await;
     bindings.remove(&session_id);
+    drop(bindings);
+
+    // Clear binding in session store
+    let _ = super::sessions_api::update_session_metadata(
+        session_id,
+        String::new(),
+        -1, // don't change ephemeral
+        "__CLEAR__".into(),
+    )
+    .await;
+
     "ok".into()
 }
 

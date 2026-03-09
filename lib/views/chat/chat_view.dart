@@ -8,6 +8,7 @@ import 'package:coraldesk/constants.dart';
 import 'package:coraldesk/l10n/app_localizations.dart';
 import 'package:coraldesk/models/models.dart';
 import 'package:coraldesk/providers/providers.dart';
+import 'package:coraldesk/services/settings_service.dart';
 import 'package:coraldesk/theme/app_theme.dart';
 import 'package:coraldesk/views/chat/message_bubble.dart';
 import 'package:coraldesk/views/chat/input_bar.dart';
@@ -568,6 +569,84 @@ class _ChatViewState extends ConsumerState<ChatView> {
             // Suggestion cards (2 random from all)
             _buildSuggestionCard(allSuggestions[_selectedIndices[0]]),
             _buildSuggestionCard(allSuggestions[_selectedIndices[1]]),
+
+            // Project discovery hint — shown once until user creates a project or dismisses
+            _buildProjectDiscoveryHint(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProjectDiscoveryHint() {
+    final projects = ref.watch(projectsProvider);
+    if (projects.isNotEmpty || SettingsService.hasSeenProjectIntro) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 16),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 500),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: AppColors.primary.withValues(alpha: 0.06),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.18)),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.folder_special_outlined,
+              size: 20,
+              color: AppColors.primary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Organize with Projects',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: c.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Group sessions, assign agent roles, and keep resources scoped.',
+                    style: TextStyle(fontSize: 12, color: c.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: () {
+                ref.read(currentNavProvider.notifier).state =
+                    NavSection.projects;
+              },
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                minimumSize: Size.zero,
+              ),
+              child: const Text('Explore', style: TextStyle(fontSize: 12)),
+            ),
+            IconButton(
+              onPressed: () {
+                SettingsService.hasSeenProjectIntro = true;
+                setState(() {});
+              },
+              icon: Icon(Icons.close, size: 14, color: c.textHint),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+              tooltip: 'Dismiss',
+            ),
           ],
         ),
       ),

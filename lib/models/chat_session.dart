@@ -13,6 +13,13 @@ class ChatSession {
   /// Active role names in this session (e.g. ['architect', 'coder', 'critic']).
   final List<String> activeRoles;
 
+  /// Project this session belongs to (null = free/independent chat).
+  final String? projectId;
+
+  /// Whether this is an ephemeral (temporary) session that should NOT be
+  /// persisted to disk. Ephemeral sessions are destroyed when closed.
+  final bool ephemeral;
+
   const ChatSession({
     required this.id,
     required this.title,
@@ -22,8 +29,17 @@ class ChatSession {
     this.attachedFiles = const [],
     this.isMultiAgent = false,
     this.activeRoles = const [],
+    this.projectId,
+    this.ephemeral = false,
   });
 
+  /// Whether this session belongs to a project.
+  bool get isProjectSession => projectId != null;
+
+  /// Whether this is a free/independent chat (no project, not ephemeral).
+  bool get isFreeChat => projectId == null && !ephemeral;
+
+  /// Use [clearProjectId] = true to explicitly set projectId to null.
   ChatSession copyWith({
     String? title,
     DateTime? updatedAt,
@@ -31,6 +47,9 @@ class ChatSession {
     List<String>? attachedFiles,
     bool? isMultiAgent,
     List<String>? activeRoles,
+    String? projectId,
+    bool clearProjectId = false,
+    bool? ephemeral,
   }) {
     return ChatSession(
       id: id,
@@ -41,6 +60,8 @@ class ChatSession {
       attachedFiles: attachedFiles ?? this.attachedFiles,
       isMultiAgent: isMultiAgent ?? this.isMultiAgent,
       activeRoles: activeRoles ?? this.activeRoles,
+      projectId: clearProjectId ? null : (projectId ?? this.projectId),
+      ephemeral: ephemeral ?? this.ephemeral,
     );
   }
 }

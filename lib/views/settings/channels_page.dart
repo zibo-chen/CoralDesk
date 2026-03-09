@@ -713,7 +713,7 @@ class _ChannelConfigDialogState extends State<_ChannelConfigDialog> {
           hint: 'irc.libera.chat',
         ),
         _FieldDef('port', '端口', 'number', hint: '6697'),
-        _FieldDef('nickname', '昵称', 'text', required: true, hint: 'zeroclaw'),
+        _FieldDef('nickname', '昵称', 'text', required: true, hint: 'coraldesk'),
         _FieldDef('channels', '频道', 'text_list', hint: '#channel1, #channel2'),
         _FieldDef('allowed_users', '允许的用户', 'text_list'),
         _FieldDef('verify_tls', '验证 TLS', 'bool'),

@@ -12,6 +12,8 @@ pub struct KnowledgeEntry {
     pub category: String,
     pub timestamp: String,
     pub session_id: String,
+    /// Project this entry belongs to (empty = global)
+    pub project_id: String,
     pub score: f64,
 }
 
@@ -68,12 +70,7 @@ pub async fn get_knowledge_stats() -> KnowledgeStats {
                 config.memory.auto_save,
             )
         } else {
-            (
-                "unknown".into(),
-                "none".into(),
-                "none".into(),
-                false,
-            )
+            ("unknown".into(), "none".into(), "none".into(), false)
         };
     drop(cs);
 
@@ -102,10 +99,7 @@ pub async fn get_knowledge_stats() -> KnowledgeStats {
 }
 
 /// List knowledge entries, optionally filtered by category
-pub async fn list_knowledge_entries(
-    category: Option<String>,
-    limit: u32,
-) -> Vec<KnowledgeEntry> {
+pub async fn list_knowledge_entries(category: Option<String>, limit: u32) -> Vec<KnowledgeEntry> {
     if ensure_memory_backend().await.is_err() {
         return vec![];
     }
@@ -148,11 +142,7 @@ pub async fn search_knowledge(query: String, limit: u32) -> Vec<KnowledgeEntry> 
 }
 
 /// Add a new knowledge entry
-pub async fn add_knowledge_entry(
-    key: String,
-    content: String,
-    category: String,
-) -> String {
+pub async fn add_knowledge_entry(key: String, content: String, category: String) -> String {
     if let Err(e) = ensure_memory_backend().await {
         return format!("error: {e}");
     }
@@ -228,6 +218,9 @@ fn category_to_string(cat: &zeroclaw::memory::MemoryCategory) -> String {
 }
 
 fn entry_to_dto(entry: zeroclaw::memory::MemoryEntry) -> KnowledgeEntry {
+    // Derive project_id from session_id if the session belongs to a project.
+    // For now, we use an empty string — project scoping is resolved at the
+    // Dart layer by filtering entries whose session_id belong to a project.
     KnowledgeEntry {
         id: entry.id,
         key: entry.key,
@@ -235,6 +228,7 @@ fn entry_to_dto(entry: zeroclaw::memory::MemoryEntry) -> KnowledgeEntry {
         category: category_to_string(&entry.category),
         timestamp: entry.timestamp,
         session_id: entry.session_id.unwrap_or_default(),
+        project_id: String::new(), // Resolved by Dart layer via session→project mapping
         score: entry.score.unwrap_or(0.0),
     }
 }

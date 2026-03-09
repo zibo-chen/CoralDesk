@@ -440,6 +440,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get delete => '删除';
 
   @override
+  String get back => '返回';
+
+  @override
+  String get edit => '编辑';
+
+  @override
   String get sessionDeleted => '已删除会话';
 
   @override
@@ -1189,7 +1195,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get proxyScopeZeroclaw => '全部流量';
 
   @override
-  String get proxyScopeZeroclawDesc => '所有 ZeroClaw 管理的 HTTP 流量';
+  String get proxyScopeZeroclawDesc => '所有 CoralDesk 管理的 HTTP 流量';
 
   @override
   String get proxyScopeServices => '指定服务';
@@ -1907,4 +1913,188 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get presetBadge => '内置';
+
+  @override
+  String get navProjects => '项目';
+
+  @override
+  String get projectCreate => '新建项目';
+
+  @override
+  String get projectCreated => '项目已创建';
+
+  @override
+  String get projectCreateFailed => '创建项目失败';
+
+  @override
+  String get projectDeleted => '项目已删除';
+
+  @override
+  String get projectDeleteTitle => '删除项目';
+
+  @override
+  String projectDeleteConfirm(String name) {
+    return '确定要删除项目 \"$name\" 吗？关联的会话不会被删除。';
+  }
+
+  @override
+  String get projectEmpty => '暂无项目';
+
+  @override
+  String get projectEmptyHint => '创建一个项目来组织你的长期任务和会话';
+
+  @override
+  String get projectName => '项目名称';
+
+  @override
+  String get projectNameHint => '输入项目名称…';
+
+  @override
+  String get projectDescription => '项目描述';
+
+  @override
+  String get projectDescriptionHint => '简要描述这个项目…';
+
+  @override
+  String get projectType => '项目类型';
+
+  @override
+  String get projectIcon => '图标';
+
+  @override
+  String get projectColor => '颜色';
+
+  @override
+  String get projectDirectory => '项目目录（可选）';
+
+  @override
+  String get projectDirectoryHint => '选择或输入本地目录路径…';
+
+  @override
+  String projectSessionCount(int count) {
+    return '$count 个会话';
+  }
+
+  @override
+  String get projectNewSession => '新建会话';
+
+  @override
+  String get projectSessions => '项目会话';
+
+  @override
+  String get projectNoSessions => '此项目暂无会话';
+
+  @override
+  String get projectPinnedContext => '项目上下文';
+
+  @override
+  String get projectContextHint =>
+      '在此记录项目的背景信息、技术栈、重要决策等。每次在项目中新建会话时，这些内容会自动注入。';
+
+  @override
+  String get projectContextEmpty => '暂无项目上下文。点击编辑添加项目背景信息。';
+
+  @override
+  String get projectContextSaved => '项目上下文已保存';
+
+  @override
+  String get projectNotFound => '项目未找到';
+
+  @override
+  String get projectEdit => '编辑项目';
+
+  @override
+  String get projectUpdated => '项目已更新';
+
+  @override
+  String get projectUpdateFailed => '更新项目失败';
+
+  @override
+  String get projectStatusActive => '活跃';
+
+  @override
+  String get projectStatusPaused => '暂停';
+
+  @override
+  String get projectStatusArchived => '归档';
+
+  @override
+  String get projectStatusCompleted => '已完成';
+
+  @override
+  String get projectFilterAll => '全部';
+
+  @override
+  String get projectSearchHint => '搜索项目…';
+
+  @override
+  String get projectRoles => '角色';
+
+  @override
+  String get projectAddRole => '添加角色';
+
+  @override
+  String get projectNoRoles => '未分配角色。添加角色以自定义 Agent 行为。';
+
+  @override
+  String get projectRoleAdded => '角色已添加';
+
+  @override
+  String get projectRoleRemoved => '角色已移除';
+
+  @override
+  String get projectAllRolesAdded => '所有可用角色均已添加';
+
+  @override
+  String get projectSetDefaultRole => '设为默认';
+
+  @override
+  String get projectDefaultRoleBadge => '默认';
+
+  @override
+  String projectRoleCount(int count) {
+    return '$count 个角色';
+  }
+
+  @override
+  String get projectTabOverview => '概览';
+
+  @override
+  String get projectTabSessions => '会话';
+
+  @override
+  String get projectTabSettings => '设置';
+
+  @override
+  String get projectQuickActions => '快捷操作';
+
+  @override
+  String get projectRemoveSession => '从项目移除';
+
+  @override
+  String get projectSessionRemoved => '会话已从项目移除';
+
+  @override
+  String get projectDangerZone => '危险区域';
+
+  @override
+  String get projectDangerDeleteHint => '永久删除此项目。关联的会话不会被删除。';
+
+  @override
+  String get projectTemplate => '模板';
+
+  @override
+  String get projectTemplateBlank => '空白项目';
+
+  @override
+  String get projectStatusChanged => '状态已更新';
+
+  @override
+  String get projectOpenSession => '打开会话';
+
+  @override
+  String get projectSearchSessions => '搜索会话…';
+
+  @override
+  String get navLlmDebug => 'LLM 调试';
 }

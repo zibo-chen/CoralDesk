@@ -58,6 +58,9 @@ class KnowledgeEntry {
   final String category;
   final String timestamp;
   final String sessionId;
+
+  /// Project this entry belongs to (empty = global)
+  final String projectId;
   final double score;
 
   const KnowledgeEntry({
@@ -67,6 +70,7 @@ class KnowledgeEntry {
     required this.category,
     required this.timestamp,
     required this.sessionId,
+    required this.projectId,
     required this.score,
   });
 
@@ -78,6 +82,7 @@ class KnowledgeEntry {
       category.hashCode ^
       timestamp.hashCode ^
       sessionId.hashCode ^
+      projectId.hashCode ^
       score.hashCode;
 
   @override
@@ -91,6 +96,7 @@ class KnowledgeEntry {
           category == other.category &&
           timestamp == other.timestamp &&
           sessionId == other.sessionId &&
+          projectId == other.projectId &&
           score == other.score;
 }
 

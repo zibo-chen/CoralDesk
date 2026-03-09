@@ -12,6 +12,7 @@ import 'package:coraldesk/src/rust/api/sessions_api.dart' as sessions_api;
 /// Navigation section for sidebar
 enum NavSection {
   chat,
+  projects,
   channels,
   sessions,
   cronJobs,
@@ -24,6 +25,7 @@ enum NavSection {
   configuration,
   models,
   proxy,
+  llmDebug,
 }
 
 /// Current navigation state
@@ -57,45 +59,70 @@ final sessionsProvider =
 class SessionsNotifier extends StateNotifier<List<ChatSession>> {
   SessionsNotifier() : super([]);
 
-  /// Load persisted sessions from Rust session store on app startup
-  Future<void> loadPersistedSessions() async {
+  /// Load persisted sessions from Rust session store on app startup.
+  /// Restores project_id, ephemeral flag, and agent binding from persistence.
+  /// Load persisted sessions from Rust store.
+  /// Returns a map of sessionId → agentBinding for startup sync.
+  Future<Map<String, String>> loadPersistedSessions() async {
+    final bindingMap = <String, String>{};
     try {
       final summaries = await sessions_api.listSessions();
       if (summaries.isNotEmpty) {
-        final loaded = summaries
-            .map(
-              (s) => ChatSession(
-                id: s.id,
-                title: s.title,
-                createdAt: DateTime.fromMillisecondsSinceEpoch(
-                  (s.createdAt * 1000).toInt(),
-                ),
-                updatedAt: DateTime.fromMillisecondsSinceEpoch(
-                  (s.updatedAt * 1000).toInt(),
-                ),
-                messageCount: s.messageCount.toInt(),
-                attachedFiles: s.attachedFiles,
-              ),
-            )
-            .toList();
+        final loaded = summaries.map((s) {
+          if (s.agentBinding.isNotEmpty) {
+            bindingMap[s.id] = s.agentBinding;
+          }
+          return ChatSession(
+            id: s.id,
+            title: s.title,
+            createdAt: DateTime.fromMillisecondsSinceEpoch(
+              (s.createdAt * 1000).toInt(),
+            ),
+            updatedAt: DateTime.fromMillisecondsSinceEpoch(
+              (s.updatedAt * 1000).toInt(),
+            ),
+            messageCount: s.messageCount.toInt(),
+            attachedFiles: s.attachedFiles,
+            projectId: s.projectId.isNotEmpty ? s.projectId : null,
+            ephemeral: s.ephemeral,
+          );
+        }).toList();
         state = loaded;
       }
     } catch (e) {
       debugPrint('Failed to load persisted sessions: $e');
     }
+    return bindingMap;
   }
 
-  String createSession() {
+  String createSession({String? projectId, bool ephemeral = false}) {
     final now = DateTime.now();
-    final id = 'session_${now.millisecondsSinceEpoch}';
+    final prefix = ephemeral ? 'ephemeral_' : 'session_';
+    final id = '$prefix${now.millisecondsSinceEpoch}';
     final session = ChatSession(
       id: id,
-      title: 'New Chat',
+      title: ephemeral ? 'Quick Chat' : 'New Chat',
       createdAt: now,
       updatedAt: now,
+      projectId: projectId,
+      ephemeral: ephemeral,
     );
     state = [session, ...state];
     return id;
+  }
+
+  /// Upgrade a session: mark it non-ephemeral and optionally assign a project.
+  void upgradeSession(String id, {String? projectId}) {
+    state = state.map((s) {
+      if (s.id == id) {
+        return s.copyWith(
+          ephemeral: false,
+          projectId: projectId ?? s.projectId,
+          updatedAt: DateTime.now(),
+        );
+      }
+      return s;
+    }).toList();
   }
 
   void updateSessionTitle(String id, String title) {

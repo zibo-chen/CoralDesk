@@ -20,10 +20,16 @@ class SessionPersistenceService {
     required String sessionId,
     required String title,
     required List<sessions_api.SessionMessage> messages,
+    String projectId = '',
+    bool ephemeral = false,
+    String agentBinding = '',
   }) => sessions_api.saveSession(
     sessionId: sessionId,
     title: title,
     messages: messages,
+    projectId: projectId,
+    ephemeral: ephemeral,
+    agentBinding: agentBinding,
   );
 
   Future<void> deleteSession(String sessionId) =>

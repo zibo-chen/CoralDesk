@@ -222,6 +222,9 @@ pub async fn switch_active_model(provider: String, model: String) -> String {
             let mut gc = super::agent_api::global_config().write().await;
             let mut cs = super::agent_api::config_state().write().await;
 
+            // Track which profile is selected so init_runtime can reconcile on restart
+            gc.default_profile_id = Some(provider.clone());
+
             let config = match gc.config.as_mut() {
                 Some(c) => c,
                 None => return "error: runtime not initialized".into(),
@@ -242,11 +245,23 @@ pub async fn switch_active_model(provider: String, model: String) -> String {
         }
 
         super::agent_api::invalidate_all_agents().await;
-        return "ok".to_string();
+        // Persist to disk immediately to keep memory and disk in sync
+        return super::agent_api::save_config_to_disk().await;
     }
 
     // No matching profile, use provider directly (may be a known provider like "openrouter")
-    super::agent_api::update_config(Some(provider), Some(model), None, None, None).await
+    {
+        let mut gc = super::agent_api::global_config().write().await;
+        // Clear profile ID when using a raw provider (not a profile)
+        gc.default_profile_id = None;
+    }
+    let result =
+        super::agent_api::update_config(Some(provider), Some(model), None, None, None).await;
+    if result == "ok" {
+        // Also persist to disk to prevent stale values from being written later
+        return super::agent_api::save_config_to_disk().await;
+    }
+    result
 }
 
 /// Set a provider profile as the default.

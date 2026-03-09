@@ -23,6 +23,16 @@ pub struct SessionMessage {
     pub role: String,
     pub content: String,
     pub timestamp: i64,
+    /// JSON-serialized tool calls (empty string = none)
+    pub tool_calls_json: String,
+    /// JSON-serialized message parts (empty string = none)
+    pub parts_json: String,
+    /// Agent role name for multi-agent sessions (empty = none)
+    pub agent_role: String,
+    /// Hex color for the agent role (empty = none)
+    pub agent_color: String,
+    /// Emoji icon for the agent role (empty = none)
+    pub agent_icon: String,
 }
 
 /// Session list item (without messages)
@@ -35,6 +45,12 @@ pub struct SessionSummary {
     pub message_count: u32,
     pub last_message_preview: String,
     pub attached_files: Vec<String>,
+    /// Project this session belongs to (empty = free/independent)
+    pub project_id: String,
+    /// Whether this session is ephemeral (should not be persisted)
+    pub ephemeral: bool,
+    /// Agent workspace ID bound to this session (empty = none)
+    pub agent_binding: String,
 }
 
 /// Session statistics
@@ -57,6 +73,15 @@ struct PersistedSession {
     messages: Vec<PersistedMessage>,
     #[serde(default)]
     attached_files: Vec<String>,
+    /// Project this session belongs to (empty = free/independent)
+    #[serde(default)]
+    project_id: String,
+    /// Whether this session is ephemeral
+    #[serde(default)]
+    ephemeral: bool,
+    /// Agent workspace binding (empty = none)
+    #[serde(default)]
+    agent_binding: String,
 }
 
 #[frb(ignore)]
@@ -66,6 +91,16 @@ struct PersistedMessage {
     role: String,
     content: String,
     timestamp: i64,
+    #[serde(default)]
+    tool_calls_json: String,
+    #[serde(default)]
+    parts_json: String,
+    #[serde(default)]
+    agent_role: String,
+    #[serde(default)]
+    agent_color: String,
+    #[serde(default)]
+    agent_icon: String,
 }
 
 #[frb(ignore)]
@@ -82,7 +117,7 @@ fn session_store() -> &'static TokioMutex<SessionStore> {
 fn sessions_file_path() -> std::path::PathBuf {
     dirs::home_dir()
         .unwrap_or_default()
-        .join(".zeroclaw")
+        .join(".coraldesk")
         .join("coraldesk_sessions.json")
 }
 
@@ -101,6 +136,17 @@ pub async fn init_session_store() -> String {
     };
 
     let count = store.sessions.len();
+
+    // Restore agent workspace bindings from persisted session metadata
+    {
+        let mut bindings = super::agent_workspace_api::session_bindings_mut().await;
+        for session in &store.sessions {
+            if !session.agent_binding.is_empty() {
+                bindings.insert(session.id.clone(), session.agent_binding.clone());
+            }
+        }
+    }
+
     *session_store().lock().await = store;
     format!("loaded {} sessions", count)
 }
@@ -132,6 +178,9 @@ pub async fn list_sessions() -> Vec<SessionSummary> {
                 message_count: s.messages.len() as u32,
                 last_message_preview: preview,
                 attached_files: s.attached_files.clone(),
+                project_id: s.project_id.clone(),
+                ephemeral: s.ephemeral,
+                agent_binding: s.agent_binding.clone(),
             }
         })
         .collect()
@@ -158,6 +207,11 @@ pub async fn get_session_detail(session_id: String) -> Option<SessionDetail> {
                     role: m.role.clone(),
                     content: m.content.clone(),
                     timestamp: m.timestamp,
+                    tool_calls_json: m.tool_calls_json.clone(),
+                    parts_json: m.parts_json.clone(),
+                    agent_role: m.agent_role.clone(),
+                    agent_color: m.agent_color.clone(),
+                    agent_icon: m.agent_icon.clone(),
                 })
                 .collect(),
             attached_files: s.attached_files.clone(),
@@ -169,6 +223,9 @@ pub async fn save_session(
     session_id: String,
     title: String,
     messages: Vec<SessionMessage>,
+    project_id: String,
+    ephemeral: bool,
+    agent_binding: String,
 ) -> String {
     let mut store = session_store().lock().await;
     let now = chrono::Utc::now().timestamp();
@@ -180,6 +237,11 @@ pub async fn save_session(
             role: m.role.clone(),
             content: m.content.clone(),
             timestamp: m.timestamp,
+            tool_calls_json: m.tool_calls_json.clone(),
+            parts_json: m.parts_json.clone(),
+            agent_role: m.agent_role.clone(),
+            agent_color: m.agent_color.clone(),
+            agent_icon: m.agent_icon.clone(),
         })
         .collect();
 
@@ -187,6 +249,9 @@ pub async fn save_session(
         session.title = title;
         session.updated_at = now;
         session.messages = persisted_msgs;
+        session.project_id = project_id;
+        session.ephemeral = ephemeral;
+        session.agent_binding = agent_binding;
     } else {
         store.sessions.insert(
             0,
@@ -197,6 +262,9 @@ pub async fn save_session(
                 updated_at: now,
                 messages: persisted_msgs,
                 attached_files: vec![],
+                project_id,
+                ephemeral,
+                agent_binding,
             },
         );
     }
@@ -220,6 +288,43 @@ pub async fn rename_session(session_id: String, new_title: String) -> String {
     if let Some(session) = store.sessions.iter_mut().find(|s| s.id == session_id) {
         session.title = new_title;
         session.updated_at = chrono::Utc::now().timestamp();
+    }
+    drop(store);
+    persist_to_disk().await
+}
+
+/// Update session metadata (project_id, ephemeral, agent_binding) without
+/// touching messages. Useful when upgrading a session to a project or
+/// changing the bound agent workspace.
+/// Pass empty string for project_id or agent_binding to leave unchanged.
+/// Use the special value \"__CLEAR__\" to explicitly clear a field.
+/// For ephemeral: -1 = no change, 0 = set false, 1 = set true.
+pub async fn update_session_metadata(
+    session_id: String,
+    project_id: String,
+    ephemeral: i8,
+    agent_binding: String,
+) -> String {
+    let mut store = session_store().lock().await;
+    if let Some(session) = store.sessions.iter_mut().find(|s| s.id == session_id) {
+        if project_id == "__CLEAR__" {
+            session.project_id = String::new();
+        } else if !project_id.is_empty() {
+            session.project_id = project_id;
+        }
+        match ephemeral {
+            0 => session.ephemeral = false,
+            1 => session.ephemeral = true,
+            _ => {} // -1 or anything else: no change
+        }
+        if agent_binding == "__CLEAR__" {
+            session.agent_binding = String::new();
+        } else if !agent_binding.is_empty() {
+            session.agent_binding = agent_binding;
+        }
+        session.updated_at = chrono::Utc::now().timestamp();
+    } else {
+        return "error: session not found".into();
     }
     drop(store);
     persist_to_disk().await
@@ -266,6 +371,9 @@ pub async fn add_session_files(session_id: String, file_paths: Vec<String>) -> V
                 updated_at: now,
                 messages: vec![],
                 attached_files: vec![],
+                project_id: String::new(),
+                ephemeral: false,
+                agent_binding: String::new(),
             },
         );
     }

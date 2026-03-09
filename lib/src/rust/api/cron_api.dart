@@ -150,6 +150,9 @@ class CronJobDto {
   final String model;
   final bool enabled;
   final bool deleteAfterRun;
+
+  /// Project this cron job belongs to (empty = global)
+  final String projectId;
   final PlatformInt64 createdAt;
   final PlatformInt64 nextRun;
   final PlatformInt64? lastRun;
@@ -170,6 +173,7 @@ class CronJobDto {
     required this.model,
     required this.enabled,
     required this.deleteAfterRun,
+    required this.projectId,
     required this.createdAt,
     required this.nextRun,
     this.lastRun,
@@ -192,6 +196,7 @@ class CronJobDto {
       model.hashCode ^
       enabled.hashCode ^
       deleteAfterRun.hashCode ^
+      projectId.hashCode ^
       createdAt.hashCode ^
       nextRun.hashCode ^
       lastRun.hashCode ^
@@ -216,6 +221,7 @@ class CronJobDto {
           model == other.model &&
           enabled == other.enabled &&
           deleteAfterRun == other.deleteAfterRun &&
+          projectId == other.projectId &&
           createdAt == other.createdAt &&
           nextRun == other.nextRun &&
           lastRun == other.lastRun &&

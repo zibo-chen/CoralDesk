@@ -49,6 +49,11 @@ final sessionAgentBindingProvider =
 class SessionAgentBindingNotifier extends StateNotifier<Map<String, String>> {
   SessionAgentBindingNotifier() : super({});
 
+  /// Initialize bindings from persisted session data (call on app startup).
+  void initFromPersisted(Map<String, String> bindings) {
+    state = {...state, ...bindings};
+  }
+
   Future<void> bind(String sessionId, String workspaceId) async {
     await workspace_api.bindSessionToAgent(
       sessionId: sessionId,
@@ -59,6 +64,12 @@ class SessionAgentBindingNotifier extends StateNotifier<Map<String, String>> {
 
   Future<void> unbind(String sessionId) async {
     await workspace_api.unbindSessionAgent(sessionId: sessionId);
+    state = Map.from(state)..remove(sessionId);
+  }
+
+  /// Remove a binding from Dart state only (Rust already cleared it).
+  /// Used when Rust-side unbind was done externally (e.g. remove_role_from_project).
+  void removeLocal(String sessionId) {
     state = Map.from(state)..remove(sessionId);
   }
 

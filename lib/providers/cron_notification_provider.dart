@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:coraldesk/models/models.dart';
+import 'package:coraldesk/providers/agent_workspace_provider.dart';
 import 'package:coraldesk/providers/chat_provider.dart';
 import 'package:coraldesk/src/rust/api/cron_notification_api.dart'
     as cron_notif_api;
@@ -134,12 +135,42 @@ class CronNotificationNotifier extends StateNotifier<CronNotificationState> {
 
   /// Inject the cron execution result as messages into the target session
   /// that was recorded when the cron job was created.
-  void _injectIntoSession(CronNotificationItem item) {
+  Future<void> _injectIntoSession(CronNotificationItem item) async {
     final targetSessionId = item.targetSessionId;
 
     final now = DateTime.now();
     final msgsNotifier = _ref.read(messagesProvider.notifier);
     final sessionsNotifier = _ref.read(sessionsProvider.notifier);
+
+    // Ensure message history is loaded before injecting — if the session
+    // hasn't been opened in this run, the cache is empty and a subsequent
+    // saveSession would overwrite all existing messages with only the
+    // injected ones.
+    final cached = msgsNotifier.getSessionMessages(targetSessionId);
+    if (cached.isEmpty) {
+      try {
+        final detail = await sessions_api.getSessionDetail(
+          sessionId: targetSessionId,
+        );
+        if (detail != null && detail.messages.isNotEmpty) {
+          final loaded = detail.messages
+              .map(
+                (m) => ChatMessage(
+                  id: m.id,
+                  role: m.role,
+                  content: m.content,
+                  timestamp: DateTime.fromMillisecondsSinceEpoch(
+                    (m.timestamp * 1000).toInt(),
+                  ),
+                ),
+              )
+              .toList();
+          msgsNotifier.setSessionMessages(targetSessionId, loaded);
+        }
+      } catch (e) {
+        debugPrint('Failed to pre-load session messages for cron inject: $e');
+      }
+    }
 
     // 1. Add a system-like "user" message showing the cron prompt
     final userMsg = ChatMessage(
@@ -188,6 +219,11 @@ class CronNotificationNotifier extends StateNotifier<CronNotificationState> {
               role: m.role,
               content: m.content,
               timestamp: m.timestamp.millisecondsSinceEpoch ~/ 1000,
+              toolCallsJson: '',
+              partsJson: '',
+              agentRole: '',
+              agentColor: '',
+              agentIcon: '',
             ),
           )
           .toList();
@@ -196,6 +232,9 @@ class CronNotificationNotifier extends StateNotifier<CronNotificationState> {
         sessionId: sessionId,
         title: session.title,
         messages: sessionMessages,
+        projectId: session.projectId ?? '',
+        ephemeral: session.ephemeral,
+        agentBinding: _ref.read(sessionAgentBindingProvider)[sessionId] ?? '',
       );
     } catch (e) {
       debugPrint('Failed to persist cron-injected session: $e');

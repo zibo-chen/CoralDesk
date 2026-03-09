@@ -141,12 +141,12 @@ flutter pub get
 flutter_rust_bridge_codegen generate
 ```
 
-### 4. Configure ZeroClaw
+### 4. Configure CoralDesk
 
-CoralDesk reads the ZeroClaw config from `~/.zeroclaw/config.toml` at startup. Create the file if it does not exist:
+CoralDesk reads the config from `~/.coraldesk/config.toml` at startup. Create the file if it does not exist:
 
 ```toml
-# ~/.zeroclaw/config.toml
+# ~/.coraldesk/config.toml
 provider  = "openrouter"
 model     = "anthropic/claude-sonnet-4-20250514"
 api_key   = "sk-or-..."

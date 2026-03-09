@@ -26,7 +26,7 @@ class AppBootstrapper {
   /// 2. Window manager (desktop only)
   /// 3. Rust FFI bridge
   /// 4. User settings (SharedPreferences)
-  /// 5. ZeroClaw runtime
+  /// 5. CoralDesk runtime
   /// 6. Session store
   /// 7. Cron scheduler (non-critical)
   static Future<void> init() async {
@@ -60,7 +60,7 @@ class AppBootstrapper {
     // Persisted user settings (locale, theme, etc.)
     await SettingsService.init();
 
-    // ZeroClaw runtime (loads config from ~/.zeroclaw/config.toml)
+    // CoralDesk runtime (loads config from ~/.coraldesk/config.toml)
     final status = await agent_api.initRuntime();
     debugPrint('CoralDesk runtime: $status');
 

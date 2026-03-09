@@ -12,7 +12,9 @@ import 'api/config_api.dart';
 import 'api/cron_api.dart';
 import 'api/cron_notification_api.dart';
 import 'api/knowledge_api.dart';
+import 'api/llm_debug_api.dart';
 import 'api/mcp_api.dart';
+import 'api/project_api.dart';
 import 'api/providers_api.dart';
 import 'api/proxy_api.dart';
 import 'api/routes_api.dart';
@@ -97,6 +99,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   KnowledgeEntry dco_decode_box_autoadd_knowledge_entry(dynamic raw);
 
   @protected
+  LlmDebugEntryDto dco_decode_box_autoadd_llm_debug_entry_dto(dynamic raw);
+
+  @protected
   McpServerDto dco_decode_box_autoadd_mcp_server_dto(dynamic raw);
 
   @protected
@@ -106,6 +111,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ModelRouteDto dco_decode_box_autoadd_model_route_dto(dynamic raw);
+
+  @protected
+  ProjectDto dco_decode_box_autoadd_project_dto(dynamic raw);
 
   @protected
   ProxyConfigDto dco_decode_box_autoadd_proxy_config_dto(dynamic raw);
@@ -162,6 +170,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
+  int dco_decode_i_8(dynamic raw);
+
+  @protected
   KeyValueDto dco_decode_key_value_dto(dynamic raw);
 
   @protected
@@ -203,6 +214,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<KnowledgeEntry> dco_decode_list_knowledge_entry(dynamic raw);
 
   @protected
+  List<LlmDebugEntryDto> dco_decode_list_llm_debug_entry_dto(dynamic raw);
+
+  @protected
+  List<LlmDebugMessageDto> dco_decode_list_llm_debug_message_dto(dynamic raw);
+
+  @protected
+  List<LlmDebugToolCallDto> dco_decode_list_llm_debug_tool_call_dto(
+    dynamic raw,
+  );
+
+  @protected
   List<McpServerDto> dco_decode_list_mcp_server_dto(dynamic raw);
 
   @protected
@@ -215,6 +237,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
+
+  @protected
+  List<ProjectSummary> dco_decode_list_project_summary(dynamic raw);
 
   @protected
   List<ProviderInfo> dco_decode_list_provider_info(dynamic raw);
@@ -242,6 +267,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<ToolSpecDto> dco_decode_list_tool_spec_dto(dynamic raw);
+
+  @protected
+  LlmDebugEntryDto dco_decode_llm_debug_entry_dto(dynamic raw);
+
+  @protected
+  LlmDebugMessageDto dco_decode_llm_debug_message_dto(dynamic raw);
+
+  @protected
+  LlmDebugToolCallDto dco_decode_llm_debug_tool_call_dto(dynamic raw);
 
   @protected
   McpConfigDto dco_decode_mcp_config_dto(dynamic raw);
@@ -282,6 +316,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   KnowledgeEntry? dco_decode_opt_box_autoadd_knowledge_entry(dynamic raw);
 
   @protected
+  LlmDebugEntryDto? dco_decode_opt_box_autoadd_llm_debug_entry_dto(dynamic raw);
+
+  @protected
+  ProjectDto? dco_decode_opt_box_autoadd_project_dto(dynamic raw);
+
+  @protected
   SessionDetail? dco_decode_opt_box_autoadd_session_detail(dynamic raw);
 
   @protected
@@ -289,6 +329,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw);
+
+  @protected
+  ProjectDto dco_decode_project_dto(dynamic raw);
+
+  @protected
+  ProjectStatus dco_decode_project_status(dynamic raw);
+
+  @protected
+  ProjectSummary dco_decode_project_summary(dynamic raw);
+
+  @protected
+  ProjectType dco_decode_project_type(dynamic raw);
 
   @protected
   ProviderInfo dco_decode_provider_info(dynamic raw);
@@ -432,6 +484,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  LlmDebugEntryDto sse_decode_box_autoadd_llm_debug_entry_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   McpServerDto sse_decode_box_autoadd_mcp_server_dto(
     SseDeserializer deserializer,
   );
@@ -445,6 +502,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ModelRouteDto sse_decode_box_autoadd_model_route_dto(
     SseDeserializer deserializer,
   );
+
+  @protected
+  ProjectDto sse_decode_box_autoadd_project_dto(SseDeserializer deserializer);
 
   @protected
   ProxyConfigDto sse_decode_box_autoadd_proxy_config_dto(
@@ -509,6 +569,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
 
   @protected
+  int sse_decode_i_8(SseDeserializer deserializer);
+
+  @protected
   KeyValueDto sse_decode_key_value_dto(SseDeserializer deserializer);
 
   @protected
@@ -558,6 +621,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<LlmDebugEntryDto> sse_decode_list_llm_debug_entry_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<LlmDebugMessageDto> sse_decode_list_llm_debug_message_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<LlmDebugToolCallDto> sse_decode_list_llm_debug_tool_call_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<McpServerDto> sse_decode_list_mcp_server_dto(
     SseDeserializer deserializer,
   );
@@ -574,6 +652,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
+
+  @protected
+  List<ProjectSummary> sse_decode_list_project_summary(
+    SseDeserializer deserializer,
+  );
 
   @protected
   List<ProviderInfo> sse_decode_list_provider_info(
@@ -613,6 +696,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<ToolSpecDto> sse_decode_list_tool_spec_dto(SseDeserializer deserializer);
+
+  @protected
+  LlmDebugEntryDto sse_decode_llm_debug_entry_dto(SseDeserializer deserializer);
+
+  @protected
+  LlmDebugMessageDto sse_decode_llm_debug_message_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  LlmDebugToolCallDto sse_decode_llm_debug_tool_call_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   McpConfigDto sse_decode_mcp_config_dto(SseDeserializer deserializer);
@@ -659,6 +755,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  LlmDebugEntryDto? sse_decode_opt_box_autoadd_llm_debug_entry_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ProjectDto? sse_decode_opt_box_autoadd_project_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   SessionDetail? sse_decode_opt_box_autoadd_session_detail(
     SseDeserializer deserializer,
   );
@@ -668,6 +774,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
+
+  @protected
+  ProjectDto sse_decode_project_dto(SseDeserializer deserializer);
+
+  @protected
+  ProjectStatus sse_decode_project_status(SseDeserializer deserializer);
+
+  @protected
+  ProjectSummary sse_decode_project_summary(SseDeserializer deserializer);
+
+  @protected
+  ProjectType sse_decode_project_type(SseDeserializer deserializer);
 
   @protected
   ProviderInfo sse_decode_provider_info(SseDeserializer deserializer);
@@ -835,6 +953,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_llm_debug_entry_dto(
+    LlmDebugEntryDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_mcp_server_dto(
     McpServerDto self,
     SseSerializer serializer,
@@ -849,6 +973,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_model_route_dto(
     ModelRouteDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_project_dto(
+    ProjectDto self,
     SseSerializer serializer,
   );
 
@@ -934,6 +1064,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
 
   @protected
+  void sse_encode_i_8(int self, SseSerializer serializer);
+
+  @protected
   void sse_encode_key_value_dto(KeyValueDto self, SseSerializer serializer);
 
   @protected
@@ -1006,6 +1139,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_llm_debug_entry_dto(
+    List<LlmDebugEntryDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_llm_debug_message_dto(
+    List<LlmDebugMessageDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_llm_debug_tool_call_dto(
+    List<LlmDebugToolCallDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_mcp_server_dto(
     List<McpServerDto> self,
     SseSerializer serializer,
@@ -1026,6 +1177,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_prim_u_8_strict(
     Uint8List self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_project_summary(
+    List<ProjectSummary> self,
     SseSerializer serializer,
   );
 
@@ -1074,6 +1231,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_tool_spec_dto(
     List<ToolSpecDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_llm_debug_entry_dto(
+    LlmDebugEntryDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_llm_debug_message_dto(
+    LlmDebugMessageDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_llm_debug_tool_call_dto(
+    LlmDebugToolCallDto self,
     SseSerializer serializer,
   );
 
@@ -1132,6 +1307,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_llm_debug_entry_dto(
+    LlmDebugEntryDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_project_dto(
+    ProjectDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_session_detail(
     SessionDetail? self,
     SseSerializer serializer,
@@ -1142,6 +1329,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_project_dto(ProjectDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_project_status(ProjectStatus self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_project_summary(
+    ProjectSummary self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_project_type(ProjectType self, SseSerializer serializer);
 
   @protected
   void sse_encode_provider_info(ProviderInfo self, SseSerializer serializer);
