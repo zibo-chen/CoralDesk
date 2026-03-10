@@ -3,12 +3,14 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:coraldesk/l10n/app_localizations.dart';
 import 'package:coraldesk/theme/app_theme.dart';
 import 'package:coraldesk/src/rust/api/agent_api.dart' as agent_api;
 import 'package:coraldesk/src/rust/api/routes_api.dart' as routes_api;
 import 'package:coraldesk/src/rust/api/providers_api.dart' as providers_api;
 import 'package:coraldesk/src/rust/api/config_api.dart' as config_api;
+import 'package:coraldesk/src/rust/api/copilot_api.dart' as copilot_api;
 import 'package:coraldesk/views/settings/widgets/settings_scaffold.dart';
 import 'package:coraldesk/views/settings/widgets/desktop_dialog.dart';
 
@@ -1223,6 +1225,11 @@ class _ProfileEditorDialogState extends State<_ProfileEditorDialog> {
   late String _selectedProvider;
   bool get _isEdit => widget.existing != null;
 
+  // Copilot OAuth state
+  bool _copilotAuthChecking = false;
+  bool _copilotAuthenticated = false;
+  String? _copilotUsername;
+
   List<String> get _providerOptions {
     final ids = widget.availableProviders.map((p) => p.id).toSet().toList()
       ..sort();
@@ -1230,6 +1237,7 @@ class _ProfileEditorDialogState extends State<_ProfileEditorDialog> {
   }
 
   bool get _isCustomProvider => _selectedProvider == _customProviderOption;
+  bool get _isCopilotProvider => _selectedProvider == 'copilot';
 
   @override
   void initState() {
@@ -1257,6 +1265,11 @@ class _ProfileEditorDialogState extends State<_ProfileEditorDialog> {
     } else {
       _selectedProvider = _customProviderOption;
     }
+
+    // Check Copilot auth status if editing a copilot profile
+    if (_isCopilotProvider) {
+      _checkCopilotStatus();
+    }
   }
 
   @override
@@ -1267,6 +1280,90 @@ class _ProfileEditorDialogState extends State<_ProfileEditorDialog> {
     _modelCtrl.dispose();
     _apiKeyCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkCopilotStatus() async {
+    setState(() => _copilotAuthChecking = true);
+    try {
+      final status = await copilot_api.copilotCheckStatus();
+      if (!mounted) return;
+      setState(() {
+        _copilotAuthenticated = status.authenticated;
+        _copilotUsername = status.username;
+        _copilotAuthChecking = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _copilotAuthChecking = false);
+    }
+  }
+
+  Future<void> _startCopilotOAuth() async {
+    final l10n = AppLocalizations.of(context)!;
+
+    // Start device flow
+    final flowInfo = await copilot_api.copilotStartDeviceFlow();
+    if (flowInfo.deviceCode.startsWith('error:')) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.copilotAuthFailed(flowInfo.deviceCode.substring(6)),
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+
+    // Show device code dialog
+    final success = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _CopilotDeviceCodeDialog(
+        userCode: flowInfo.userCode,
+        verificationUri: flowInfo.verificationUri,
+        deviceCode: flowInfo.deviceCode,
+        interval: flowInfo.interval.toInt(),
+        expiresIn: flowInfo.expiresIn.toInt(),
+      ),
+    );
+
+    if (success == true && mounted) {
+      _checkCopilotStatus();
+    }
+  }
+
+  Future<void> _copilotSignOut() async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.copilotSignOut),
+        content: Text(l10n.copilotSignOutConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(l10n.copilotSignOut),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    await copilot_api.copilotLogout();
+    if (!mounted) return;
+    setState(() {
+      _copilotAuthenticated = false;
+      _copilotUsername = null;
+    });
   }
 
   void _submit() {
@@ -1307,6 +1404,17 @@ class _ProfileEditorDialogState extends State<_ProfileEditorDialog> {
       _selectedProvider = value;
       if (!_isCustomProvider) {
         _nameCtrl.text = value;
+      }
+      // Auto-set defaults for Copilot
+      if (_isCopilotProvider) {
+        _nameCtrl.text = 'copilot';
+        if (_idCtrl.text.trim().isEmpty) {
+          _idCtrl.text = 'copilot';
+        }
+        if (_modelCtrl.text.trim().isEmpty) {
+          _modelCtrl.text = 'gpt-4o';
+        }
+        _checkCopilotStatus();
       }
     });
   }
@@ -1378,64 +1486,83 @@ class _ProfileEditorDialogState extends State<_ProfileEditorDialog> {
             ],
           ),
 
-          // ── Connection ──
-          DialogSection(
-            title: 'CONNECTION',
-            icon: Icons.link,
-            children: [
-              FieldRow(
-                children: [
-                  TextField(
-                    controller: _baseUrlCtrl,
-                    decoration: InputDecoration(
-                      labelText: l10n.providerProfileBaseUrl,
-                      hintText: l10n.providerProfileBaseUrlHint,
+          // ── Connection (hidden for Copilot) ──
+          if (!_isCopilotProvider)
+            DialogSection(
+              title: 'CONNECTION',
+              icon: Icons.link,
+              children: [
+                FieldRow(
+                  children: [
+                    TextField(
+                      controller: _baseUrlCtrl,
+                      decoration: InputDecoration(
+                        labelText: l10n.providerProfileBaseUrl,
+                        hintText: l10n.providerProfileBaseUrlHint,
+                      ),
                     ),
-                  ),
-                  DropdownButtonFormField<String>(
-                    initialValue: _wireApi,
-                    decoration: InputDecoration(
-                      labelText: l10n.providerProfileWireApi,
+                    DropdownButtonFormField<String>(
+                      initialValue: _wireApi,
+                      decoration: InputDecoration(
+                        labelText: l10n.providerProfileWireApi,
+                      ),
+                      items: wireApiOptions
+                          .map(
+                            (o) => DropdownMenuItem(
+                              value: o.$1,
+                              child: Text(o.$2),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) setState(() => _wireApi = v);
+                      },
                     ),
-                    items: wireApiOptions
-                        .map(
-                          (o) =>
-                              DropdownMenuItem(value: o.$1, child: Text(o.$2)),
-                        )
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) setState(() => _wireApi = v);
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ),
+                  ],
+                ),
+              ],
+            ),
+
+          // ── Copilot Authentication ──
+          if (_isCopilotProvider) _buildCopilotAuthSection(l10n),
 
           // ── Model & Auth ──
           DialogSection(
-            title: 'MODEL & AUTH',
+            title: _isCopilotProvider ? 'MODEL' : 'MODEL & AUTH',
             icon: Icons.vpn_key_outlined,
             children: [
-              FieldRow(
-                children: [
-                  TextField(
+              if (_isCopilotProvider)
+                // For Copilot: model selector only (no API key)
+                FieldColumn(
+                  child: TextField(
                     controller: _modelCtrl,
                     decoration: InputDecoration(
                       labelText: l10n.providerProfileModel,
-                      hintText: l10n.providerProfileModelHint,
+                      hintText: 'gpt-4o',
                     ),
                   ),
-                  TextField(
-                    controller: _apiKeyCtrl,
-                    obscureText: true,
-                    decoration: InputDecoration(
-                      labelText: '${l10n.apiKeyLabel} (${l10n.agentOptional})',
-                      hintText: l10n.apiKeyHint,
+                )
+              else
+                FieldRow(
+                  children: [
+                    TextField(
+                      controller: _modelCtrl,
+                      decoration: InputDecoration(
+                        labelText: l10n.providerProfileModel,
+                        hintText: l10n.providerProfileModelHint,
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                    TextField(
+                      controller: _apiKeyCtrl,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText:
+                            '${l10n.apiKeyLabel} (${l10n.agentOptional})',
+                        hintText: l10n.apiKeyHint,
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
         ],
@@ -1450,6 +1577,467 @@ class _ProfileEditorDialogState extends State<_ProfileEditorDialog> {
           child: Text(_isEdit ? l10n.save : l10n.create),
         ),
       ],
+    );
+  }
+
+  Widget _buildCopilotAuthSection(AppLocalizations l10n) {
+    final c = CoralDeskColors.of(context);
+    return DialogSection(
+      title: 'GITHUB COPILOT',
+      icon: Icons.security_outlined,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: c.surfaceBg,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: c.chatListBorder),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Description
+              Text(
+                l10n.copilotOAuthDesc,
+                style: TextStyle(fontSize: 13, color: c.textSecondary),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                l10n.copilotRequiresSubscription,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: c.textHint,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Auth status
+              if (_copilotAuthChecking)
+                Row(
+                  children: [
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      l10n.copilotCheckingStatus,
+                      style: TextStyle(fontSize: 13, color: c.textSecondary),
+                    ),
+                  ],
+                )
+              else ...[
+                // Status indicator
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _copilotAuthenticated
+                        ? AppColors.success.withValues(alpha: 0.1)
+                        : AppColors.warning.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _copilotAuthenticated
+                          ? AppColors.success.withValues(alpha: 0.3)
+                          : AppColors.warning.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _copilotAuthenticated
+                            ? Icons.check_circle_outline
+                            : Icons.warning_amber_rounded,
+                        size: 18,
+                        color: _copilotAuthenticated
+                            ? AppColors.success
+                            : AppColors.warning,
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          _copilotAuthenticated
+                              ? (_copilotUsername != null
+                                    ? l10n.copilotAuthenticatedAs(
+                                        _copilotUsername!,
+                                      )
+                                    : l10n.copilotAuthenticated)
+                              : l10n.copilotNotAuthenticated,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: _copilotAuthenticated
+                                ? AppColors.success
+                                : AppColors.warning,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Action buttons
+                Row(
+                  children: [
+                    if (!_copilotAuthenticated)
+                      FilledButton.icon(
+                        icon: const Icon(Icons.login, size: 18),
+                        label: Text(l10n.copilotSignIn),
+                        onPressed: _startCopilotOAuth,
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 10,
+                          ),
+                        ),
+                      )
+                    else ...[
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: Text(
+                          l10n.copilotCheckingStatus.replaceAll('...', ''),
+                        ),
+                        onPressed: _checkCopilotStatus,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.logout, size: 18),
+                        label: Text(l10n.copilotSignOut),
+                        onPressed: _copilotSignOut,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Copilot Device Code Dialog
+// ═══════════════════════════════════════════════════════════════
+
+class _CopilotDeviceCodeDialog extends StatefulWidget {
+  final String userCode;
+  final String verificationUri;
+  final String deviceCode;
+  final int interval;
+  final int expiresIn;
+
+  const _CopilotDeviceCodeDialog({
+    required this.userCode,
+    required this.verificationUri,
+    required this.deviceCode,
+    required this.interval,
+    required this.expiresIn,
+  });
+
+  @override
+  State<_CopilotDeviceCodeDialog> createState() =>
+      _CopilotDeviceCodeDialogState();
+}
+
+class _CopilotDeviceCodeDialogState extends State<_CopilotDeviceCodeDialog> {
+  bool _polling = true;
+  String? _error;
+  String? _username;
+  bool _success = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startPolling();
+  }
+
+  Future<void> _startPolling() async {
+    final deadline = DateTime.now().add(Duration(seconds: widget.expiresIn));
+    var intervalSeconds = widget.interval;
+
+    while (mounted && _polling && DateTime.now().isBefore(deadline)) {
+      await Future.delayed(Duration(seconds: intervalSeconds));
+      if (!mounted || !_polling) break;
+
+      try {
+        final result = await copilot_api.copilotPollAuthorization(
+          deviceCode: widget.deviceCode,
+        );
+
+        if (!mounted) break;
+
+        switch (result.status) {
+          case 'success':
+            setState(() {
+              _success = true;
+              _polling = false;
+              _username = result.username;
+            });
+            // Auto-close after a brief delay
+            await Future.delayed(const Duration(seconds: 2));
+            if (mounted) Navigator.pop(context, true);
+            return;
+          case 'pending':
+            // Continue polling
+            break;
+          case 'slow_down':
+            intervalSeconds += 5;
+            break;
+          case 'expired':
+            setState(() {
+              _polling = false;
+              _error = AppLocalizations.of(context)!.copilotAuthExpired;
+            });
+            return;
+          default:
+            if (result.status.startsWith('error:')) {
+              setState(() {
+                _polling = false;
+                _error = result.status.substring(6);
+              });
+              return;
+            }
+        }
+      } catch (e) {
+        if (!mounted) break;
+        setState(() {
+          _polling = false;
+          _error = e.toString();
+        });
+        return;
+      }
+    }
+
+    // Timed out
+    if (mounted && _polling) {
+      setState(() {
+        _polling = false;
+        _error = AppLocalizations.of(context)!.copilotAuthExpired;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _polling = false;
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final c = CoralDeskColors.of(context);
+
+    return Dialog(
+      backgroundColor: c.cardBg,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // GitHub icon
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: c.surfaceBg,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: c.chatListBorder),
+                ),
+                child: Icon(
+                  Icons.code,
+                  size: 28,
+                  color: _success ? AppColors.success : AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              if (_success) ...[
+                // Success state
+                Icon(Icons.check_circle, size: 48, color: AppColors.success),
+                const SizedBox(height: 12),
+                Text(
+                  l10n.copilotAuthSuccess,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.success,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                if (_username != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.copilotAuthenticatedAs(_username!),
+                    style: TextStyle(fontSize: 14, color: c.textSecondary),
+                  ),
+                ],
+              ] else if (_error != null) ...[
+                // Error state
+                Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                const SizedBox(height: 12),
+                Text(
+                  l10n.copilotAuthFailed(_error!),
+                  style: TextStyle(fontSize: 14, color: AppColors.error),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+              ] else ...[
+                // Waiting state — show device code
+                Text(
+                  l10n.copilotDeviceCodeTitle,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: c.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  l10n.copilotDeviceCodeDesc,
+                  style: TextStyle(fontSize: 13, color: c.textSecondary),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+
+                // User code display
+                InkWell(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: widget.userCode));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(l10n.copilotDeviceCodeCopied),
+                        duration: const Duration(seconds: 2),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 28,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: c.surfaceBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.4),
+                        width: 2,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.userCode,
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                            letterSpacing: 4,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Icon(
+                          Icons.copy,
+                          size: 20,
+                          color: AppColors.primary.withValues(alpha: 0.7),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  l10n.copilotCopyCode,
+                  style: TextStyle(fontSize: 11, color: c.textHint),
+                ),
+                const SizedBox(height: 20),
+
+                // Open browser button
+                FilledButton.icon(
+                  icon: const Icon(Icons.open_in_browser, size: 18),
+                  label: Text(l10n.copilotOpenBrowser),
+                  onPressed: () {
+                    // Copy code to clipboard automatically
+                    Clipboard.setData(ClipboardData(text: widget.userCode));
+                    launchUrl(Uri.parse(widget.verificationUri));
+                  },
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // URL display
+                Text(
+                  widget.verificationUri,
+                  style: TextStyle(fontSize: 12, color: c.textHint),
+                ),
+                const SizedBox(height: 20),
+
+                // Polling indicator
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      l10n.copilotWaitingAuth,
+                      style: TextStyle(fontSize: 13, color: c.textSecondary),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () {
+                    _polling = false;
+                    Navigator.pop(context, false);
+                  },
+                  child: Text(l10n.cancel),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

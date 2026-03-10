@@ -6,11 +6,14 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `agent_browser_bin_path`, `apply_browser_defaults`, `deskclaw_node_prefix`, `install_agent_browser`, `is_agent_browser_installed`
+// These functions are ignored because they are not marked as `pub`: `apply_browser_defaults`, `find_on_path`
 
-/// Ensure `agent-browser` is available, installing it if needed.
+/// Locate the `agent-browser` CLI binary.
 ///
-/// Returns the absolute path to the binary, or an error description.
-/// This is called during app startup so the browser tool works out-of-box.
-Future<String> ensureAgentBrowser() =>
-    RustLib.instance.api.crateApiBrowserBootstrapEnsureAgentBrowser();
+/// Search order:
+/// 1. **Bundled**: `runtimes/agent-browser/agent-browser` (pre-installed at build time)
+/// 2. **PATH fallback**: check if `agent-browser` is available on the system PATH
+///
+/// Returns the absolute path to the binary, or an error description if not found.
+Future<String> findAgentBrowser() =>
+    RustLib.instance.api.crateApiBrowserBootstrapFindAgentBrowser();

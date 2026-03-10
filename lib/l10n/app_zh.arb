@@ -768,5 +768,25 @@
   "settingsResetTitle": "重置设置",
   "settingsResetDesc": "将所有偏好设置恢复为默认值",
   "settingsResetConfirm": "确定要将所有偏好设置恢复为默认值吗？",
-  "reset": "重置"
+  "reset": "重置",
+
+  "copilotOAuthTitle": "GitHub Copilot 认证",
+  "copilotOAuthDesc": "使用您的 GitHub 账号登录以使用 Copilot。需要有效的 GitHub Copilot 订阅。",
+  "copilotSignIn": "使用 GitHub 登录",
+  "copilotSignOut": "退出登录",
+  "copilotAuthenticated": "已认证",
+  "copilotNotAuthenticated": "未认证",
+  "copilotAuthenticatedAs": "已登录为 {username}",
+  "copilotDeviceCodeTitle": "在 GitHub 上输入验证码",
+  "copilotDeviceCodeDesc": "访问下方链接并输入验证码以完成授权：",
+  "copilotDeviceCodeCopied": "验证码已复制到剪贴板",
+  "copilotOpenBrowser": "打开 GitHub",
+  "copilotWaitingAuth": "等待授权中...",
+  "copilotAuthSuccess": "GitHub Copilot 连接成功！",
+  "copilotAuthExpired": "授权已过期，请重试。",
+  "copilotAuthFailed": "认证失败：{error}",
+  "copilotRequiresSubscription": "需要 GitHub Copilot 订阅",
+  "copilotCopyCode": "复制验证码",
+  "copilotCheckingStatus": "正在检查 Copilot 状态...",
+  "copilotSignOutConfirm": "确定要退出 GitHub Copilot 登录吗？"
 }

@@ -4,6 +4,7 @@ pub mod agents_api;
 pub mod browser_bootstrap;
 pub mod channel_runtime_api;
 pub mod config_api;
+pub mod copilot_api;
 pub mod cron_api;
 pub mod cron_notification_api;
 pub mod knowledge_api;

@@ -3359,9 +3359,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "directories",
  "dirs 5.0.1",
  "flutter_rust_bridge",
  "open",
+ "reqwest",
  "rusqlite",
  "serde",
  "serde_json",

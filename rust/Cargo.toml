@@ -29,6 +29,11 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
 dirs = "5"
 open = "5"
+reqwest = { version = "0.12", default-features = false, features = [
+    "json",
+    "rustls-tls",
+] }
+directories = "6.0"
 rusqlite = { version = "0.37", features = ["bundled"] }
 
 [lints.rust]

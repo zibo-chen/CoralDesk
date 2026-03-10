@@ -53,12 +53,30 @@ pub struct ProviderInfo {
     pub models: Vec<String>,
     pub requires_api_key: bool,
     pub requires_api_base: bool,
+    /// Whether this provider uses OAuth device flow instead of API key.
+    pub requires_oauth: bool,
 }
 
 /// Get the list of available providers with their supported models
 #[frb(sync)]
 pub fn list_providers() -> Vec<ProviderInfo> {
     vec![
+        ProviderInfo {
+            id: "copilot".into(),
+            name: "GitHub Copilot".into(),
+            provider_type: ProviderType::Copilot,
+            models: vec![
+                "gpt-4o".into(),
+                "gpt-4o-mini".into(),
+                "claude-sonnet-4-20250514".into(),
+                "claude-3.5-haiku-20241022".into(),
+                "o1".into(),
+                "o3-mini".into(),
+            ],
+            requires_api_key: false,
+            requires_api_base: false,
+            requires_oauth: true,
+        },
         ProviderInfo {
             id: "openai".into(),
             name: "OpenAI".into(),
@@ -73,6 +91,7 @@ pub fn list_providers() -> Vec<ProviderInfo> {
             ],
             requires_api_key: true,
             requires_api_base: false,
+            requires_oauth: false,
         },
         ProviderInfo {
             id: "anthropic".into(),
@@ -85,6 +104,7 @@ pub fn list_providers() -> Vec<ProviderInfo> {
             ],
             requires_api_key: true,
             requires_api_base: false,
+            requires_oauth: false,
         },
         ProviderInfo {
             id: "gemini".into(),
@@ -97,6 +117,7 @@ pub fn list_providers() -> Vec<ProviderInfo> {
             ],
             requires_api_key: true,
             requires_api_base: false,
+            requires_oauth: false,
         },
         ProviderInfo {
             id: "ollama".into(),
@@ -111,6 +132,7 @@ pub fn list_providers() -> Vec<ProviderInfo> {
             ],
             requires_api_key: false,
             requires_api_base: true,
+            requires_oauth: false,
         },
         ProviderInfo {
             id: "openrouter".into(),
@@ -125,6 +147,7 @@ pub fn list_providers() -> Vec<ProviderInfo> {
             ],
             requires_api_key: true,
             requires_api_base: false,
+            requires_oauth: false,
         },
         ProviderInfo {
             id: "compatible".into(),
@@ -133,6 +156,7 @@ pub fn list_providers() -> Vec<ProviderInfo> {
             models: vec!["default".into()],
             requires_api_key: true,
             requires_api_base: true,
+            requires_oauth: false,
         },
         ProviderInfo {
             id: "bedrock".into(),
@@ -144,6 +168,7 @@ pub fn list_providers() -> Vec<ProviderInfo> {
             ],
             requires_api_key: true,
             requires_api_base: true,
+            requires_oauth: false,
         },
         ProviderInfo {
             id: "telnyx".into(),
@@ -155,6 +180,7 @@ pub fn list_providers() -> Vec<ProviderInfo> {
             ],
             requires_api_key: true,
             requires_api_base: false,
+            requires_oauth: false,
         },
         ProviderInfo {
             id: "glm".into(),
@@ -163,6 +189,7 @@ pub fn list_providers() -> Vec<ProviderInfo> {
             models: vec!["glm-4".into(), "glm-4-flash".into(), "glm-4-long".into()],
             requires_api_key: true,
             requires_api_base: false,
+            requires_oauth: false,
         },
     ]
 }

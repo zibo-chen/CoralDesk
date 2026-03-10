@@ -4423,6 +4423,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reset'**
   String get reset;
+
+  /// Copilot OAuth dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub Copilot Authentication'**
+  String get copilotOAuthTitle;
+
+  /// Copilot OAuth description
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with your GitHub account to use Copilot. Requires an active GitHub Copilot subscription.'**
+  String get copilotOAuthDesc;
+
+  /// Copilot sign in button
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with GitHub'**
+  String get copilotSignIn;
+
+  /// Copilot sign out button
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Out'**
+  String get copilotSignOut;
+
+  /// Copilot authenticated status
+  ///
+  /// In en, this message translates to:
+  /// **'Authenticated'**
+  String get copilotAuthenticated;
+
+  /// Copilot not authenticated status
+  ///
+  /// In en, this message translates to:
+  /// **'Not authenticated'**
+  String get copilotNotAuthenticated;
+
+  /// Copilot authenticated as user
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in as {username}'**
+  String copilotAuthenticatedAs(Object username);
+
+  /// Device code prompt title
+  ///
+  /// In en, this message translates to:
+  /// **'Enter code on GitHub'**
+  String get copilotDeviceCodeTitle;
+
+  /// Device code prompt description
+  ///
+  /// In en, this message translates to:
+  /// **'Visit the URL below and enter the code to authorize:'**
+  String get copilotDeviceCodeDesc;
+
+  /// Device code copied notification
+  ///
+  /// In en, this message translates to:
+  /// **'Code copied to clipboard'**
+  String get copilotDeviceCodeCopied;
+
+  /// Open browser button
+  ///
+  /// In en, this message translates to:
+  /// **'Open GitHub'**
+  String get copilotOpenBrowser;
+
+  /// Waiting for authorization status
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for authorization...'**
+  String get copilotWaitingAuth;
+
+  /// Auth success message
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub Copilot connected successfully!'**
+  String get copilotAuthSuccess;
+
+  /// Auth expired message
+  ///
+  /// In en, this message translates to:
+  /// **'Authorization expired. Please try again.'**
+  String get copilotAuthExpired;
+
+  /// Auth failed message
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication failed: {error}'**
+  String copilotAuthFailed(Object error);
+
+  /// Subscription requirement note
+  ///
+  /// In en, this message translates to:
+  /// **'Requires GitHub Copilot subscription'**
+  String get copilotRequiresSubscription;
+
+  /// Copy device code button
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Code'**
+  String get copilotCopyCode;
+
+  /// Status check loading text
+  ///
+  /// In en, this message translates to:
+  /// **'Checking Copilot status...'**
+  String get copilotCheckingStatus;
+
+  /// Sign out confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to sign out of GitHub Copilot?'**
+  String get copilotSignOutConfirm;
 }
 
 class _AppLocalizationsDelegate

@@ -2359,4 +2359,69 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reset => 'Reset';
+
+  @override
+  String get copilotOAuthTitle => 'GitHub Copilot Authentication';
+
+  @override
+  String get copilotOAuthDesc =>
+      'Sign in with your GitHub account to use Copilot. Requires an active GitHub Copilot subscription.';
+
+  @override
+  String get copilotSignIn => 'Sign in with GitHub';
+
+  @override
+  String get copilotSignOut => 'Sign Out';
+
+  @override
+  String get copilotAuthenticated => 'Authenticated';
+
+  @override
+  String get copilotNotAuthenticated => 'Not authenticated';
+
+  @override
+  String copilotAuthenticatedAs(Object username) {
+    return 'Signed in as $username';
+  }
+
+  @override
+  String get copilotDeviceCodeTitle => 'Enter code on GitHub';
+
+  @override
+  String get copilotDeviceCodeDesc =>
+      'Visit the URL below and enter the code to authorize:';
+
+  @override
+  String get copilotDeviceCodeCopied => 'Code copied to clipboard';
+
+  @override
+  String get copilotOpenBrowser => 'Open GitHub';
+
+  @override
+  String get copilotWaitingAuth => 'Waiting for authorization...';
+
+  @override
+  String get copilotAuthSuccess => 'GitHub Copilot connected successfully!';
+
+  @override
+  String get copilotAuthExpired => 'Authorization expired. Please try again.';
+
+  @override
+  String copilotAuthFailed(Object error) {
+    return 'Authentication failed: $error';
+  }
+
+  @override
+  String get copilotRequiresSubscription =>
+      'Requires GitHub Copilot subscription';
+
+  @override
+  String get copilotCopyCode => 'Copy Code';
+
+  @override
+  String get copilotCheckingStatus => 'Checking Copilot status...';
+
+  @override
+  String get copilotSignOutConfirm =>
+      'Are you sure you want to sign out of GitHub Copilot?';
 }

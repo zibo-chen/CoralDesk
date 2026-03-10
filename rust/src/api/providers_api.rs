@@ -181,6 +181,7 @@ pub async fn switch_active_model(provider: String, model: String) -> String {
             "deepseek",
             "groq",
             "xai",
+            "copilot",
         ];
 
         let base_url = profile
@@ -308,6 +309,7 @@ pub async fn set_default_profile(id: String) -> String {
         "deepseek",
         "groq",
         "xai",
+        "copilot",
     ];
 
     // Determine the correct default_provider value:

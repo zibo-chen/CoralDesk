@@ -12,6 +12,7 @@ import 'api/agents_api.dart';
 import 'api/browser_bootstrap.dart';
 import 'api/channel_runtime_api.dart';
 import 'api/config_api.dart';
+import 'api/copilot_api.dart';
 import 'api/cron_api.dart';
 import 'api/cron_notification_api.dart';
 import 'api/knowledge_api.dart';
@@ -134,6 +135,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ChatSessionInfo dco_decode_chat_session_info(dynamic raw);
+
+  @protected
+  CopilotAuthStatus dco_decode_copilot_auth_status(dynamic raw);
+
+  @protected
+  CopilotDeviceFlowInfo dco_decode_copilot_device_flow_info(dynamic raw);
+
+  @protected
+  CopilotPollResult dco_decode_copilot_poll_result(dynamic raw);
 
   @protected
   CostConfigDto dco_decode_cost_config_dto(dynamic raw);
@@ -529,6 +539,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ChatSessionInfo sse_decode_chat_session_info(SseDeserializer deserializer);
+
+  @protected
+  CopilotAuthStatus sse_decode_copilot_auth_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  CopilotDeviceFlowInfo sse_decode_copilot_device_flow_info(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  CopilotPollResult sse_decode_copilot_poll_result(
+    SseDeserializer deserializer,
+  );
 
   @protected
   CostConfigDto sse_decode_cost_config_dto(SseDeserializer deserializer);
@@ -1011,6 +1036,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_chat_session_info(
     ChatSessionInfo self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_copilot_auth_status(
+    CopilotAuthStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_copilot_device_flow_info(
+    CopilotDeviceFlowInfo self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_copilot_poll_result(
+    CopilotPollResult self,
     SseSerializer serializer,
   );
 

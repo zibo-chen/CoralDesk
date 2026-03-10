@@ -2301,4 +2301,66 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get reset => '重置';
+
+  @override
+  String get copilotOAuthTitle => 'GitHub Copilot 认证';
+
+  @override
+  String get copilotOAuthDesc =>
+      '使用您的 GitHub 账号登录以使用 Copilot。需要有效的 GitHub Copilot 订阅。';
+
+  @override
+  String get copilotSignIn => '使用 GitHub 登录';
+
+  @override
+  String get copilotSignOut => '退出登录';
+
+  @override
+  String get copilotAuthenticated => '已认证';
+
+  @override
+  String get copilotNotAuthenticated => '未认证';
+
+  @override
+  String copilotAuthenticatedAs(Object username) {
+    return '已登录为 $username';
+  }
+
+  @override
+  String get copilotDeviceCodeTitle => '在 GitHub 上输入验证码';
+
+  @override
+  String get copilotDeviceCodeDesc => '访问下方链接并输入验证码以完成授权：';
+
+  @override
+  String get copilotDeviceCodeCopied => '验证码已复制到剪贴板';
+
+  @override
+  String get copilotOpenBrowser => '打开 GitHub';
+
+  @override
+  String get copilotWaitingAuth => '等待授权中...';
+
+  @override
+  String get copilotAuthSuccess => 'GitHub Copilot 连接成功！';
+
+  @override
+  String get copilotAuthExpired => '授权已过期，请重试。';
+
+  @override
+  String copilotAuthFailed(Object error) {
+    return '认证失败：$error';
+  }
+
+  @override
+  String get copilotRequiresSubscription => '需要 GitHub Copilot 订阅';
+
+  @override
+  String get copilotCopyCode => '复制验证码';
+
+  @override
+  String get copilotCheckingStatus => '正在检查 Copilot 状态...';
+
+  @override
+  String get copilotSignOutConfirm => '确定要退出 GitHub Copilot 登录吗？';
 }

@@ -76,6 +76,9 @@ class ProviderInfo {
   final bool requiresApiKey;
   final bool requiresApiBase;
 
+  /// Whether this provider uses OAuth device flow instead of API key.
+  final bool requiresOauth;
+
   const ProviderInfo({
     required this.id,
     required this.name,
@@ -83,6 +86,7 @@ class ProviderInfo {
     required this.models,
     required this.requiresApiKey,
     required this.requiresApiBase,
+    required this.requiresOauth,
   });
 
   @override
@@ -92,7 +96,8 @@ class ProviderInfo {
       providerType.hashCode ^
       models.hashCode ^
       requiresApiKey.hashCode ^
-      requiresApiBase.hashCode;
+      requiresApiBase.hashCode ^
+      requiresOauth.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -104,7 +109,8 @@ class ProviderInfo {
           providerType == other.providerType &&
           models == other.models &&
           requiresApiKey == other.requiresApiKey &&
-          requiresApiBase == other.requiresApiBase;
+          requiresApiBase == other.requiresApiBase &&
+          requiresOauth == other.requiresOauth;
 }
 
 /// Supported LLM provider types
