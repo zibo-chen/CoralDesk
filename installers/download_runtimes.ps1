@@ -17,6 +17,25 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# PS 5.1-compatible download with retry (MaximumRetryCount requires PS 6+)
+function Invoke-DownloadWithRetry {
+    param(
+        [string]$Uri,
+        [string]$OutFile,
+        [int]$MaxRetries = 3
+    )
+    for ($i = 1; $i -le ($MaxRetries + 1); $i++) {
+        try {
+            Invoke-WebRequest -Uri $Uri -OutFile $OutFile -UseBasicParsing
+            return
+        } catch {
+            if ($i -gt $MaxRetries) { throw }
+            Write-Host "  Retry $i/$MaxRetries ..."
+            Start-Sleep -Seconds (2 * $i)
+        }
+    }
+}
+
 $PythonBaseUrl = "https://github.com/astral-sh/python-build-standalone/releases/download/$PythonBuildTag"
 $BunBaseUrl    = "https://github.com/oven-sh/bun/releases"
 
@@ -39,7 +58,7 @@ Write-Host "-> Downloading Python $PythonVersion (windows-x64) ..."
 $TmpPython = New-TemporaryFile
 $TmpPythonGz = "$TmpPython.tar.gz"
 Rename-Item $TmpPython $TmpPythonGz
-Invoke-WebRequest -Uri $PythonUrl -OutFile $TmpPythonGz -UseBasicParsing -MaximumRetryCount 3
+Invoke-DownloadWithRetry -Uri $PythonUrl -OutFile $TmpPythonGz
 
 Write-Host "-> Extracting Python to $TargetDir\python ..."
 $PythonDir = Join-Path $TargetDir "python"
@@ -64,7 +83,7 @@ Write-Host "-> Downloading Bun (windows-x64) ..."
 $TmpBun = New-TemporaryFile
 $TmpBunZip = "$TmpBun.zip"
 Rename-Item $TmpBun $TmpBunZip
-Invoke-WebRequest -Uri $BunUrl -OutFile $TmpBunZip -UseBasicParsing -MaximumRetryCount 3
+Invoke-DownloadWithRetry -Uri $BunUrl -OutFile $TmpBunZip
 
 Write-Host "-> Extracting Bun to $TargetDir\bun ..."
 $BunDir = Join-Path $TargetDir "bun"
