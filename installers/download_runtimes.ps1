@@ -36,6 +36,41 @@ function Invoke-DownloadWithRetry {
     }
 }
 
+# PS 5.1-compatible native command runner that captures stdout/stderr without
+# converting stderr lines into terminating PowerShell errors.
+function Invoke-NativeCommand {
+    param(
+        [Parameter(Mandatory)][string]$FilePath,
+        [string[]]$Arguments = @(),
+        [string]$WorkingDirectory = $PWD.Path
+    )
+
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $process.StartInfo.FileName = $FilePath
+    $process.StartInfo.WorkingDirectory = $WorkingDirectory
+    $process.StartInfo.UseShellExecute = $false
+    $process.StartInfo.RedirectStandardOutput = $true
+    $process.StartInfo.RedirectStandardError = $true
+    $process.StartInfo.CreateNoWindow = $true
+
+    foreach ($arg in $Arguments) {
+        [void]$process.StartInfo.ArgumentList.Add($arg)
+    }
+
+    [void]$process.Start()
+    $stdout = $process.StandardOutput.ReadToEnd()
+    $stderr = $process.StandardError.ReadToEnd()
+    $process.WaitForExit()
+
+    [pscustomobject]@{
+        ExitCode = $process.ExitCode
+        StdOut = $stdout
+        StdErr = $stderr
+        Output = (($stdout, $stderr) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join "`n"
+    }
+}
+
 $PythonBaseUrl = "https://github.com/astral-sh/python-build-standalone/releases/download/$PythonBuildTag"
 $BunBaseUrl    = "https://github.com/oven-sh/bun/releases"
 
@@ -124,7 +159,18 @@ Set-Content -Path (Join-Path $AbDir "package.json") -Value $PkgJson
 # Skip Playwright browser downloads — we use the system browser at runtime
 $env:PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
 $env:PLAYWRIGHT_BROWSERS_PATH = "0"
-& $BunBin add --cwd $AbDir agent-browser 2>&1 | Select-Object -Last 5
+$bunAddResult = Invoke-NativeCommand -FilePath $BunBin -Arguments @("add", "--cwd", $AbDir, "agent-browser")
+if (-Not [string]::IsNullOrWhiteSpace($bunAddResult.Output)) {
+    $bunAddLines = $bunAddResult.Output -split "`r?`n" | Select-Object -Last 5
+    foreach ($line in $bunAddLines) {
+        if (-not [string]::IsNullOrWhiteSpace($line)) {
+            Write-Host $line
+        }
+    }
+}
+if ($bunAddResult.ExitCode -ne 0) {
+    Write-Error "bun add failed with exit code $($bunAddResult.ExitCode)"
+}
 
 # Locate the entry point
 $AbEntry = Get-ChildItem -Path (Join-Path $AbDir "node_modules\agent-browser") -Recurse -Include "cli.js","index.js","agent-browser.js" -ErrorAction SilentlyContinue | Select-Object -First 1
