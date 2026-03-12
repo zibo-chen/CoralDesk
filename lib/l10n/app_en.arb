@@ -7,8 +7,8 @@
   "appTagline": "From your desk, master the AI era",
   "@appTagline": { "description": "App tagline shown below input bar" },
 
-  "navSectionChat": "Chat",
-  "@navSectionChat": { "description": "Chat section label in sidebar" },
+  "navSectionChat": "Tasks",
+  "@navSectionChat": { "description": "Tasks section label in sidebar" },
 
   "navSectionControl": "Control",
   "@navSectionControl": { "description": "Control section label in sidebar" },
@@ -52,14 +52,17 @@
   "workWithCoralDesk": "Work with CoralDesk",
   "@workWithCoralDesk": { "description": "Chat list panel header" },
 
-  "newChat": "New Chat",
-  "@newChat": { "description": "New chat button label" },
+  "newChat": "New Task",
+  "@newChat": { "description": "New task button label" },
 
-  "noConversationsYet": "No conversations yet",
-  "@noConversationsYet": { "description": "Chat list empty state title" },
+  "quickTask": "Quick Task (not saved)",
+  "@quickTask": { "description": "Quick task button tooltip" },
 
-  "startNewChat": "Start a new chat",
-  "@startNewChat": { "description": "Chat list empty state subtitle" },
+  "noConversationsYet": "No tasks yet",
+  "@noConversationsYet": { "description": "Task list empty state title" },
+
+  "startNewChat": "Start a new task",
+  "@startNewChat": { "description": "Task list empty state subtitle" },
 
   "welcomeTitle": "Hello, how can I help you today?",
   "@welcomeTitle": { "description": "Welcome view title" },
@@ -492,7 +495,7 @@
   "noSavedSessions": "No saved sessions",
   "@noSavedSessions": { "description": "No saved sessions empty state" },
 
-  "sessionsAutoSaveHint": "Sessions will be automatically saved here after you send messages in chat",
+  "sessionsAutoSaveHint": "Sessions will be automatically saved here after you send messages in a task",
   "@sessionsAutoSaveHint": { "description": "Sessions auto save hint" },
 
   "searchSessions": "Search sessions...",
@@ -1465,6 +1468,12 @@
   "@mcpServerUpdated": { "description": "Server updated success" },
   "mcpServerDeleted": "MCP server deleted",
   "@mcpServerDeleted": { "description": "Server deleted success" },
+  "mcpServerEnabled": "MCP server enabled",
+  "@mcpServerEnabled": { "description": "Server enabled success" },
+  "mcpServerDisabled": "MCP server disabled",
+  "@mcpServerDisabled": { "description": "Server disabled success" },
+  "mcpToggleServer": "Enable/Disable Server",
+  "@mcpToggleServer": { "description": "Toggle server enabled state" },
   "mcpTransportStdio": "Standard I/O",
   "@mcpTransportStdio": { "description": "Stdio transport option" },
   "mcpTransportHttp": "HTTP",

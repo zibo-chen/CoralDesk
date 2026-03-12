@@ -82,6 +82,7 @@ class _McpPageState extends ConsumerState<McpPage> {
     if (config == null || !config.enabled) return;
 
     for (final server in config.servers) {
+      if (!server.enabled) continue; // skip disabled servers
       final state = _serverStates[server.name];
       if (state != null && state.status == McpServerStatus.notTested) {
         _testServer(server);
@@ -138,6 +139,25 @@ class _McpPageState extends ConsumerState<McpPage> {
     if (result == 'ok') {
       _serverStates.remove(name);
       _showMessage(AppLocalizations.of(context)!.mcpServerDeleted);
+      _loadConfig();
+    } else {
+      _showMessage(result, isError: true);
+    }
+  }
+
+  Future<void> _toggleServer(String name, bool enabled) async {
+    final result = await mcp_api.toggleMcpServer(name: name, enabled: enabled);
+    if (!mounted) return;
+    if (result == 'ok') {
+      _showMessage(
+        enabled
+            ? AppLocalizations.of(context)!.mcpServerEnabled
+            : AppLocalizations.of(context)!.mcpServerDisabled,
+      );
+      if (enabled) {
+        // Reset test state so it re-tests on next load
+        _serverStates[name] = _ServerState();
+      }
       _loadConfig();
     } else {
       _showMessage(result, isError: true);
@@ -575,146 +595,168 @@ class _McpPageState extends ConsumerState<McpPage> {
       _ => Icons.terminal,
     };
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: c.surfaceBg,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: _statusBorderColor(state.status),
-          width: state.status == McpServerStatus.connected ? 1.5 : 1.0,
-        ),
-      ),
-      child: Column(
-        children: [
-          // Main row
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Transport icon with status indicator
-                _buildServerIcon(transportIcon, state.status),
-                const SizedBox(width: 12),
-                // Server info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            server.name,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: c.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          _buildStatusBadge(state),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        server.transport == 'stdio'
-                            ? '${server.command} ${server.args.join(' ')}'
-                            : server.url,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: c.textHint,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        maxLines: 1,
-                      ),
-                      if (state.status == McpServerStatus.connected &&
-                          state.tools.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: Text(
-                            AppLocalizations.of(
-                              context,
-                            )!.mcpToolCount(state.tools.length),
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.success,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Transport label
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    transportLabel,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Actions
-                if (mcpEnabled) ...[
-                  // Test button
-                  _buildActionButton(
-                    icon: state.status == McpServerStatus.testing
-                        ? Icons.sync
-                        : Icons.play_arrow_outlined,
-                    tooltip: AppLocalizations.of(context)!.mcpTestConnection,
-                    onPressed: state.status == McpServerStatus.testing
-                        ? null
-                        : () => _testServer(server),
-                    spinning: state.status == McpServerStatus.testing,
-                  ),
-                  // Show tools
-                  if (state.tools.isNotEmpty)
-                    _buildActionButton(
-                      icon: state.showTools
-                          ? Icons.expand_less
-                          : Icons.expand_more,
-                      tooltip: state.showTools
-                          ? AppLocalizations.of(context)!.mcpHideTools
-                          : AppLocalizations.of(context)!.mcpShowTools,
-                      onPressed: () {
-                        setState(() => state.showTools = !state.showTools);
-                      },
-                    ),
-                ],
-                _buildActionButton(
-                  icon: Icons.edit_outlined,
-                  tooltip: AppLocalizations.of(context)!.mcpEditServer,
-                  onPressed: () => _showServerDialog(server),
-                ),
-                _buildActionButton(
-                  icon: Icons.delete_outline,
-                  tooltip: AppLocalizations.of(context)!.mcpDeleteServer,
-                  onPressed: () => _confirmDelete(server.name),
-                  color: AppColors.error,
-                ),
-              ],
-            ),
+    return Opacity(
+      opacity: server.enabled ? 1.0 : 0.55,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: c.surfaceBg,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: server.enabled
+                ? _statusBorderColor(state.status)
+                : c.chatListBorder,
+            width: state.status == McpServerStatus.connected && server.enabled
+                ? 1.5
+                : 1.0,
           ),
+        ),
+        child: Column(
+          children: [
+            // Main row
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  // Transport icon with status indicator
+                  _buildServerIcon(transportIcon, state.status),
+                  const SizedBox(width: 12),
+                  // Server info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              server.name,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: c.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            _buildStatusBadge(state),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          server.transport == 'stdio'
+                              ? '${server.command} ${server.args.join(' ')}'
+                              : server.url,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: c.textHint,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          maxLines: 1,
+                        ),
+                        if (state.status == McpServerStatus.connected &&
+                            state.tools.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              AppLocalizations.of(
+                                context,
+                              )!.mcpToolCount(state.tools.length),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.success,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Transport label
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      transportLabel,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Enable/Disable toggle
+                  if (mcpEnabled)
+                    Tooltip(
+                      message: AppLocalizations.of(context)!.mcpToggleServer,
+                      child: SizedBox(
+                        height: 28,
+                        child: Switch(
+                          value: server.enabled,
+                          onChanged: (v) => _toggleServer(server.name, v),
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(width: 4),
+                  // Actions
+                  if (mcpEnabled && server.enabled) ...[
+                    // Test button
+                    _buildActionButton(
+                      icon: state.status == McpServerStatus.testing
+                          ? Icons.sync
+                          : Icons.play_arrow_outlined,
+                      tooltip: AppLocalizations.of(context)!.mcpTestConnection,
+                      onPressed: state.status == McpServerStatus.testing
+                          ? null
+                          : () => _testServer(server),
+                      spinning: state.status == McpServerStatus.testing,
+                    ),
+                    // Show tools
+                    if (state.tools.isNotEmpty)
+                      _buildActionButton(
+                        icon: state.showTools
+                            ? Icons.expand_less
+                            : Icons.expand_more,
+                        tooltip: state.showTools
+                            ? AppLocalizations.of(context)!.mcpHideTools
+                            : AppLocalizations.of(context)!.mcpShowTools,
+                        onPressed: () {
+                          setState(() => state.showTools = !state.showTools);
+                        },
+                      ),
+                  ],
+                  _buildActionButton(
+                    icon: Icons.edit_outlined,
+                    tooltip: AppLocalizations.of(context)!.mcpEditServer,
+                    onPressed: () => _showServerDialog(server),
+                  ),
+                  _buildActionButton(
+                    icon: Icons.delete_outline,
+                    tooltip: AppLocalizations.of(context)!.mcpDeleteServer,
+                    onPressed: () => _confirmDelete(server.name),
+                    color: AppColors.error,
+                  ),
+                ],
+              ),
+            ),
 
-          // Error message
-          if (state.status == McpServerStatus.error && state.error != null)
-            _buildErrorBanner(state.error!),
+            // Error message
+            if (state.status == McpServerStatus.error && state.error != null)
+              _buildErrorBanner(state.error!),
 
-          // Tools list (expandable)
-          if (state.showTools && state.tools.isNotEmpty)
-            _buildToolsList(server.name, state.tools),
-        ],
+            // Tools list (expandable)
+            if (state.showTools && state.tools.isNotEmpty)
+              _buildToolsList(server.name, state.tools),
+          ],
+        ),
       ),
     );
   }
@@ -1552,6 +1594,7 @@ class _McpServerDialogState extends State<_McpServerDialog> {
 
     final server = mcp_api.McpServerDto(
       name: name,
+      enabled: widget.existing?.enabled ?? true,
       transport: _transport,
       url: _urlCtrl.text.trim(),
       command: _commandCtrl.text.trim(),

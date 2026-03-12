@@ -101,7 +101,7 @@ class SessionsNotifier extends StateNotifier<List<ChatSession>> {
     final id = '$prefix${now.millisecondsSinceEpoch}';
     final session = ChatSession(
       id: id,
-      title: ephemeral ? 'Quick Chat' : 'New Chat',
+      title: ephemeral ? 'Quick Task' : 'New Task',
       createdAt: now,
       updatedAt: now,
       projectId: projectId,

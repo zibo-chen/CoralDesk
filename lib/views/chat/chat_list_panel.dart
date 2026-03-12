@@ -65,7 +65,7 @@ class ChatListPanel extends ConsumerWidget {
             ),
           ),
 
-          // New Chat button + Quick Chat
+          // New Task button + Quick Task
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -92,7 +92,7 @@ class ChatListPanel extends ConsumerWidget {
                 ),
                 const SizedBox(width: 8),
                 Tooltip(
-                  message: 'Quick Chat (not saved)',
+                  message: l10n.quickTask,
                   child: ElevatedButton(
                     onPressed: () {
                       ref.read(chatControllerProvider).createEphemeralSession();

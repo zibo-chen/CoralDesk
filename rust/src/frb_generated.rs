@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1206142183;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -845868303;
 
 // Section: executor
 
@@ -5400,6 +5400,45 @@ fn wire__crate__api__workspace_api__toggle_channel_impl(
         },
     )
 }
+fn wire__crate__api__mcp_api__toggle_mcp_server_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "toggle_mcp_server",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_name = <String>::sse_decode(&mut deserializer);
+            let api_enabled = <bool>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, ()>(
+                    (move || async move {
+                        let output_ok = Result::<_, ()>::Ok(
+                            crate::api::mcp_api::toggle_mcp_server(api_name, api_enabled).await,
+                        )?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__skills_api__toggle_open_skills_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -7505,6 +7544,7 @@ impl SseDecode for crate::api::mcp_api::McpServerDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_name = <String>::sse_decode(deserializer);
+        let mut var_enabled = <bool>::sse_decode(deserializer);
         let mut var_transport = <String>::sse_decode(deserializer);
         let mut var_url = <String>::sse_decode(deserializer);
         let mut var_command = <String>::sse_decode(deserializer);
@@ -7514,6 +7554,7 @@ impl SseDecode for crate::api::mcp_api::McpServerDto {
         let mut var_toolTimeoutSecs = <Option<u64>>::sse_decode(deserializer);
         return crate::api::mcp_api::McpServerDto {
             name: var_name,
+            enabled: var_enabled,
             transport: var_transport,
             url: var_url,
             command: var_command,
@@ -8735,112 +8776,113 @@ fn pde_ffi_dispatcher_primary_impl(
         143 => {
             wire__crate__api__workspace_api__toggle_channel_impl(port, ptr, rust_vec_len, data_len)
         }
-        144 => {
+        144 => wire__crate__api__mcp_api__toggle_mcp_server_impl(port, ptr, rust_vec_len, data_len),
+        145 => {
             wire__crate__api__skills_api__toggle_open_skills_impl(port, ptr, rust_vec_len, data_len)
         }
-        145 => wire__crate__api__agent_api__truncate_session_agent_history_impl(
+        146 => wire__crate__api__agent_api__truncate_session_agent_history_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        146 => wire__crate__api__agent_workspace_api__unbind_session_agent_impl(
+        147 => wire__crate__api__agent_workspace_api__unbind_session_agent_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        147 => wire__crate__api__workspace_api__update_agent_config_impl(
+        148 => wire__crate__api__workspace_api__update_agent_config_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        148 => wire__crate__api__workspace_api__update_allowed_commands_impl(
+        149 => wire__crate__api__workspace_api__update_allowed_commands_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        149 => wire__crate__api__workspace_api__update_autonomy_level_impl(
+        150 => wire__crate__api__workspace_api__update_autonomy_level_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        150 => wire__crate__api__agent_api__update_config_impl(port, ptr, rust_vec_len, data_len),
-        151 => wire__crate__api__cron_api__update_cron_job_impl(port, ptr, rust_vec_len, data_len),
-        152 => wire__crate__api__routes_api__update_embedding_config_impl(
+        151 => wire__crate__api__agent_api__update_config_impl(port, ptr, rust_vec_len, data_len),
+        152 => wire__crate__api__cron_api__update_cron_job_impl(port, ptr, rust_vec_len, data_len),
+        153 => wire__crate__api__routes_api__update_embedding_config_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        153 => wire__crate__api__workspace_api__update_feature_toggle_impl(
+        154 => wire__crate__api__workspace_api__update_feature_toggle_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        154 => wire__crate__api__mcp_api__update_mcp_server_impl(port, ptr, rust_vec_len, data_len),
-        155 => wire__crate__api__project_api__update_project_context_impl(
+        155 => wire__crate__api__mcp_api__update_mcp_server_impl(port, ptr, rust_vec_len, data_len),
+        156 => wire__crate__api__project_api__update_project_context_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        156 => wire__crate__api__project_api__update_project_status_impl(
+        157 => wire__crate__api__project_api__update_project_status_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        157 => wire__crate__api__skills_api__update_prompt_injection_mode_impl(
+        158 => wire__crate__api__skills_api__update_prompt_injection_mode_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        158 => {
+        159 => {
             wire__crate__api__proxy_api__update_proxy_config_impl(port, ptr, rust_vec_len, data_len)
         }
-        159 => wire__crate__api__sessions_api__update_session_metadata_impl(
+        160 => wire__crate__api__sessions_api__update_session_metadata_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        160 => {
+        161 => {
             wire__crate__api__workspace_api__update_trust_me_impl(port, ptr, rust_vec_len, data_len)
         }
-        161 => wire__crate__api__agent_workspace_api__upsert_agent_workspace_impl(
+        162 => wire__crate__api__agent_workspace_api__upsert_agent_workspace_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        162 => wire__crate__api__agents_api__upsert_delegate_agent_impl(
+        163 => wire__crate__api__agents_api__upsert_delegate_agent_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        163 => wire__crate__api__routes_api__upsert_embedding_route_impl(
+        164 => wire__crate__api__routes_api__upsert_embedding_route_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        164 => wire__crate__api__providers_api__upsert_model_provider_profile_impl(
+        165 => wire__crate__api__providers_api__upsert_model_provider_profile_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        165 => {
+        166 => {
             wire__crate__api__routes_api__upsert_model_route_impl(port, ptr, rust_vec_len, data_len)
         }
-        166 => {
+        167 => {
             wire__crate__api__project_api__upsert_project_impl(port, ptr, rust_vec_len, data_len)
         }
         _ => unreachable!(),
@@ -8885,7 +8927,7 @@ fn pde_ffi_dispatcher_sync_impl(
         132 => {
             wire__crate__api__llm_debug_api__set_llm_debug_enabled_impl(ptr, rust_vec_len, data_len)
         }
-        167 => wire__crate__api__proxy_api__validate_proxy_url_impl(ptr, rust_vec_len, data_len),
+        168 => wire__crate__api__proxy_api__validate_proxy_url_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -9683,6 +9725,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::mcp_api::McpServerDto {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.name.into_into_dart().into_dart(),
+            self.enabled.into_into_dart().into_dart(),
             self.transport.into_into_dart().into_dart(),
             self.url.into_into_dart().into_dart(),
             self.command.into_into_dart().into_dart(),
@@ -11095,6 +11138,7 @@ impl SseEncode for crate::api::mcp_api::McpServerDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.name, serializer);
+        <bool>::sse_encode(self.enabled, serializer);
         <String>::sse_encode(self.transport, serializer);
         <String>::sse_encode(self.url, serializer);
         <String>::sse_encode(self.command, serializer);

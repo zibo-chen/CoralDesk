@@ -15,7 +15,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTagline => 'From your desk, master the AI era';
 
   @override
-  String get navSectionChat => 'Chat';
+  String get navSectionChat => 'Tasks';
 
   @override
   String get navSectionControl => 'Control';
@@ -60,13 +60,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workWithCoralDesk => 'Work with CoralDesk';
 
   @override
-  String get newChat => 'New Chat';
+  String get newChat => 'New Task';
 
   @override
-  String get noConversationsYet => 'No conversations yet';
+  String get quickTask => 'Quick Task (not saved)';
 
   @override
-  String get startNewChat => 'Start a new chat';
+  String get noConversationsYet => 'No tasks yet';
+
+  @override
+  String get startNewChat => 'Start a new task';
 
   @override
   String get welcomeTitle => 'Hello, how can I help you today?';
@@ -496,7 +499,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sessionsAutoSaveHint =>
-      'Sessions will be automatically saved here after you send messages in chat';
+      'Sessions will be automatically saved here after you send messages in a task';
 
   @override
   String get searchSessions => 'Search sessions...';
@@ -1496,6 +1499,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mcpServerDeleted => 'MCP server deleted';
+
+  @override
+  String get mcpServerEnabled => 'MCP server enabled';
+
+  @override
+  String get mcpServerDisabled => 'MCP server disabled';
+
+  @override
+  String get mcpToggleServer => 'Enable/Disable Server';
 
   @override
   String get mcpTransportStdio => 'Standard I/O';

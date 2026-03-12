@@ -1,6 +1,5 @@
 <p align="center">
-  <!-- Replace with your app logo/screenshot -->
-  <!-- <img src="docs/screenshots/logo.png" alt="CoralDesk" width="120" /> -->
+  <img src="docs/screenshots/Chat.png" alt="CoralDesk" />
 </p>
 
 <h1 align="center">CoralDesk 🦀</h1>
@@ -34,9 +33,6 @@
 
 > Deploy anywhere. Swap anything. — now with a face.
 
-<!-- Screenshot placeholder — replace the comment below with your actual screenshot -->
-<!-- ![CoralDesk main interface](docs/screenshots/main.png) -->
-
 ---
 
 ## Features
@@ -46,6 +42,51 @@
 - Markdown rendering (code blocks, lists, bold/italic, etc.)
 - Multi-session management — create, rename, and switch between chat sessions
 - Auto-titled sessions based on the first message
+- File attachment support
+- Task plan overlay for visualizing agent steps
+
+### 📁 Projects
+- Create, edit, and manage projects with templates
+- Per-project status tracking and filtering
+- Drill into project details from a master list
+
+### 📡 Channels
+- View and manage all active communication channels (Telegram, etc.)
+- GUI-based per-channel configuration — no config file editing needed
+- Start/stop channel listeners from within the app
+
+### 👥 Sessions
+- Browse all active and historical agent sessions
+- Inspect session state and message history
+
+### ⏰ Cron Jobs
+- Schedule recurring tasks with cron expressions
+- View run history per job
+- Manually trigger jobs and monitor execution
+
+### 🧠 Knowledge Base
+- Manage the agent's long-term memory entries
+- Search, browse, add, and delete knowledge entries by category
+
+### 🎯 Skills
+- Browse and install community (open) skills
+- Enable/disable individual skills
+- Manage custom skill configurations
+
+### 🔌 MCP (Model Context Protocol)
+- Add, edit, and remove MCP tool servers
+- Test server connectivity and discover available tools in-app
+- Per-server connection status display
+
+### 🤖 Agents & Workspaces
+- Configure delegate/sub-agents with custom roles and provider overrides
+- Manage multiple agent workspaces with independent root paths
+
+### ⚙️ Configuration
+- Autonomy level controls (supervised ↔ autonomous)
+- Per-tool permission management (allow / deny / confirm)
+- Agent loop parameters (max iterations, tool call limits)
+- Cost budgeting and limits
 
 ### 🤖 Models & Providers
 - Configure AI providers: **OpenRouter**, **OpenAI**, **Anthropic**, **Ollama**, **OpenAI-compatible endpoints**, and more
@@ -53,30 +94,16 @@
 - Model selection with free-text input for flexible model names
 - Adjustable temperature slider
 
-### 📡 Channels
-- View and manage all active communication channels
-- Enable/disable individual channels
+### 🌐 Proxy
+- Global outbound proxy configuration
+- Granular per-service proxy rules (provider, channel, tool, memory, tunnel)
+- HTTP / HTTPS / SOCKS proxy support
 
-### 🏗️ Workspace & Agent
-- Set workspace root path for file-system tools
-- Configure agent loop parameters (max iterations, tool call limits)
-- Memory configuration
-- Cost budgeting and limits
-
-### ⚙️ Configuration
-- Autonomy level controls (supervised ↔ autonomous)
-- Per-tool permission management (allow / deny / confirm)
-
-### 🌓 Theme
+### 🌓 Preferences
 - Light and dark mode with system-follow support
+- Language selection (English / 简体中文)
+- In-app update checker
 - Clean, modern UI using Google Fonts and Lucide Icons
-
-### Planned / In Progress
-- Sessions viewer
-- Cron / scheduled tasks
-- Skills & custom prompt management
-- MCP (Model Context Protocol) server configuration
-- Environment variable profiles
 
 ---
 
@@ -191,7 +218,17 @@ If you launch from VS Code, set `RUST_LOG` in your debug configuration `env` to 
 
 ## Screenshots
 
-![Chat](docs/screenshots/chat.jpg)
+| Chat | Channels |
+|------|----------|
+| ![Chat](docs/screenshots/Chat.png) | ![Channels](docs/screenshots/Channels.png) |
+
+| Skills | MCP |
+|--------|-----|
+| ![Skills](docs/screenshots/Skills.png) | ![MCP](docs/screenshots/MCP.png) |
+
+<p align="center">
+  <img src="docs/screenshots/Preferences.png" alt="Preferences" width="70%" />
+</p>
 
 ---
 
@@ -201,14 +238,30 @@ If you launch from VS Code, set `RUST_LOG` in your debug configuration `env` to 
 lib/
 ├── main.dart              # App entry point, ZeroClaw runtime init
 ├── constants.dart         # App-wide constants
-├── models/                # Freezed data models (ChatMessage, ChatSession…)
-├── providers/             # Riverpod providers (chat, sessions, theme…)
+├── models/                # Freezed data models (ChatMessage, ChatSession, Project…)
+├── providers/             # Riverpod providers (chat, sessions, theme, projects…)
+├── services/              # UpdateService, MCP test client, etc.
 ├── theme/                 # Light / dark AppTheme
 ├── views/
 │   ├── shell/             # Root layout shell (sidebar + panels)
-│   ├── sidebar/           # Icon navigation sidebar
+│   ├── sidebar/           # Collapsible navigation sidebar
 │   ├── chat/              # Chat list, chat view, input bar, message bubble
-│   └── settings/          # Models, Channels, Workspace, Configuration pages
+│   ├── project/           # Projects list and detail view
+│   ├── notification/      # Notification panel
+│   └── settings/          # All settings pages:
+│       ├── channels_page.dart
+│       ├── sessions_page.dart
+│       ├── cron_jobs_page.dart
+│       ├── knowledge_page.dart
+│       ├── skills_page.dart
+│       ├── mcp_page.dart
+│       ├── agents_page.dart
+│       ├── agent_workspaces_page.dart
+│       ├── configuration_page.dart
+│       ├── models_page.dart
+│       ├── proxy_page.dart
+│       ├── llm_debug_page.dart
+│       └── app_settings_page.dart
 rust/
 └── src/
     └── api/               # flutter_rust_bridge API definitions
@@ -231,5 +284,3 @@ Contributions are welcome! Please open an issue or pull request.
 ## License
 
 This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)** — see [LICENSE](LICENSE) for details.
-
-The bundled [ZeroClaw](zeroclaw/) runtime is dual-licensed MIT / Apache-2.0.

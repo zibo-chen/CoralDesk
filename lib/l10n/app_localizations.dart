@@ -110,10 +110,10 @@ abstract class AppLocalizations {
   /// **'From your desk, master the AI era'**
   String get appTagline;
 
-  /// Chat section label in sidebar
+  /// Tasks section label in sidebar
   ///
   /// In en, this message translates to:
-  /// **'Chat'**
+  /// **'Tasks'**
   String get navSectionChat;
 
   /// Control section label in sidebar
@@ -200,22 +200,28 @@ abstract class AppLocalizations {
   /// **'Work with CoralDesk'**
   String get workWithCoralDesk;
 
-  /// New chat button label
+  /// New task button label
   ///
   /// In en, this message translates to:
-  /// **'New Chat'**
+  /// **'New Task'**
   String get newChat;
 
-  /// Chat list empty state title
+  /// Quick task button tooltip
   ///
   /// In en, this message translates to:
-  /// **'No conversations yet'**
+  /// **'Quick Task (not saved)'**
+  String get quickTask;
+
+  /// Task list empty state title
+  ///
+  /// In en, this message translates to:
+  /// **'No tasks yet'**
   String get noConversationsYet;
 
-  /// Chat list empty state subtitle
+  /// Task list empty state subtitle
   ///
   /// In en, this message translates to:
-  /// **'Start a new chat'**
+  /// **'Start a new task'**
   String get startNewChat;
 
   /// Welcome view title
@@ -1043,7 +1049,7 @@ abstract class AppLocalizations {
   /// Sessions auto save hint
   ///
   /// In en, this message translates to:
-  /// **'Sessions will be automatically saved here after you send messages in chat'**
+  /// **'Sessions will be automatically saved here after you send messages in a task'**
   String get sessionsAutoSaveHint;
 
   /// Search sessions placeholder
@@ -2815,6 +2821,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'MCP server deleted'**
   String get mcpServerDeleted;
+
+  /// Server enabled success
+  ///
+  /// In en, this message translates to:
+  /// **'MCP server enabled'**
+  String get mcpServerEnabled;
+
+  /// Server disabled success
+  ///
+  /// In en, this message translates to:
+  /// **'MCP server disabled'**
+  String get mcpServerDisabled;
+
+  /// Toggle server enabled state
+  ///
+  /// In en, this message translates to:
+  /// **'Enable/Disable Server'**
+  String get mcpToggleServer;
 
   /// Stdio transport option
   ///

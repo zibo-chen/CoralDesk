@@ -15,7 +15,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get appTagline => '从桌面出发，驾驭 AI 新时代';
 
   @override
-  String get navSectionChat => '聊天';
+  String get navSectionChat => '任务';
 
   @override
   String get navSectionControl => '控制';
@@ -60,13 +60,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get workWithCoralDesk => '与 CoralDesk 一起工作';
 
   @override
-  String get newChat => '新对话';
+  String get newChat => '新任务';
 
   @override
-  String get noConversationsYet => '暂无对话';
+  String get quickTask => '临时任务';
 
   @override
-  String get startNewChat => '开始新对话';
+  String get noConversationsYet => '暂无任务';
+
+  @override
+  String get startNewChat => '开始新任务';
 
   @override
   String get welcomeTitle => '你好，今天我能帮你什么？';
@@ -488,7 +491,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noSavedSessions => '暂无已保存的会话';
 
   @override
-  String get sessionsAutoSaveHint => '在聊天中发送消息后，会话将自动保存到此处';
+  String get sessionsAutoSaveHint => '在任务中发送消息后，会话将自动保存到此处';
 
   @override
   String get searchSessions => '搜索会话…';
@@ -1454,6 +1457,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get mcpServerDeleted => 'MCP 服务器已删除';
+
+  @override
+  String get mcpServerEnabled => 'MCP 服务器已启用';
+
+  @override
+  String get mcpServerDisabled => 'MCP 服务器已暂停';
+
+  @override
+  String get mcpToggleServer => '启用/暂停服务器';
 
   @override
   String get mcpTransportStdio => '标准 I/O';

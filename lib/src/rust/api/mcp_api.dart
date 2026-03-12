@@ -29,6 +29,13 @@ Future<String> addMcpServer({required McpServerDto server}) =>
 Future<String> updateMcpServer({required McpServerDto server}) =>
     RustLib.instance.api.crateApiMcpApiUpdateMcpServer(server: server);
 
+/// Toggle an MCP server enabled/disabled by name. Returns "ok" or "error: ...".
+Future<String> toggleMcpServer({required String name, required bool enabled}) =>
+    RustLib.instance.api.crateApiMcpApiToggleMcpServer(
+      name: name,
+      enabled: enabled,
+    );
+
 /// Remove an MCP server by name. Returns "ok" or "error: ...".
 Future<String> removeMcpServer({required String name}) =>
     RustLib.instance.api.crateApiMcpApiRemoveMcpServer(name: name);
@@ -75,6 +82,9 @@ class McpConfigDto {
 class McpServerDto {
   final String name;
 
+  /// Whether this MCP server is enabled (active).
+  final bool enabled;
+
   /// "stdio" | "http" | "sse"
   final String transport;
   final String url;
@@ -86,6 +96,7 @@ class McpServerDto {
 
   const McpServerDto({
     required this.name,
+    required this.enabled,
     required this.transport,
     required this.url,
     required this.command,
@@ -98,6 +109,7 @@ class McpServerDto {
   @override
   int get hashCode =>
       name.hashCode ^
+      enabled.hashCode ^
       transport.hashCode ^
       url.hashCode ^
       command.hashCode ^
@@ -112,6 +124,7 @@ class McpServerDto {
       other is McpServerDto &&
           runtimeType == other.runtimeType &&
           name == other.name &&
+          enabled == other.enabled &&
           transport == other.transport &&
           url == other.url &&
           command == other.command &&
