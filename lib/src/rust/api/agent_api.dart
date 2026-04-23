@@ -9,9 +9,9 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'agent_api.freezed.dart';
 
-// These functions are ignored because they are not marked as `pub`: `active_stream_tokens`, `config_state`, `ensure_session_agent`, `evict_oldest_agent_if_needed`, `global_config`, `invalidate_all_agents`, `invalidate_session_agent`, `legacy_pending_approval`, `load_default_profile_id`, `load_embedding_api_key`, `mark_turn_activity`, `pending_approvals`, `resolve_delegate_providers`, `session_agents`, `truncate_str`
+// These functions are ignored because they are not marked as `pub`: `active_stream_tokens`, `config_state`, `derive_effective_provider_key`, `ensure_session_agent`, `evict_oldest_agent_if_needed`, `global_config`, `invalidate_all_agents`, `invalidate_session_agent`, `legacy_pending_approval`, `load_default_profile_id`, `load_delegate_agent_meta`, `load_embedding_api_key`, `mark_turn_activity`, `materialize_runtime_provider`, `pending_approvals`, `resolve_delegate_providers`, `runtime_provider_snapshot`, `session_agents`, `truncate_str`, `trust_me_enabled`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ChatMessageDto`, `ConfigState`, `GlobalConfig`, `PendingApproval`, `SessionAgent`, `ToolCallDto`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// Cancel an active generation for the given session.
 ///
@@ -155,11 +155,10 @@ Stream<AgentEvent> sendMessageStream({
   message: message,
 );
 
-/// List available tools dynamically from any agent's registered tool specs.
-/// Falls back to a minimal static list if no agent is currently initialized.
+/// List available tools.
 ///
-/// Note: kept as sync (#[frb(sync)]) to match the existing FRB generated binding.
-/// Uses `try_lock` to avoid blocking if agents are busy.
+/// Zeroclaw v0.7 no longer exposes the agent's internal tool registry as a
+/// public API, so keep a stable UI-oriented fallback list here.
 List<ToolSpecDto> listTools() =>
     RustLib.instance.api.crateApiAgentApiListTools();
 
@@ -290,6 +289,56 @@ class ChatSessionInfo {
           createdAt == other.createdAt &&
           updatedAt == other.updatedAt &&
           messageCount == other.messageCount;
+}
+
+class DelegateAgentMeta {
+  final List<String> capabilities;
+  final int priority;
+  final bool enabled;
+  final String? roleLabel;
+  final String? roleColor;
+  final String? roleIcon;
+  final bool isPreset;
+  final bool allowNestedDelegate;
+
+  const DelegateAgentMeta({
+    required this.capabilities,
+    required this.priority,
+    required this.enabled,
+    this.roleLabel,
+    this.roleColor,
+    this.roleIcon,
+    required this.isPreset,
+    required this.allowNestedDelegate,
+  });
+
+  static Future<DelegateAgentMeta> default_() =>
+      RustLib.instance.api.crateApiAgentApiDelegateAgentMetaDefault();
+
+  @override
+  int get hashCode =>
+      capabilities.hashCode ^
+      priority.hashCode ^
+      enabled.hashCode ^
+      roleLabel.hashCode ^
+      roleColor.hashCode ^
+      roleIcon.hashCode ^
+      isPreset.hashCode ^
+      allowNestedDelegate.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DelegateAgentMeta &&
+          runtimeType == other.runtimeType &&
+          capabilities == other.capabilities &&
+          priority == other.priority &&
+          enabled == other.enabled &&
+          roleLabel == other.roleLabel &&
+          roleColor == other.roleColor &&
+          roleIcon == other.roleIcon &&
+          isPreset == other.isPreset &&
+          allowNestedDelegate == other.allowNestedDelegate;
 }
 
 /// Runtime status information

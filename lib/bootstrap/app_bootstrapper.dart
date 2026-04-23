@@ -3,11 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:coraldesk/src/rust/frb_generated.dart';
 import 'package:coraldesk/src/rust/api/agent_api.dart' as agent_api;
 import 'package:coraldesk/src/rust/api/sessions_api.dart' as sessions_api;
-import 'package:coraldesk/src/rust/api/agent_workspace_api.dart'
-    as workspace_api;
 import 'package:coraldesk/src/rust/api/cron_api.dart' as cron_api;
 import 'package:coraldesk/src/rust/api/channel_runtime_api.dart' as channel_rt;
-import 'package:coraldesk/src/rust/api/agents_api.dart' as agents_api;
 import 'package:coraldesk/services/settings_service.dart';
 import 'package:coraldesk/services/tray_service.dart';
 import 'package:window_manager/window_manager.dart';
@@ -67,34 +64,6 @@ class AppBootstrapper {
     // Session persistence store
     final sessionsStatus = await sessions_api.initSessionStore();
     debugPrint('CoralDesk sessions: $sessionsStatus');
-
-    // Agent workspace store
-    try {
-      final wsStatus = await workspace_api.initAgentWorkspaceStore();
-      debugPrint('CoralDesk agent workspaces: $wsStatus');
-    } catch (e) {
-      debugPrint('CoralDesk agent workspaces failed: $e');
-    }
-
-    // Seed built-in preset agent workspaces (role-based team members)
-    try {
-      final seeded = await workspace_api.seedPresetWorkspaces();
-      if (seeded > 0) {
-        debugPrint('CoralDesk seeded $seeded preset agent workspaces');
-      }
-    } catch (e) {
-      debugPrint('CoralDesk preset workspace seeding failed: $e');
-    }
-
-    // Seed built-in preset delegate agent configs (required for delegate tool)
-    try {
-      final seededRoles = await agents_api.seedPresetRoles();
-      if (seededRoles > 0) {
-        debugPrint('CoralDesk seeded $seededRoles preset delegate agents');
-      }
-    } catch (e) {
-      debugPrint('CoralDesk preset role seeding failed: $e');
-    }
 
     // Cron scheduler (non-critical — failure should not block startup)
     try {

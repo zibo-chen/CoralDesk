@@ -35,7 +35,7 @@ pub struct CopilotDeviceFlowInfo {
 /// Status of a Copilot authorization poll attempt.
 #[derive(Debug, Clone)]
 pub struct CopilotPollResult {
-    /// "success", "pending", "slow_down", "expired", or "error:<message>"
+    /// "success", "pending", "slow_down", "expired", or "error:[message]"
     pub status: String,
     /// GitHub username (populated on success).
     pub username: Option<String>,

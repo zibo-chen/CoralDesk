@@ -9,7 +9,7 @@ import 'package:coraldesk/src/rust/api/providers_api.dart' as providers_api;
 import 'package:coraldesk/views/settings/widgets/settings_scaffold.dart';
 import 'package:coraldesk/views/settings/widgets/desktop_dialog.dart';
 
-/// Roles & sub-agent management page: team roles (presets) and custom sub-agents
+/// Delegate sub-agent management page.
 class AgentsPage extends ConsumerStatefulWidget {
   const AgentsPage({super.key});
 
@@ -134,9 +134,6 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
         ],
         body: Builder(
           builder: (context) {
-            final roles = _agents.where((a) => a.isPreset).toList();
-            final customAgents = _agents.where((a) => !a.isPreset).toList();
-
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -194,16 +191,9 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
                       Row(
                         children: [
                           _StatChip(
-                            label: l10n.rolesSectionTitle,
-                            value: '${roles.length}',
+                            label: l10n.pageAgents,
+                            value: '${_agents.length}',
                             color: AppColors.primary,
-                            c: c,
-                          ),
-                          const SizedBox(width: 12),
-                          _StatChip(
-                            label: l10n.subAgentsSectionTitle,
-                            value: '${customAgents.length}',
-                            color: Colors.orange,
                             c: c,
                           ),
                         ],
@@ -214,31 +204,17 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
 
                 const SizedBox(height: 20),
 
-                // ── Team Roles section ──
-                if (roles.isNotEmpty) ...[
-                  _SectionHeader(
-                    title: l10n.rolesSectionTitle,
-                    description: l10n.rolesSectionDesc,
-                    icon: Icons.groups_outlined,
-                    c: c,
-                  ),
-                  const SizedBox(height: 12),
-                  ...roles.map((agent) => _buildAgentCard(agent, l10n)),
-                  const SizedBox(height: 24),
-                ],
-
-                // ── Custom Sub-Agents section ──
                 _SectionHeader(
-                  title: l10n.subAgentsSectionTitle,
-                  description: l10n.subAgentsSectionDesc,
-                  icon: Icons.smart_toy_outlined,
+                  title: l10n.pageAgents,
+                  description: l10n.agentOverviewDesc,
+                  icon: Icons.hub_outlined,
                   c: c,
                 ),
                 const SizedBox(height: 12),
-                if (customAgents.isEmpty)
+                if (_agents.isEmpty)
                   _buildEmptyState(l10n)
                 else
-                  ...customAgents.map((agent) => _buildAgentCard(agent, l10n)),
+                  ..._agents.map((agent) => _buildAgentCard(agent, l10n)),
               ],
             );
           },
@@ -285,14 +261,6 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
     );
   }
 
-  static Color _parseRoleColor(String? hex) {
-    if (hex == null || hex.isEmpty) return const Color(0xFF6C757D);
-    final cleaned = hex.replaceAll('#', '');
-    if (cleaned.length == 6) return Color(int.parse('FF$cleaned', radix: 16));
-    if (cleaned.length == 8) return Color(int.parse(cleaned, radix: 16));
-    return const Color(0xFF6C757D);
-  }
-
   Widget _buildAgentCard(
     agents_api.DelegateAgentDto agent,
     AppLocalizations l10n,
@@ -312,69 +280,22 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
           // Header row: name + badges + actions
           Row(
             children: [
-              // Role icon/emoji or default icon
-              if (agent.roleIcon != null && agent.roleIcon!.isNotEmpty)
-                Text(agent.roleIcon!, style: const TextStyle(fontSize: 18))
-              else
-                Icon(
-                  agent.agentic ? Icons.smart_toy : Icons.assistant,
-                  size: 20,
-                  color: agent.enabled
-                      ? (agent.agentic ? Colors.orange : AppColors.primary)
-                      : c.textHint,
-                ),
+              Icon(
+                agent.agentic ? Icons.smart_toy : Icons.assistant,
+                size: 20,
+                color: agent.agentic ? Colors.orange : AppColors.primary,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  agent.roleLabel ?? agent.name,
+                  agent.name,
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: agent.enabled ? c.textPrimary : c.textHint,
+                    color: c.textPrimary,
                   ),
                 ),
               ),
-              if (agent.isPreset)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  margin: const EdgeInsets.only(right: 4),
-                  decoration: BoxDecoration(
-                    color: _parseRoleColor(
-                      agent.roleColor,
-                    ).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    l10n.rolesSectionTitle.split(' ').last, // "角色" / "Roles"
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: _parseRoleColor(agent.roleColor),
-                    ),
-                  ),
-                ),
-              if (!agent.enabled)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    'Disabled',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: c.textHint,
-                    ),
-                  ),
-                ),
               if (agent.agentic)
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -401,18 +322,16 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
                 onPressed: () => _openEditor(existing: agent),
                 visualDensity: VisualDensity.compact,
               ),
-              // Only show delete button for custom sub-agents (not preset roles)
-              if (!agent.isPreset)
-                IconButton(
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    size: 18,
-                    color: Colors.red,
-                  ),
-                  tooltip: l10n.delete,
-                  onPressed: () => _deleteAgent(agent.name),
-                  visualDensity: VisualDensity.compact,
+              IconButton(
+                icon: const Icon(
+                  Icons.delete_outline,
+                  size: 18,
+                  color: Colors.red,
                 ),
+                tooltip: l10n.delete,
+                onPressed: () => _deleteAgent(agent.name),
+                visualDensity: VisualDensity.compact,
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -477,30 +396,6 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
                   .toList(),
             ),
           ],
-
-          // Capabilities
-          if (agent.capabilities.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              children: agent.capabilities
-                  .map(
-                    (cap) => Chip(
-                      avatar: Icon(
-                        Icons.star_outline,
-                        size: 14,
-                        color: AppColors.primary,
-                      ),
-                      label: Text(cap, style: const TextStyle(fontSize: 11)),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                    ),
-                  )
-                  .toList(),
-            ),
-          ],
         ],
       ),
     );
@@ -528,13 +423,10 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
   late final TextEditingController _maxDepthCtrl;
   late final TextEditingController _maxIterCtrl;
   late final TextEditingController _allowedToolsCtrl;
-  late final TextEditingController _capabilitiesCtrl;
-  late final TextEditingController _priorityCtrl;
 
   late String _selectedProvider;
   late bool _agentic;
   late bool _useDefault;
-  late bool _enabled;
   bool get _isEdit => widget.existing != null;
 
   late List<config_api.ProviderInfo> _providers;
@@ -549,7 +441,6 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
     final e = widget.existing;
     _selectedProvider = e?.provider ?? 'openrouter';
     _agentic = e?.agentic ?? false;
-    _enabled = e?.enabled ?? true;
     // Detect if the existing agent uses the default provider
     _useDefault = false;
     _nameCtrl = TextEditingController(text: e?.name ?? '');
@@ -564,10 +455,6 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
     _allowedToolsCtrl = TextEditingController(
       text: e?.allowedTools.join(', ') ?? '',
     );
-    _capabilitiesCtrl = TextEditingController(
-      text: e?.capabilities.join(', ') ?? '',
-    );
-    _priorityCtrl = TextEditingController(text: '${e?.priority ?? 0}');
     // Load default config for the toggle
     _loadDefaultConfig();
   }
@@ -582,8 +469,6 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
     _maxDepthCtrl.dispose();
     _maxIterCtrl.dispose();
     _allowedToolsCtrl.dispose();
-    _capabilitiesCtrl.dispose();
-    _priorityCtrl.dispose();
     super.dispose();
   }
 
@@ -635,12 +520,6 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
         .where((s) => s.isNotEmpty)
         .toList();
 
-    final capabilities = _capabilitiesCtrl.text
-        .split(RegExp(r'[,\s]+'))
-        .map((s) => s.trim())
-        .where((s) => s.isNotEmpty)
-        .toList();
-
     final dto = agents_api.DelegateAgentDto(
       name: name,
       provider: _selectedProvider,
@@ -654,14 +533,14 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
       agentic: _agentic,
       allowedTools: allowedTools,
       maxIterations: int.tryParse(_maxIterCtrl.text.trim()) ?? 10,
-      capabilities: capabilities,
-      priority: int.tryParse(_priorityCtrl.text.trim()) ?? 0,
-      enabled: _enabled,
-      isPreset: widget.existing?.isPreset ?? false,
-      roleLabel: widget.existing?.roleLabel,
-      roleColor: widget.existing?.roleColor,
-      roleIcon: widget.existing?.roleIcon,
-      allowNestedDelegate: widget.existing?.allowNestedDelegate ?? false,
+      capabilities: const [],
+      priority: 0,
+      enabled: true,
+      isPreset: false,
+      roleLabel: null,
+      roleColor: null,
+      roleIcon: null,
+      allowNestedDelegate: false,
     );
 
     Navigator.pop(context, dto);
@@ -810,32 +689,15 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
             title: 'BASIC INFO',
             icon: Icons.badge_outlined,
             children: [
-              FieldRow(
-                children: [
-                  TextField(
-                    controller: _nameCtrl,
-                    enabled: !_isEdit,
-                    decoration: InputDecoration(
-                      labelText: l10n.agentNameLabel,
-                      hintText: 'researcher, coder, summarizer...',
-                    ),
+              FieldColumn(
+                child: TextField(
+                  controller: _nameCtrl,
+                  enabled: !_isEdit,
+                  decoration: InputDecoration(
+                    labelText: l10n.agentNameLabel,
+                    hintText: 'researcher, coder, summarizer...',
                   ),
-                  SwitchListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                    title: Text(
-                      l10n.agentEnabled,
-                      style: TextStyle(fontSize: 14, color: c.textPrimary),
-                    ),
-                    value: _enabled,
-                    onChanged: (v) => setState(() => _enabled = v),
-                    dense: true,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: c.inputBorder),
-                    ),
-                    tileColor: c.inputBg,
-                  ),
-                ],
+                ),
               ),
             ],
           ),
@@ -861,14 +723,6 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(labelText: l10n.agentMaxDepth),
                   ),
-                  TextField(
-                    controller: _priorityCtrl,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: l10n.agentPriority,
-                      hintText: '0',
-                    ),
-                  ),
                 ],
               ),
 
@@ -881,17 +735,6 @@ class _AgentEditorDialogState extends State<_AgentEditorDialog> {
                     labelText: l10n.agentSystemPrompt,
                     hintText: l10n.agentSystemPromptHint,
                     alignLabelWithHint: true,
-                  ),
-                ),
-              ),
-
-              // Capabilities
-              FieldColumn(
-                child: TextField(
-                  controller: _capabilitiesCtrl,
-                  decoration: InputDecoration(
-                    labelText: l10n.agentCapabilities,
-                    hintText: l10n.agentCapabilitiesHint,
                   ),
                 ),
               ),

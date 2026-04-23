@@ -67,7 +67,6 @@ fn find_on_path(name: &str) -> Option<std::path::PathBuf> {
 /// - `browser.enabled = true`
 /// - `browser.allowed_domains = ["*"]`  (all public domains)
 /// - `browser.backend = "agent_browser"`
-/// - `browser.agent_browser_command` = absolute path to the located binary
 ///
 /// Only applies defaults when the user hasn't explicitly configured browser
 /// settings in their config.toml (detected by checking if `allowed_domains`
@@ -88,8 +87,10 @@ pub(crate) fn apply_browser_defaults(config: &mut zeroclaw::Config, agent_browse
         config.browser.allowed_domains = vec!["*".into()];
     }
 
-    // Use absolute path to avoid PATH resolution issues in macOS .app
     if !agent_browser_path.starts_with("error:") && !agent_browser_path.is_empty() {
-        config.browser.agent_browser_command = agent_browser_path.into();
+        tracing::debug!(
+            path = agent_browser_path,
+            "Bundled agent-browser is available via PATH"
+        );
     }
 }

@@ -1,5 +1,9 @@
 // No sync FRB functions needed here currently
 
+use zeroclaw_config::autonomy::AutonomyLevel;
+use zeroclaw_config::scattered_types::EmailConfig;
+use zeroclaw_config::schema::{ToolFilterGroup, ToolFilterGroupMode};
+
 // ──────────────────── Workspace Config ────────────────────────
 
 /// Workspace configuration DTO
@@ -33,6 +37,61 @@ pub struct AgentConfigDto {
     pub parallel_tools: bool,
     pub tool_dispatcher: String,
     pub compact_context: bool,
+    pub tool_call_dedup_exempt: Vec<String>,
+    pub tool_filter_groups: Vec<AgentToolFilterGroupDto>,
+}
+
+/// Agent tool-filter group DTO
+#[derive(Debug, Clone)]
+pub struct AgentToolFilterGroupDto {
+    pub mode: String,
+    pub tools: Vec<String>,
+    pub keywords: Vec<String>,
+    pub filter_builtins: bool,
+}
+
+/// Browser configuration DTO
+#[derive(Debug, Clone)]
+pub struct BrowserConfigDto {
+    pub enabled: bool,
+    pub backend: String,
+    pub allowed_domains: Vec<String>,
+    pub session_name: Option<String>,
+    pub native_headless: bool,
+    pub native_webdriver_url: String,
+    pub native_chrome_path: Option<String>,
+    pub computer_use_endpoint: String,
+    pub computer_use_api_key: Option<String>,
+    pub computer_use_allow_remote_endpoint: bool,
+    pub computer_use_window_allowlist: Vec<String>,
+    pub computer_use_max_coordinate_x: Option<i64>,
+    pub computer_use_max_coordinate_y: Option<i64>,
+    pub agent_browser_command: String,
+    pub agent_browser_available: bool,
+}
+
+/// Gateway configuration DTO
+#[derive(Debug, Clone)]
+pub struct GatewayConfigDto {
+    pub host: String,
+    pub port: u16,
+    pub require_pairing: bool,
+    pub allow_public_bind: bool,
+    pub trust_forwarded_headers: bool,
+    pub path_prefix: Option<String>,
+    pub pair_rate_limit_per_minute: u32,
+    pub webhook_rate_limit_per_minute: u32,
+    pub rate_limit_max_keys: u32,
+    pub idempotency_ttl_secs: u64,
+    pub idempotency_max_keys: u32,
+    pub session_persistence: bool,
+    pub session_ttl_hours: u32,
+    pub web_dist_dir: Option<String>,
+    pub pairing_code_length: u32,
+    pub pairing_code_ttl_secs: u64,
+    pub pairing_max_pending_codes: u32,
+    pub pairing_max_failed_attempts: u32,
+    pub pairing_lockout_secs: u64,
 }
 
 /// Memory config DTO
@@ -107,7 +166,7 @@ pub async fn get_autonomy_config() -> AutonomyConfig {
         let level_str: &str = &level_str;
         AutonomyConfig {
             level: level_str.into(),
-            trust_me: a.trust_me,
+            trust_me: matches!(a.level, AutonomyLevel::Full),
             workspace_only: a.workspace_only,
             allowed_commands: a.allowed_commands.clone(),
             forbidden_paths: a.forbidden_paths.clone(),
@@ -121,7 +180,7 @@ pub async fn get_autonomy_config() -> AutonomyConfig {
     } else {
         AutonomyConfig {
             level: "supervised".into(),
-            trust_me: true,
+            trust_me: false,
             workspace_only: true,
             allowed_commands: vec![],
             forbidden_paths: vec![],
@@ -163,17 +222,23 @@ pub async fn update_autonomy_level(level: String) -> String {
 /// Toggle trust-me mode. When enabled, all security checks are bypassed
 /// and tool calls are auto-approved without user confirmation.
 pub async fn update_trust_me(enabled: bool) -> String {
+    let new_level = if enabled {
+        AutonomyLevel::Full
+    } else {
+        AutonomyLevel::Supervised
+    };
+
     // Update both global_config and legacy config_state
     {
         let mut gc = super::agent_api::global_config().write().await;
         if let Some(config) = gc.config.as_mut() {
-            config.autonomy.trust_me = enabled;
+            config.autonomy.level = new_level;
         }
     }
     {
         let mut cs = super::agent_api::config_state().write().await;
         if let Some(config) = cs.config.as_mut() {
-            config.autonomy.trust_me = enabled;
+            config.autonomy.level = new_level;
         } else {
             return "error: not initialized".into();
         }
@@ -267,6 +332,12 @@ pub async fn get_agent_config() -> AgentConfigDto {
             parallel_tools: a.parallel_tools,
             tool_dispatcher: a.tool_dispatcher.clone(),
             compact_context: a.compact_context,
+            tool_call_dedup_exempt: a.tool_call_dedup_exempt.clone(),
+            tool_filter_groups: a
+                .tool_filter_groups
+                .iter()
+                .map(tool_filter_group_to_dto)
+                .collect(),
         }
     } else {
         AgentConfigDto {
@@ -275,6 +346,8 @@ pub async fn get_agent_config() -> AgentConfigDto {
             parallel_tools: true,
             tool_dispatcher: "auto".into(),
             compact_context: false,
+            tool_call_dedup_exempt: vec![],
+            tool_filter_groups: vec![],
         }
     }
 }
@@ -285,25 +358,24 @@ pub async fn update_agent_config(
     max_history_messages: Option<u32>,
     parallel_tools: Option<bool>,
     compact_context: Option<bool>,
+    tool_call_dedup_exempt: Option<Vec<String>>,
+    tool_filter_groups: Option<Vec<AgentToolFilterGroupDto>>,
 ) -> String {
-    // Update both global_config and legacy config_state
-    {
-        let mut gc = super::agent_api::global_config().write().await;
-        if let Some(config) = gc.config.as_mut() {
-            if let Some(v) = max_tool_iterations {
-                config.agent.max_tool_iterations = v as usize;
+    let parsed_tool_filter_groups = match tool_filter_groups {
+        Some(groups) => {
+            let mut parsed = Vec::with_capacity(groups.len());
+            for group in groups {
+                let parsed_group = match tool_filter_group_from_dto(group) {
+                    Ok(value) => value,
+                    Err(error) => return error,
+                };
+                parsed.push(parsed_group);
             }
-            if let Some(v) = max_history_messages {
-                config.agent.max_history_messages = v as usize;
-            }
-            if let Some(v) = parallel_tools {
-                config.agent.parallel_tools = v;
-            }
-            if let Some(v) = compact_context {
-                config.agent.compact_context = v;
-            }
+            Some(parsed)
         }
-    }
+        None => None,
+    };
+
     {
         let mut cs = super::agent_api::config_state().write().await;
         let config = match cs.config.as_mut() {
@@ -323,9 +395,131 @@ pub async fn update_agent_config(
         if let Some(v) = compact_context {
             config.agent.compact_context = v;
         }
+        if let Some(values) = tool_call_dedup_exempt {
+            config.agent.tool_call_dedup_exempt = sanitize_string_list(values);
+        }
+        if let Some(groups) = parsed_tool_filter_groups {
+            config.agent.tool_filter_groups = groups;
+        }
+    }
+
+    let result = persist_config_state_to_disk().await;
+    if result != "ok" {
+        return result;
     }
     super::agent_api::invalidate_all_agents().await;
     "ok".into()
+}
+
+/// Get browser configuration
+pub async fn get_browser_config() -> BrowserConfigDto {
+    let cs = super::agent_api::config_state().read().await;
+    if let Some(config) = &cs.config {
+        browser_config_to_dto(config)
+    } else {
+        browser_config_to_dto(&zeroclaw::Config::default())
+    }
+}
+
+/// Save browser configuration
+pub async fn save_browser_config(config_dto: BrowserConfigDto) -> String {
+    {
+        let mut cs = super::agent_api::config_state().write().await;
+        let config = match cs.config.as_mut() {
+            Some(c) => c,
+            None => return "error: not initialized".into(),
+        };
+
+        let payload = serde_json::json!({
+            "enabled": config_dto.enabled,
+            "backend": config_dto.backend,
+            "allowed_domains": config_dto.allowed_domains,
+            "session_name": config_dto.session_name,
+            "native_headless": config_dto.native_headless,
+            "native_webdriver_url": config_dto.native_webdriver_url,
+            "native_chrome_path": config_dto.native_chrome_path,
+            "computer_use_endpoint": config_dto.computer_use_endpoint,
+            "computer_use_api_key": config_dto.computer_use_api_key,
+            "computer_use_allow_remote_endpoint": config_dto.computer_use_allow_remote_endpoint,
+            "computer_use_window_allowlist": config_dto.computer_use_window_allowlist,
+            "computer_use_max_coordinate_x": config_dto.computer_use_max_coordinate_x,
+            "computer_use_max_coordinate_y": config_dto.computer_use_max_coordinate_y,
+        });
+
+        if let Err(error) = apply_browser_config_value(config, &payload) {
+            return error;
+        }
+    }
+
+    let result = persist_config_state_to_disk().await;
+    if result != "ok" {
+        return result;
+    }
+    super::agent_api::invalidate_all_agents().await;
+    "ok".into()
+}
+
+/// Get gateway configuration
+pub async fn get_gateway_config() -> GatewayConfigDto {
+    let cs = super::agent_api::config_state().read().await;
+    if let Some(config) = &cs.config {
+        gateway_config_to_dto(config)
+    } else {
+        gateway_config_to_dto(&zeroclaw::Config::default())
+    }
+}
+
+/// Save gateway configuration
+pub async fn save_gateway_config(config_dto: GatewayConfigDto) -> String {
+    {
+        let mut cs = super::agent_api::config_state().write().await;
+        let config = match cs.config.as_mut() {
+            Some(c) => c,
+            None => return "error: not initialized".into(),
+        };
+
+        let host = config_dto.host.trim();
+        if host.is_empty() {
+            return "error: gateway host cannot be empty".into();
+        }
+
+        let path_prefix = match normalize_optional_string(config_dto.path_prefix) {
+            Some(prefix) => {
+                if !prefix.starts_with('/') {
+                    return "error: gateway path prefix must start with /".into();
+                }
+                if prefix.len() > 1 && prefix.ends_with('/') {
+                    return "error: gateway path prefix must not end with /".into();
+                }
+                Some(prefix)
+            }
+            None => None,
+        };
+
+        config.gateway.host = host.to_string();
+        config.gateway.port = config_dto.port;
+        config.gateway.require_pairing = config_dto.require_pairing;
+        config.gateway.allow_public_bind = config_dto.allow_public_bind;
+        config.gateway.trust_forwarded_headers = config_dto.trust_forwarded_headers;
+        config.gateway.path_prefix = path_prefix;
+        config.gateway.pair_rate_limit_per_minute = config_dto.pair_rate_limit_per_minute;
+        config.gateway.webhook_rate_limit_per_minute = config_dto.webhook_rate_limit_per_minute;
+        config.gateway.rate_limit_max_keys = config_dto.rate_limit_max_keys as usize;
+        config.gateway.idempotency_ttl_secs = config_dto.idempotency_ttl_secs;
+        config.gateway.idempotency_max_keys = config_dto.idempotency_max_keys as usize;
+        config.gateway.session_persistence = config_dto.session_persistence;
+        config.gateway.session_ttl_hours = config_dto.session_ttl_hours;
+        config.gateway.web_dist_dir = normalize_optional_string(config_dto.web_dist_dir);
+        config.gateway.pairing_dashboard.code_length = config_dto.pairing_code_length as usize;
+        config.gateway.pairing_dashboard.code_ttl_secs = config_dto.pairing_code_ttl_secs;
+        config.gateway.pairing_dashboard.max_pending_codes =
+            config_dto.pairing_max_pending_codes as usize;
+        config.gateway.pairing_dashboard.max_failed_attempts =
+            config_dto.pairing_max_failed_attempts;
+        config.gateway.pairing_dashboard.lockout_secs = config_dto.pairing_lockout_secs;
+    }
+
+    persist_config_state_to_disk().await
 }
 
 /// Get memory configuration
@@ -384,7 +578,7 @@ pub async fn list_channels() -> Vec<ChannelSummary> {
     let mut channels = Vec::new();
 
     if let Some(config) = &cs.config {
-        let ch = &config.channels_config;
+        let ch = &config.channels;
 
         channels.push(ChannelSummary {
             id: "cli".into(),
@@ -669,39 +863,56 @@ pub async fn get_tool_config(tool_name: String) -> String {
     match tool_name.as_str() {
         "web_search" => {
             let cfg = &config.web_search;
-            let api_key = cfg.api_key.clone().or_else(|| match cfg.provider.as_str() {
+            let api_key = match cfg.provider.as_str() {
                 "brave" => cfg.brave_api_key.clone(),
-                "perplexity" => cfg.perplexity_api_key.clone(),
-                "exa" => cfg.exa_api_key.clone(),
-                "jina" => cfg.jina_api_key.clone(),
                 _ => None,
-            });
+            };
+            let api_url = match cfg.provider.as_str() {
+                "searxng" => cfg.searxng_instance_url.clone(),
+                _ => None,
+            };
 
             serde_json::json!({
                 "enabled": cfg.enabled,
                 "provider": cfg.provider,
                 "api_key": api_key,
-                "api_url": cfg.api_url,
+                "api_url": api_url,
             })
         }
         "web_fetch" => {
             let cfg = &config.web_fetch;
             serde_json::json!({
                 "enabled": cfg.enabled,
-                "provider": cfg.provider,
-                "api_key": cfg.api_key,
-                "api_url": cfg.api_url,
+                "provider": if cfg.firecrawl.enabled { "firecrawl" } else { "default" },
+                "api_key": "",
+                "api_url": cfg.firecrawl.api_url,
                 "allowed_domains": cfg.allowed_domains,
                 "blocked_domains": cfg.blocked_domains,
             })
         }
         "browser" => {
             let cfg = &config.browser;
+            let agent_browser_command = crate::api::browser_bootstrap::find_agent_browser();
             serde_json::json!({
                 "enabled": cfg.enabled,
                 "backend": cfg.backend,
-                "agent_browser_command": cfg.agent_browser_command,
+                "agent_browser_command": if agent_browser_command.starts_with("error:") {
+                    "".to_string()
+                } else {
+                    agent_browser_command.clone()
+                },
+                "agent_browser_available": !agent_browser_command.starts_with("error:"),
                 "allowed_domains": cfg.allowed_domains,
+                "session_name": cfg.session_name,
+                "native_headless": cfg.native_headless,
+                "native_webdriver_url": cfg.native_webdriver_url,
+                "native_chrome_path": cfg.native_chrome_path,
+                "computer_use_endpoint": cfg.computer_use.endpoint,
+                "computer_use_api_key": cfg.computer_use.api_key,
+                "computer_use_allow_remote_endpoint": cfg.computer_use.allow_remote_endpoint,
+                "computer_use_window_allowlist": cfg.computer_use.window_allowlist,
+                "computer_use_max_coordinate_x": cfg.computer_use.max_coordinate_x,
+                "computer_use_max_coordinate_y": cfg.computer_use.max_coordinate_y,
             })
         }
         "http_request" => {
@@ -742,11 +953,7 @@ pub async fn save_tool_config(tool_name: String, config_json: String) -> String 
             let provider = match provider.as_str() {
                 "duckduckgo" | "ddg" => "duckduckgo",
                 "brave" => "brave",
-                "firecrawl" => "firecrawl",
-                "tavily" => "tavily",
-                "perplexity" => "perplexity",
-                "exa" => "exa",
-                "jina" => "jina",
+                "searxng" => "searxng",
                 _ => return format!("error: unsupported web_search provider: {provider}"),
             };
 
@@ -768,14 +975,12 @@ pub async fn save_tool_config(tool_name: String, config_json: String) -> String 
                 .and_then(|v| v.as_bool())
                 .unwrap_or(config.web_search.enabled);
             config.web_search.provider = provider.to_string();
-            config.web_search.api_key = api_key.clone();
-            config.web_search.api_url = api_url;
+            config.web_search.brave_api_key = None;
+            config.web_search.searxng_instance_url = None;
 
             match provider {
                 "brave" => config.web_search.brave_api_key = api_key,
-                "perplexity" => config.web_search.perplexity_api_key = api_key,
-                "exa" => config.web_search.exa_api_key = api_key,
-                "jina" => config.web_search.jina_api_key = api_key,
+                "searxng" => config.web_search.searxng_instance_url = api_url,
                 _ => {}
             }
         }
@@ -787,11 +992,9 @@ pub async fn save_tool_config(tool_name: String, config_json: String) -> String 
                 .trim()
                 .to_ascii_lowercase();
 
-            let provider = match provider.as_str() {
-                "fast_html2md" => "fast_html2md",
-                "nanohtml2text" => "nanohtml2text",
-                "firecrawl" => "firecrawl",
-                "tavily" => "tavily",
+            let firecrawl_enabled = match provider.as_str() {
+                "default" | "fast_html2md" | "nanohtml2text" => false,
+                "firecrawl" => true,
                 _ => return format!("error: unsupported web_fetch provider: {provider}"),
             };
 
@@ -799,19 +1002,16 @@ pub async fn save_tool_config(tool_name: String, config_json: String) -> String 
                 .get("enabled")
                 .and_then(|v| v.as_bool())
                 .unwrap_or(config.web_fetch.enabled);
-            config.web_fetch.provider = provider.to_string();
-            config.web_fetch.api_key = val
-                .get("api_key")
-                .and_then(|v| v.as_str())
-                .map(str::trim)
-                .filter(|s| !s.is_empty())
-                .map(|s| s.to_string());
-            config.web_fetch.api_url = val
+            config.web_fetch.firecrawl.enabled = firecrawl_enabled;
+            if let Some(api_url) = val
                 .get("api_url")
                 .and_then(|v| v.as_str())
                 .map(str::trim)
                 .filter(|s| !s.is_empty())
-                .map(|s| s.to_string());
+                .map(|s| s.to_string())
+            {
+                config.web_fetch.firecrawl.api_url = api_url;
+            }
             if val.get("allowed_domains").is_some() {
                 config.web_fetch.allowed_domains = json_str_array(&val, "allowed_domains");
             }
@@ -820,21 +1020,8 @@ pub async fn save_tool_config(tool_name: String, config_json: String) -> String 
             }
         }
         "browser" => {
-            config.browser.enabled = val
-                .get("enabled")
-                .and_then(|v| v.as_bool())
-                .unwrap_or(config.browser.enabled);
-            if let Some(backend) = val.get("backend").and_then(|v| v.as_str()) {
-                let trimmed = backend.trim();
-                if !trimmed.is_empty() {
-                    config.browser.backend = trimmed.to_string();
-                }
-            }
-            if let Some(command) = val.get("agent_browser_command").and_then(|v| v.as_str()) {
-                config.browser.agent_browser_command = command.trim().to_string();
-            }
-            if val.get("allowed_domains").is_some() {
-                config.browser.allowed_domains = json_str_array(&val, "allowed_domains");
+            if let Err(error) = apply_browser_config_value(config, &val) {
+                return error;
             }
         }
         "http_request" => {
@@ -878,7 +1065,7 @@ pub async fn get_channel_config(channel_type: String) -> String {
         Some(c) => c,
         None => return "{}".into(),
     };
-    let ch = &config.channels_config;
+    let ch = &config.channels;
 
     match channel_type.as_str() {
         "telegram" => {
@@ -920,7 +1107,7 @@ pub async fn get_channel_config(channel_type: String) -> String {
                 serde_json::json!({
                     "bot_token": sc.bot_token,
                     "app_token": sc.app_token,
-                    "channel_id": sc.channel_id,
+                    "channel_id": sc.channel_ids.first().cloned().unwrap_or_default(),
                     "allowed_users": sc.allowed_users,
                 })
             } else {
@@ -1010,7 +1197,7 @@ pub async fn get_channel_config(channel_type: String) -> String {
                     "homeserver": mc.homeserver,
                     "user_id": mc.user_id,
                     "access_token": mc.access_token,
-                    "room_id": mc.room_id,
+                    "room_id": mc.allowed_rooms.first().cloned().unwrap_or_default(),
                     "allowed_users": mc.allowed_users,
                 })
             } else {
@@ -1103,11 +1290,11 @@ pub async fn save_channel_config(channel_type: String, config_json: String) -> S
             Some(c) => c,
             None => return "error: not initialized".into(),
         };
+        let channels = &mut config.channels;
 
         match channel_type.as_str() {
             "cli" => {
-                config.channels_config.cli =
-                    val.get("enabled").and_then(|v| v.as_bool()).unwrap_or(true);
+                channels.cli = val.get("enabled").and_then(|v| v.as_bool()).unwrap_or(true);
             }
             "telegram" => {
                 let token = val
@@ -1116,9 +1303,10 @@ pub async fn save_channel_config(channel_type: String, config_json: String) -> S
                     .unwrap_or("")
                     .to_string();
                 if token.is_empty() {
-                    config.channels_config.telegram = None;
+                    channels.telegram = None;
                 } else {
-                    config.channels_config.telegram = Some(zeroclaw::config::TelegramConfig {
+                    channels.telegram = Some(zeroclaw::config::TelegramConfig {
+                        enabled: true,
                         bot_token: token,
                         allowed_users: json_str_array(&val, "allowed_users"),
                         mention_only: val
@@ -1128,10 +1316,9 @@ pub async fn save_channel_config(channel_type: String, config_json: String) -> S
                         stream_mode: zeroclaw::config::StreamMode::default(),
                         draft_update_interval_ms: 1000,
                         interrupt_on_new_message: false,
-                        progress_mode: Default::default(),
-                        group_reply: None,
-                        base_url: None,
-                        ack_enabled: true,
+                        ack_reactions: None,
+                        proxy_url: None,
+                        approval_timeout_secs: 120,
                     });
                 }
             }
@@ -1142,9 +1329,10 @@ pub async fn save_channel_config(channel_type: String, config_json: String) -> S
                     .unwrap_or("")
                     .to_string();
                 if token.is_empty() {
-                    config.channels_config.discord = None;
+                    channels.discord = None;
                 } else {
-                    config.channels_config.discord = Some(zeroclaw::config::DiscordConfig {
+                    channels.discord = Some(zeroclaw::config::DiscordConfig {
+                        enabled: true,
                         bot_token: token,
                         guild_id: val
                             .get("guild_id")
@@ -1156,11 +1344,16 @@ pub async fn save_channel_config(channel_type: String, config_json: String) -> S
                             .get("listen_to_bots")
                             .and_then(|v| v.as_bool())
                             .unwrap_or(false),
+                        interrupt_on_new_message: false,
                         mention_only: val
                             .get("mention_only")
                             .and_then(|v| v.as_bool())
                             .unwrap_or(false),
-                        group_reply: None,
+                        proxy_url: None,
+                        stream_mode: zeroclaw::config::StreamMode::default(),
+                        draft_update_interval_ms: 1000,
+                        multi_message_delay_ms: 800,
+                        stall_timeout_secs: 0,
                     });
                 }
             }
@@ -1171,33 +1364,47 @@ pub async fn save_channel_config(channel_type: String, config_json: String) -> S
                     .unwrap_or("")
                     .to_string();
                 if token.is_empty() {
-                    config.channels_config.slack = None;
+                    channels.slack = None;
                 } else {
-                    config.channels_config.slack = Some(zeroclaw::config::SlackConfig {
+                    let channel_ids = val
+                        .get("channel_id")
+                        .and_then(|v| v.as_str())
+                        .filter(|s| !s.is_empty())
+                        .map(|s| vec![s.to_string()])
+                        .unwrap_or_default();
+                    channels.slack = Some(zeroclaw::config::SlackConfig {
+                        enabled: true,
                         bot_token: token,
                         app_token: val
                             .get("app_token")
                             .and_then(|v| v.as_str())
                             .filter(|s| !s.is_empty())
                             .map(|s| s.to_string()),
-                        channel_id: val
-                            .get("channel_id")
-                            .and_then(|v| v.as_str())
-                            .filter(|s| !s.is_empty())
-                            .map(|s| s.to_string()),
-                        channel_ids: vec![],
+                        channel_ids,
                         allowed_users: json_str_array(&val, "allowed_users"),
-                        group_reply: None,
+                        interrupt_on_new_message: false,
+                        thread_replies: None,
+                        mention_only: false,
+                        use_markdown_blocks: false,
+                        proxy_url: None,
+                        stream_drafts: false,
+                        draft_update_interval_ms: 1200,
+                        cancel_reaction: None,
                     });
                 }
             }
             "webhook" => {
                 let port = val.get("port").and_then(|v| v.as_u64()).unwrap_or(0) as u16;
                 if port == 0 {
-                    config.channels_config.webhook = None;
+                    channels.webhook = None;
                 } else {
-                    config.channels_config.webhook = Some(zeroclaw::config::WebhookConfig {
+                    channels.webhook = Some(zeroclaw::config::WebhookConfig {
+                        enabled: true,
                         port,
+                        listen_path: None,
+                        send_url: None,
+                        send_method: None,
+                        auth_header: None,
                         secret: val
                             .get("secret")
                             .and_then(|v| v.as_str())
@@ -1213,42 +1420,42 @@ pub async fn save_channel_config(channel_type: String, config_json: String) -> S
                     .unwrap_or("")
                     .to_string();
                 if imap.is_empty() {
-                    config.channels_config.email = None;
+                    channels.email = None;
                 } else {
-                    config.channels_config.email =
-                        Some(zeroclaw::channels::email_channel::EmailConfig {
-                            imap_host: imap,
-                            imap_port: val.get("imap_port").and_then(|v| v.as_u64()).unwrap_or(993)
-                                as u16,
-                            smtp_host: val
-                                .get("smtp_host")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or("")
-                                .to_string(),
-                            smtp_port: val.get("smtp_port").and_then(|v| v.as_u64()).unwrap_or(465)
-                                as u16,
-                            smtp_tls: val
-                                .get("smtp_tls")
-                                .and_then(|v| v.as_bool())
-                                .unwrap_or(true),
-                            username: val
-                                .get("username")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or("")
-                                .to_string(),
-                            password: val
-                                .get("password")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or("")
-                                .to_string(),
-                            from_address: val
-                                .get("from_address")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or("")
-                                .to_string(),
-                            allowed_senders: json_str_array(&val, "allowed_senders"),
-                            ..Default::default()
-                        });
+                    channels.email = Some(EmailConfig {
+                        enabled: true,
+                        imap_host: imap,
+                        imap_port: val.get("imap_port").and_then(|v| v.as_u64()).unwrap_or(993)
+                            as u16,
+                        smtp_host: val
+                            .get("smtp_host")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string(),
+                        smtp_port: val.get("smtp_port").and_then(|v| v.as_u64()).unwrap_or(465)
+                            as u16,
+                        smtp_tls: val
+                            .get("smtp_tls")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(true),
+                        username: val
+                            .get("username")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string(),
+                        password: val
+                            .get("password")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string(),
+                        from_address: val
+                            .get("from_address")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string(),
+                        allowed_senders: json_str_array(&val, "allowed_senders"),
+                        ..Default::default()
+                    });
                 }
             }
             "lark" => {
@@ -1258,9 +1465,10 @@ pub async fn save_channel_config(channel_type: String, config_json: String) -> S
                     .unwrap_or("")
                     .to_string();
                 if app_id.is_empty() {
-                    config.channels_config.lark = None;
+                    channels.lark = None;
                 } else {
-                    config.channels_config.lark = Some(zeroclaw::config::LarkConfig {
+                    channels.lark = Some(zeroclaw::config::LarkConfig {
+                        enabled: true,
                         app_id,
                         app_secret: val
                             .get("app_secret")
@@ -1274,12 +1482,10 @@ pub async fn save_channel_config(channel_type: String, config_json: String) -> S
                             .get("mention_only")
                             .and_then(|v| v.as_bool())
                             .unwrap_or(false),
-                        group_reply: None,
                         use_feishu: false,
                         receive_mode: zeroclaw::config::schema::LarkReceiveMode::default(),
                         port: None,
-                        draft_update_interval_ms: 3000,
-                        max_draft_edits: 20,
+                        proxy_url: None,
                     });
                 }
             }
@@ -1290,18 +1496,19 @@ pub async fn save_channel_config(channel_type: String, config_json: String) -> S
                     .unwrap_or("")
                     .to_string();
                 if cid.is_empty() {
-                    config.channels_config.dingtalk = None;
+                    channels.dingtalk = None;
                 } else {
-                    config.channels_config.dingtalk =
-                        Some(zeroclaw::config::schema::DingTalkConfig {
-                            client_id: cid,
-                            client_secret: val
-                                .get("client_secret")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or("")
-                                .to_string(),
-                            allowed_users: json_str_array(&val, "allowed_users"),
-                        });
+                    channels.dingtalk = Some(zeroclaw::config::schema::DingTalkConfig {
+                        enabled: true,
+                        client_id: cid,
+                        client_secret: val
+                            .get("client_secret")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string(),
+                        allowed_users: json_str_array(&val, "allowed_users"),
+                        proxy_url: None,
+                    });
                 }
             }
             "matrix" => {
@@ -1311,9 +1518,16 @@ pub async fn save_channel_config(channel_type: String, config_json: String) -> S
                     .unwrap_or("")
                     .to_string();
                 if url.is_empty() {
-                    config.channels_config.matrix = None;
+                    channels.matrix = None;
                 } else {
-                    config.channels_config.matrix = Some(zeroclaw::config::MatrixConfig {
+                    let room_id = val
+                        .get("room_id")
+                        .and_then(|v| v.as_str())
+                        .filter(|s| !s.is_empty())
+                        .map(|s| vec![s.to_string()])
+                        .unwrap_or_default();
+                    channels.matrix = Some(zeroclaw::config::MatrixConfig {
+                        enabled: true,
                         homeserver: url,
                         user_id: val
                             .get("user_id")
@@ -1326,13 +1540,15 @@ pub async fn save_channel_config(channel_type: String, config_json: String) -> S
                             .unwrap_or("")
                             .to_string(),
                         device_id: None,
-                        room_id: val
-                            .get("room_id")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("")
-                            .to_string(),
+                        allowed_rooms: room_id,
                         allowed_users: json_str_array(&val, "allowed_users"),
+                        interrupt_on_new_message: false,
+                        stream_mode: zeroclaw::config::StreamMode::default(),
+                        draft_update_interval_ms: 1500,
+                        multi_message_delay_ms: 800,
                         mention_only: false,
+                        recovery_key: None,
+                        password: None,
                     });
                 }
             }
@@ -1343,9 +1559,10 @@ pub async fn save_channel_config(channel_type: String, config_json: String) -> S
                     .unwrap_or("")
                     .to_string();
                 if http_url.is_empty() {
-                    config.channels_config.signal = None;
+                    channels.signal = None;
                 } else {
-                    config.channels_config.signal = Some(zeroclaw::config::schema::SignalConfig {
+                    channels.signal = Some(zeroclaw::config::schema::SignalConfig {
+                        enabled: true,
                         http_url,
                         account: val
                             .get("account")
@@ -1360,6 +1577,7 @@ pub async fn save_channel_config(channel_type: String, config_json: String) -> S
                         allowed_from: json_str_array(&val, "allowed_from"),
                         ignore_attachments: false,
                         ignore_stories: false,
+                        proxy_url: None,
                     });
                 }
             }
@@ -1370,27 +1588,35 @@ pub async fn save_channel_config(channel_type: String, config_json: String) -> S
                     .unwrap_or("")
                     .to_string();
                 if pid.is_empty() {
-                    config.channels_config.whatsapp = None;
+                    channels.whatsapp = None;
                 } else {
-                    config.channels_config.whatsapp =
-                        Some(zeroclaw::config::schema::WhatsAppConfig {
-                            phone_number_id: Some(pid),
-                            access_token: val
-                                .get("access_token")
-                                .and_then(|v| v.as_str())
-                                .filter(|s| !s.is_empty())
-                                .map(|s| s.to_string()),
-                            verify_token: val
-                                .get("verify_token")
-                                .and_then(|v| v.as_str())
-                                .filter(|s| !s.is_empty())
-                                .map(|s| s.to_string()),
-                            app_secret: None,
-                            session_path: None,
-                            pair_phone: None,
-                            pair_code: None,
-                            allowed_numbers: json_str_array(&val, "allowed_numbers"),
-                        });
+                    channels.whatsapp = Some(zeroclaw::config::schema::WhatsAppConfig {
+                        enabled: true,
+                        phone_number_id: Some(pid),
+                        access_token: val
+                            .get("access_token")
+                            .and_then(|v| v.as_str())
+                            .filter(|s| !s.is_empty())
+                            .map(|s| s.to_string()),
+                        verify_token: val
+                            .get("verify_token")
+                            .and_then(|v| v.as_str())
+                            .filter(|s| !s.is_empty())
+                            .map(|s| s.to_string()),
+                        app_secret: None,
+                        session_path: None,
+                        pair_phone: None,
+                        pair_code: None,
+                        allowed_numbers: json_str_array(&val, "allowed_numbers"),
+                        mention_only: false,
+                        mode: zeroclaw::config::WhatsAppWebMode::default(),
+                        dm_policy: zeroclaw::config::WhatsAppChatPolicy::default(),
+                        group_policy: zeroclaw::config::WhatsAppChatPolicy::default(),
+                        self_chat_mode: false,
+                        dm_mention_patterns: vec![],
+                        group_mention_patterns: vec![],
+                        proxy_url: None,
+                    });
                 }
             }
             "irc" => {
@@ -1400,9 +1626,10 @@ pub async fn save_channel_config(channel_type: String, config_json: String) -> S
                     .unwrap_or("")
                     .to_string();
                 if server.is_empty() {
-                    config.channels_config.irc = None;
+                    channels.irc = None;
                 } else {
-                    config.channels_config.irc = Some(zeroclaw::config::schema::IrcConfig {
+                    channels.irc = Some(zeroclaw::config::schema::IrcConfig {
+                        enabled: true,
                         server,
                         port: val.get("port").and_then(|v| v.as_u64()).unwrap_or(6697) as u16,
                         nickname: val
@@ -1452,19 +1679,20 @@ pub async fn toggle_channel(channel_type: String, enabled: bool) -> String {
                 Some(c) => c,
                 None => return "error: not initialized".into(),
             };
+            let channels = &mut config.channels;
             match channel_type.as_str() {
-                "cli" => config.channels_config.cli = false,
-                "telegram" => config.channels_config.telegram = None,
-                "discord" => config.channels_config.discord = None,
-                "slack" => config.channels_config.slack = None,
-                "webhook" => config.channels_config.webhook = None,
-                "email" => config.channels_config.email = None,
-                "lark" => config.channels_config.lark = None,
-                "dingtalk" => config.channels_config.dingtalk = None,
-                "matrix" => config.channels_config.matrix = None,
-                "signal" => config.channels_config.signal = None,
-                "whatsapp" => config.channels_config.whatsapp = None,
-                "irc" => config.channels_config.irc = None,
+                "cli" => channels.cli = false,
+                "telegram" => channels.telegram = None,
+                "discord" => channels.discord = None,
+                "slack" => channels.slack = None,
+                "webhook" => channels.webhook = None,
+                "email" => channels.email = None,
+                "lark" => channels.lark = None,
+                "dingtalk" => channels.dingtalk = None,
+                "matrix" => channels.matrix = None,
+                "signal" => channels.signal = None,
+                "whatsapp" => channels.whatsapp = None,
+                "irc" => channels.irc = None,
                 _ => return format!("error: unknown channel: {channel_type}"),
             }
         }
@@ -1483,6 +1711,42 @@ pub async fn toggle_channel(channel_type: String, enabled: bool) -> String {
     }
 }
 
+fn tool_filter_group_to_dto(group: &ToolFilterGroup) -> AgentToolFilterGroupDto {
+    AgentToolFilterGroupDto {
+        mode: match group.mode {
+            ToolFilterGroupMode::Always => "always".into(),
+            ToolFilterGroupMode::Dynamic => "dynamic".into(),
+        },
+        tools: group.tools.clone(),
+        keywords: group.keywords.clone(),
+        filter_builtins: group.filter_builtins,
+    }
+}
+
+fn tool_filter_group_from_dto(group: AgentToolFilterGroupDto) -> Result<ToolFilterGroup, String> {
+    let mode = match group.mode.trim().to_ascii_lowercase().as_str() {
+        "always" => ToolFilterGroupMode::Always,
+        "dynamic" | "" => ToolFilterGroupMode::Dynamic,
+        other => {
+            return Err(format!(
+                "error: unsupported tool filter group mode: {other}"
+            ))
+        }
+    };
+
+    let tools = sanitize_string_list(group.tools);
+    if tools.is_empty() {
+        return Err("error: tool filter group must include at least one tool pattern".into());
+    }
+
+    Ok(ToolFilterGroup {
+        mode,
+        tools,
+        keywords: sanitize_string_list(group.keywords),
+        filter_builtins: group.filter_builtins,
+    })
+}
+
 /// Helper: extract string array from JSON value
 fn json_str_array(val: &serde_json::Value, key: &str) -> Vec<String> {
     val.get(key)
@@ -1490,163 +1754,184 @@ fn json_str_array(val: &serde_json::Value, key: &str) -> Vec<String> {
         .map(|arr| {
             arr.iter()
                 .filter_map(|v| v.as_str().map(|s| s.to_string()))
-                .collect()
+                .collect::<Vec<_>>()
         })
+        .map(sanitize_string_list)
         .unwrap_or_default()
+}
+
+fn normalize_optional_string(value: Option<String>) -> Option<String> {
+    value
+        .map(|item| item.trim().to_string())
+        .filter(|item| !item.is_empty())
+}
+
+fn sanitize_string_list(values: Vec<String>) -> Vec<String> {
+    let mut result = Vec::new();
+    for value in values {
+        let trimmed = value.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        let normalized = trimmed.to_string();
+        if !result.contains(&normalized) {
+            result.push(normalized);
+        }
+    }
+    result
+}
+
+fn browser_config_to_dto(config: &zeroclaw::Config) -> BrowserConfigDto {
+    let agent_browser_command = crate::api::browser_bootstrap::find_agent_browser();
+    BrowserConfigDto {
+        enabled: config.browser.enabled,
+        backend: config.browser.backend.clone(),
+        allowed_domains: config.browser.allowed_domains.clone(),
+        session_name: config.browser.session_name.clone(),
+        native_headless: config.browser.native_headless,
+        native_webdriver_url: config.browser.native_webdriver_url.clone(),
+        native_chrome_path: config.browser.native_chrome_path.clone(),
+        computer_use_endpoint: config.browser.computer_use.endpoint.clone(),
+        computer_use_api_key: config.browser.computer_use.api_key.clone(),
+        computer_use_allow_remote_endpoint: config.browser.computer_use.allow_remote_endpoint,
+        computer_use_window_allowlist: config.browser.computer_use.window_allowlist.clone(),
+        computer_use_max_coordinate_x: config.browser.computer_use.max_coordinate_x,
+        computer_use_max_coordinate_y: config.browser.computer_use.max_coordinate_y,
+        agent_browser_available: !agent_browser_command.starts_with("error:"),
+        agent_browser_command: if agent_browser_command.starts_with("error:") {
+            String::new()
+        } else {
+            agent_browser_command
+        },
+    }
+}
+
+fn gateway_config_to_dto(config: &zeroclaw::Config) -> GatewayConfigDto {
+    GatewayConfigDto {
+        host: config.gateway.host.clone(),
+        port: config.gateway.port,
+        require_pairing: config.gateway.require_pairing,
+        allow_public_bind: config.gateway.allow_public_bind,
+        trust_forwarded_headers: config.gateway.trust_forwarded_headers,
+        path_prefix: config.gateway.path_prefix.clone(),
+        pair_rate_limit_per_minute: config.gateway.pair_rate_limit_per_minute,
+        webhook_rate_limit_per_minute: config.gateway.webhook_rate_limit_per_minute,
+        rate_limit_max_keys: config.gateway.rate_limit_max_keys as u32,
+        idempotency_ttl_secs: config.gateway.idempotency_ttl_secs,
+        idempotency_max_keys: config.gateway.idempotency_max_keys as u32,
+        session_persistence: config.gateway.session_persistence,
+        session_ttl_hours: config.gateway.session_ttl_hours,
+        web_dist_dir: config.gateway.web_dist_dir.clone(),
+        pairing_code_length: config.gateway.pairing_dashboard.code_length as u32,
+        pairing_code_ttl_secs: config.gateway.pairing_dashboard.code_ttl_secs,
+        pairing_max_pending_codes: config.gateway.pairing_dashboard.max_pending_codes as u32,
+        pairing_max_failed_attempts: config.gateway.pairing_dashboard.max_failed_attempts,
+        pairing_lockout_secs: config.gateway.pairing_dashboard.lockout_secs,
+    }
+}
+
+fn apply_browser_config_value(
+    config: &mut zeroclaw::Config,
+    val: &serde_json::Value,
+) -> Result<(), String> {
+    if let Some(enabled) = val.get("enabled").and_then(|v| v.as_bool()) {
+        config.browser.enabled = enabled;
+    }
+    if let Some(backend) = val.get("backend").and_then(|v| v.as_str()) {
+        let normalized = backend.trim().to_ascii_lowercase();
+        if !normalized.is_empty() {
+            match normalized.as_str() {
+                "agent_browser" | "rust_native" | "computer_use" | "auto" => {
+                    config.browser.backend = normalized;
+                }
+                _ => return Err(format!("error: unsupported browser backend: {backend}")),
+            }
+        }
+    }
+    if val.get("allowed_domains").is_some() {
+        config.browser.allowed_domains = json_str_array(val, "allowed_domains");
+    }
+    if val.get("session_name").is_some() {
+        config.browser.session_name = normalize_optional_string(
+            val.get("session_name")
+                .and_then(|v| v.as_str())
+                .map(|value| value.to_string()),
+        );
+    }
+    if let Some(native_headless) = val.get("native_headless").and_then(|v| v.as_bool()) {
+        config.browser.native_headless = native_headless;
+    }
+    if let Some(webdriver_url) = val.get("native_webdriver_url").and_then(|v| v.as_str()) {
+        let trimmed = webdriver_url.trim();
+        if !trimmed.is_empty() {
+            config.browser.native_webdriver_url = trimmed.to_string();
+        }
+    }
+    if val.get("native_chrome_path").is_some() {
+        config.browser.native_chrome_path = normalize_optional_string(
+            val.get("native_chrome_path")
+                .and_then(|v| v.as_str())
+                .map(|value| value.to_string()),
+        );
+    }
+    if let Some(endpoint) = val.get("computer_use_endpoint").and_then(|v| v.as_str()) {
+        let trimmed = endpoint.trim();
+        if !trimmed.is_empty() {
+            config.browser.computer_use.endpoint = trimmed.to_string();
+        }
+    }
+    if val.get("computer_use_api_key").is_some() {
+        config.browser.computer_use.api_key = normalize_optional_string(
+            val.get("computer_use_api_key")
+                .and_then(|v| v.as_str())
+                .map(|value| value.to_string()),
+        );
+    }
+    if let Some(allow_remote) = val
+        .get("computer_use_allow_remote_endpoint")
+        .and_then(|v| v.as_bool())
+    {
+        config.browser.computer_use.allow_remote_endpoint = allow_remote;
+    }
+    if val.get("computer_use_window_allowlist").is_some() {
+        config.browser.computer_use.window_allowlist =
+            json_str_array(val, "computer_use_window_allowlist");
+    }
+    if val.get("computer_use_max_coordinate_x").is_some() {
+        config.browser.computer_use.max_coordinate_x = val
+            .get("computer_use_max_coordinate_x")
+            .and_then(|v| v.as_i64());
+    }
+    if val.get("computer_use_max_coordinate_y").is_some() {
+        config.browser.computer_use.max_coordinate_y = val
+            .get("computer_use_max_coordinate_y")
+            .and_then(|v| v.as_i64());
+    }
+    Ok(())
 }
 
 /// Persist channel config section to disk
 async fn save_channel_config_to_disk() -> String {
-    let cs = super::agent_api::config_state().read().await;
-    let config = match &cs.config {
-        Some(c) => c,
-        None => return "error: no config loaded".into(),
-    };
-
-    let config_path = &config.config_path;
-    if config_path.as_os_str().is_empty() {
-        return "error: config_path not set".into();
-    }
-
-    // Read existing TOML
-    let mut table: toml::Table = match tokio::fs::read_to_string(config_path).await {
-        Ok(content) => content.parse().unwrap_or_default(),
-        Err(_) => toml::Table::new(),
-    };
-
-    // Serialize channels_config section
-    let ch = &config.channels_config;
-    let mut ch_table = toml::Table::new();
-    ch_table.insert("cli".into(), toml::Value::Boolean(ch.cli));
-
-    // Helper macro to serialize Option<T> channel configs
-    macro_rules! serialize_channel {
-        ($field:ident, $name:expr) => {
-            if let Some(ref cfg) = ch.$field {
-                if let Ok(val) = serde_json::to_value(cfg) {
-                    if let Ok(toml_val) = json_value_to_toml(&val) {
-                        ch_table.insert($name.into(), toml_val);
-                    }
-                }
-            }
-        };
-    }
-
-    serialize_channel!(telegram, "telegram");
-    serialize_channel!(discord, "discord");
-    serialize_channel!(slack, "slack");
-    serialize_channel!(webhook, "webhook");
-    serialize_channel!(email, "email");
-    serialize_channel!(lark, "lark");
-    serialize_channel!(dingtalk, "dingtalk");
-    serialize_channel!(matrix, "matrix");
-    serialize_channel!(signal, "signal");
-    serialize_channel!(whatsapp, "whatsapp");
-    serialize_channel!(irc, "irc");
-
-    table.insert("channels_config".into(), toml::Value::Table(ch_table));
-
-    let output = match toml::to_string_pretty(&table) {
-        Ok(s) => s,
-        Err(e) => return format!("error: serialize failed: {e}"),
-    };
-
-    match tokio::fs::write(config_path, output).await {
-        Ok(()) => "ok".into(),
-        Err(e) => format!("error: write failed: {e}"),
-    }
+    persist_config_state_to_disk().await
 }
 
 /// Persist tool config sections to disk
 async fn save_tool_config_to_disk() -> String {
-    let cs = super::agent_api::config_state().read().await;
-    let config = match &cs.config {
-        Some(c) => c,
-        None => return "error: no config loaded".into(),
-    };
-
-    let config_path = &config.config_path;
-    if config_path.as_os_str().is_empty() {
-        return "error: config_path not set".into();
-    }
-
-    let mut table: toml::Table = match tokio::fs::read_to_string(config_path).await {
-        Ok(content) => content.parse().unwrap_or_default(),
-        Err(_) => toml::Table::new(),
-    };
-
-    let sections = [
-        (
-            "browser",
-            serde_json::to_value(&config.browser).map_err(|e| e.to_string()),
-        ),
-        (
-            "http_request",
-            serde_json::to_value(&config.http_request).map_err(|e| e.to_string()),
-        ),
-        (
-            "web_search",
-            serde_json::to_value(&config.web_search).map_err(|e| e.to_string()),
-        ),
-        (
-            "web_fetch",
-            serde_json::to_value(&config.web_fetch).map_err(|e| e.to_string()),
-        ),
-    ];
-
-    for (section_name, value_result) in sections {
-        let value = match value_result {
-            Ok(value) => value,
-            Err(error) => return format!("error: serialize {section_name} failed: {error}"),
-        };
-
-        let toml_value = match json_value_to_toml(&value) {
-            Ok(value) => value,
-            Err(error) => return format!("error: serialize {section_name} failed: {error}"),
-        };
-
-        table.insert(section_name.into(), toml_value);
-    }
-
-    let output = match toml::to_string_pretty(&table) {
-        Ok(s) => s,
-        Err(e) => return format!("error: serialize failed: {e}"),
-    };
-
-    match tokio::fs::write(config_path, output).await {
-        Ok(()) => "ok".into(),
-        Err(e) => format!("error: write failed: {e}"),
-    }
+    persist_config_state_to_disk().await
 }
 
-/// Convert serde_json::Value to toml::Value
-fn json_value_to_toml(val: &serde_json::Value) -> Result<toml::Value, String> {
-    match val {
-        serde_json::Value::Null => Ok(toml::Value::String(String::new())),
-        serde_json::Value::Bool(b) => Ok(toml::Value::Boolean(*b)),
-        serde_json::Value::Number(n) => {
-            if let Some(i) = n.as_i64() {
-                Ok(toml::Value::Integer(i))
-            } else if let Some(f) = n.as_f64() {
-                Ok(toml::Value::Float(f))
-            } else {
-                Err("unsupported number".into())
-            }
+async fn persist_config_state_to_disk() -> String {
+    let config_clone = {
+        let cs = super::agent_api::config_state().read().await;
+        match &cs.config {
+            Some(c) => c.clone(),
+            None => return "error: no config loaded".into(),
         }
-        serde_json::Value::String(s) => Ok(toml::Value::String(s.clone())),
-        serde_json::Value::Array(arr) => {
-            let items: Result<Vec<_>, _> = arr.iter().map(json_value_to_toml).collect();
-            Ok(toml::Value::Array(items?))
-        }
-        serde_json::Value::Object(map) => {
-            let mut table = toml::Table::new();
-            for (k, v) in map {
-                // Skip null values
-                if !v.is_null() {
-                    table.insert(k.clone(), json_value_to_toml(v)?);
-                }
-            }
-            Ok(toml::Value::Table(table))
-        }
+    };
+
+    {
+        let mut gc = super::agent_api::global_config().write().await;
+        gc.config = Some(config_clone);
     }
+    super::agent_api::save_config_to_disk().await
 }

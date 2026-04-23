@@ -52,7 +52,7 @@ pub async fn start_channel_listeners() -> String {
     };
 
     // Check whether any non-CLI channel is configured
-    let ch = &config.channels_config;
+    let ch = &config.channels;
     let has_channels = ch.telegram.is_some()
         || ch.discord.is_some()
         || ch.slack.is_some()
@@ -137,7 +137,7 @@ pub async fn get_active_channel_types() -> Vec<String> {
         Some(c) => c,
         None => return vec![],
     };
-    let ch = &config.channels_config;
+    let ch = &config.channels;
     let mut active = Vec::new();
 
     if ch.cli {

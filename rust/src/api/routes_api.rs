@@ -28,7 +28,7 @@ pub struct EmbeddingConfigDto {
     pub vector_weight: f64,
     pub keyword_weight: f64,
     pub min_relevance_score: f64,
-    /// Base URL for custom embedding endpoints (extracted from "custom:<url>" provider)
+    /// Base URL for custom embedding endpoints (extracted from "custom:[url]" provider)
     pub embedding_base_url: Option<String>,
     /// API key for embedding provider
     pub embedding_api_key: Option<String>,
@@ -45,6 +45,7 @@ pub async fn list_model_routes() -> Vec<ModelRouteDto> {
     };
 
     config
+        .providers
         .model_routes
         .iter()
         .map(|r| ModelRouteDto {
@@ -73,14 +74,12 @@ pub async fn upsert_model_route(route: ModelRouteDto) -> String {
         hint: hint.clone(),
         provider: route.provider.trim().to_string(),
         model: route.model.trim().to_string(),
-        max_tokens: None,
         api_key: route
             .api_key
             .as_deref()
             .map(str::trim)
             .filter(|s| !s.is_empty())
             .map(String::from),
-        transport: None,
     };
 
     {
@@ -90,10 +89,15 @@ pub async fn upsert_model_route(route: ModelRouteDto) -> String {
             None => return "error: runtime not initialized".into(),
         };
 
-        if let Some(existing) = config.model_routes.iter_mut().find(|r| r.hint == hint) {
+        if let Some(existing) = config
+            .providers
+            .model_routes
+            .iter_mut()
+            .find(|r| r.hint == hint)
+        {
             *existing = route_config;
         } else {
-            config.model_routes.push(route_config);
+            config.providers.model_routes.push(route_config);
         }
     }
 
@@ -109,9 +113,9 @@ pub async fn remove_model_route(hint: String) -> String {
             Some(c) => c,
             None => return "error: runtime not initialized".into(),
         };
-        let before = config.model_routes.len();
-        config.model_routes.retain(|r| r.hint != hint);
-        if config.model_routes.len() == before {
+        let before = config.providers.model_routes.len();
+        config.providers.model_routes.retain(|r| r.hint != hint);
+        if config.providers.model_routes.len() == before {
             return format!("error: route '{}' not found", hint);
         }
     }
@@ -131,6 +135,7 @@ pub async fn list_embedding_routes() -> Vec<EmbeddingRouteDto> {
     };
 
     config
+        .providers
         .embedding_routes
         .iter()
         .map(|r| EmbeddingRouteDto {
@@ -176,10 +181,15 @@ pub async fn upsert_embedding_route(route: EmbeddingRouteDto) -> String {
             None => return "error: runtime not initialized".into(),
         };
 
-        if let Some(existing) = config.embedding_routes.iter_mut().find(|r| r.hint == hint) {
+        if let Some(existing) = config
+            .providers
+            .embedding_routes
+            .iter_mut()
+            .find(|r| r.hint == hint)
+        {
             *existing = route_config;
         } else {
-            config.embedding_routes.push(route_config);
+            config.providers.embedding_routes.push(route_config);
         }
     }
 
@@ -195,9 +205,9 @@ pub async fn remove_embedding_route(hint: String) -> String {
             Some(c) => c,
             None => return "error: runtime not initialized".into(),
         };
-        let before = config.embedding_routes.len();
-        config.embedding_routes.retain(|r| r.hint != hint);
-        if config.embedding_routes.len() == before {
+        let before = config.providers.embedding_routes.len();
+        config.providers.embedding_routes.retain(|r| r.hint != hint);
+        if config.providers.embedding_routes.len() == before {
             return format!("error: route '{}' not found", hint);
         }
     }
@@ -279,7 +289,6 @@ pub async fn update_embedding_config(config: EmbeddingConfigDto) -> String {
             cfg.memory.vector_weight = config.vector_weight;
             cfg.memory.keyword_weight = config.keyword_weight;
             cfg.memory.min_relevance_score = config.min_relevance_score;
-            cfg.memory.embedding_api_key = config.embedding_api_key.clone();
         }
 
         // Update global_config (used by agent creation)
@@ -290,7 +299,6 @@ pub async fn update_embedding_config(config: EmbeddingConfigDto) -> String {
             cfg.memory.vector_weight = config.vector_weight;
             cfg.memory.keyword_weight = config.keyword_weight;
             cfg.memory.min_relevance_score = config.min_relevance_score;
-            cfg.memory.embedding_api_key = config.embedding_api_key.clone();
         }
 
         // Store API key reference for UI access

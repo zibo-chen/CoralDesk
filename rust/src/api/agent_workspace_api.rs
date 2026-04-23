@@ -395,66 +395,6 @@ pub async fn get_agent_workspace_dir(workspace_id: String) -> String {
         .to_string()
 }
 
-/// Resolve agent workspace identity files into the agent config.
-/// Called by `ensure_session_agent` when a session is bound to an agent workspace.
-pub(crate) async fn resolve_workspace_config(
-    config: &mut zeroclaw::Config,
-    workspace_id: &str,
-) -> Result<(), String> {
-    let store = workspace_store().lock().await;
-    let ws = store
-        .workspaces
-        .iter()
-        .find(|w| w.id == workspace_id)
-        .ok_or_else(|| format!("Agent workspace '{}' not found", workspace_id))?;
-
-    if !ws.enabled {
-        return Err(format!("Agent workspace '{}' is disabled", workspace_id));
-    }
-
-    // Set workspace directory to agent-specific directory
-    let ws_dir = agent_workspace_base_dir().join(workspace_id);
-    let _ = std::fs::create_dir_all(&ws_dir);
-
-    // Write identity files to workspace directory
-    write_identity_file(&ws_dir, "SOUL.md", &ws.soul_md);
-    write_identity_file(&ws_dir, "AGENTS.md", &ws.agents_md);
-    write_identity_file(&ws_dir, "USER.md", &ws.user_md);
-    write_identity_file(&ws_dir, "IDENTITY.md", &ws.identity_md);
-
-    // Override workspace dir
-    config.workspace_dir = ws_dir.clone();
-
-    // ── Capability filtering ──────────────────────────────────
-
-    // 1. Tool filtering: if allowed_tools is non-empty, restrict agent tools
-    if !ws.allowed_tools.is_empty() {
-        config.agent.allowed_tools = ws.allowed_tools.clone();
-    }
-
-    // 2. MCP server filtering: if allowed_mcp_servers is non-empty, keep only named servers
-    if !ws.allowed_mcp_servers.is_empty() {
-        config
-            .mcp
-            .servers
-            .retain(|s| ws.allowed_mcp_servers.contains(&s.name));
-    }
-
-    // 3. Skills filtering: write allowed list to workspace; skill loader can pick it up
-    if !ws.allowed_skills.is_empty() {
-        let skills_filter_path = ws_dir.join("allowed_skills.json");
-        if let Ok(json) = serde_json::to_string_pretty(&ws.allowed_skills) {
-            let _ = std::fs::write(&skills_filter_path, json);
-        }
-    } else {
-        // Remove filter file so all skills are allowed
-        let skills_filter_path = ws_dir.join("allowed_skills.json");
-        let _ = std::fs::remove_file(&skills_filter_path);
-    }
-
-    Ok(())
-}
-
 // ──────────────────── Session binding ────────────────────────
 
 #[frb(ignore)]
@@ -463,13 +403,6 @@ static SESSION_AGENT_BINDINGS: OnceLock<TokioMutex<std::collections::HashMap<Str
 
 fn session_bindings() -> &'static TokioMutex<std::collections::HashMap<String, String>> {
     SESSION_AGENT_BINDINGS.get_or_init(|| TokioMutex::new(std::collections::HashMap::new()))
-}
-
-/// Expose mutable access to session bindings for init-time restoration
-/// from persisted session metadata. This avoids a circular dependency.
-pub(crate) async fn session_bindings_mut(
-) -> tokio::sync::MutexGuard<'static, std::collections::HashMap<String, String>> {
-    session_bindings().lock().await
 }
 
 /// Bind a session to an agent workspace. The next time the session's agent
@@ -520,35 +453,6 @@ pub async fn get_session_agent_binding(session_id: String) -> Option<String> {
 pub(crate) async fn get_binding_for_session(session_id: &str) -> Option<String> {
     let bindings = session_bindings().lock().await;
     bindings.get(session_id).cloned()
-}
-
-// ──────────────────── Workspace Identity for Delegate Enrichment ──────
-
-/// Lightweight workspace identity data used to enrich delegate agent configs.
-#[allow(dead_code)]
-pub(crate) struct WorkspaceIdentity {
-    pub soul_md: String,
-    pub identity_md: String,
-    pub allowed_tools: Vec<String>,
-    pub allowed_skills: Vec<String>,
-    pub allowed_mcp_servers: Vec<String>,
-}
-
-/// Retrieve workspace identity for delegate agent enrichment.
-/// Returns None if the workspace doesn't exist or is disabled.
-pub(crate) async fn get_workspace_identity(workspace_id: &str) -> Option<WorkspaceIdentity> {
-    let store = workspace_store().lock().await;
-    store
-        .workspaces
-        .iter()
-        .find(|w| w.id == workspace_id && w.enabled)
-        .map(|w| WorkspaceIdentity {
-            soul_md: w.soul_md.clone(),
-            identity_md: w.identity_md.clone(),
-            allowed_tools: w.allowed_tools.clone(),
-            allowed_skills: w.allowed_skills.clone(),
-            allowed_mcp_servers: w.allowed_mcp_servers.clone(),
-        })
 }
 
 // ──────────────────── Helpers ─────────────────────────────────

@@ -154,6 +154,388 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pageWorkspace => '工作区';
 
   @override
+  String get pageGateway => 'Gateway';
+
+  @override
+  String get gatewayOverviewTitle => 'Gateway 概览';
+
+  @override
+  String get gatewayOverviewDesc =>
+      '管理用于配对、Webhook 和反向代理接入的网络控制平面。大多数纯桌面工作流可以直接保留默认值。';
+
+  @override
+  String get gatewayUsagePairing => '为浏览器或远程设备提供配对入口';
+
+  @override
+  String get gatewayUsageWebhooks => '为外部系统提供 Webhook 接入';
+
+  @override
+  String get gatewayUsageProxy => '通过反向代理暴露稳定的访问地址';
+
+  @override
+  String get gatewayModeLocal => '仅本机';
+
+  @override
+  String get gatewayModePublic => '公网绑定';
+
+  @override
+  String get gatewayModePairingOn => '需要配对';
+
+  @override
+  String get gatewayModePairingOff => '关闭配对';
+
+  @override
+  String get gatewayModeSessionsOn => '保留会话';
+
+  @override
+  String get gatewayModeSessionsOff => '临时会话';
+
+  @override
+  String get gatewayEndpointTitle => '端点预览';
+
+  @override
+  String get gatewayEndpointDesc => '将这个基础地址用于配对流程、Webhook 集成和反向代理路由。';
+
+  @override
+  String get gatewayCopyEndpoint => '复制端点';
+
+  @override
+  String get gatewayCoreTitle => '核心服务';
+
+  @override
+  String get gatewayCoreDesc => '配置 Gateway 的监听地址，以及仪表盘静态资源的解析方式。';
+
+  @override
+  String get gatewaySecurityTitle => '访问与会话安全';
+
+  @override
+  String get gatewaySecurityDesc => '控制配对要求、公网暴露、反向代理信任以及 Web 会话是否在重启后继续保留。';
+
+  @override
+  String get gatewayLimitsTitle => '限流与保留策略';
+
+  @override
+  String get gatewayLimitsDesc => '限制滥用风险，并控制请求状态和会话状态的保留时间。';
+
+  @override
+  String get gatewayPairingTitle => '配对面板';
+
+  @override
+  String get gatewayPairingDesc => '调节一次性配对码的行为，用于浏览器接入和远程访问流程。';
+
+  @override
+  String get gatewayHostLabel => '主机';
+
+  @override
+  String get gatewayHostHint => '127.0.0.1 或 localhost';
+
+  @override
+  String get gatewayPortLabel => '端口';
+
+  @override
+  String get gatewayPortHint => '42617';
+
+  @override
+  String get gatewayPathPrefixLabel => '路径前缀';
+
+  @override
+  String get gatewayPathPrefixHint => '/gateway';
+
+  @override
+  String get gatewayWebDistDirLabel => 'Web 仪表盘目录';
+
+  @override
+  String get gatewayWebDistDirHint => '可选，自定义仪表盘静态资源目录';
+
+  @override
+  String get gatewayRequirePairingLabel => '要求配对';
+
+  @override
+  String get gatewayRequirePairingDesc => '新的浏览器或远程客户端必须先完成配对，才能访问 Gateway。';
+
+  @override
+  String get gatewayAllowPublicBindLabel => '允许公网绑定';
+
+  @override
+  String get gatewayAllowPublicBindDesc =>
+      '绑定到公网接口，而不是仅限 localhost。只有在你明确要暴露 Gateway 时才建议开启。';
+
+  @override
+  String get gatewayTrustForwardedHeadersLabel => '信任转发头';
+
+  @override
+  String get gatewayTrustForwardedHeadersDesc =>
+      '信任受控反向代理传入的 X-Forwarded-* 头信息。';
+
+  @override
+  String get gatewaySessionPersistenceLabel => '保留 Gateway 会话';
+
+  @override
+  String get gatewaySessionPersistenceDesc =>
+      '在应用重启后继续保留 Gateway Web 会话，直到达到 TTL 上限。';
+
+  @override
+  String get gatewayPairRateLimitLabel => '每分钟配对请求数';
+
+  @override
+  String get gatewayWebhookRateLimitLabel => '每分钟 Webhook 请求数';
+
+  @override
+  String get gatewayRateLimitMaxKeysLabel => '限流键容量';
+
+  @override
+  String get gatewayIdempotencyTtlLabel => '幂等键 TTL（秒）';
+
+  @override
+  String get gatewayIdempotencyMaxKeysLabel => '幂等键容量';
+
+  @override
+  String get gatewaySessionTtlHoursLabel => '会话 TTL（小时）';
+
+  @override
+  String get gatewayPairingCodeLengthLabel => '验证码长度';
+
+  @override
+  String get gatewayPairingCodeTtlLabel => '验证码 TTL（秒）';
+
+  @override
+  String get gatewayPairingMaxPendingLabel => '最大待处理验证码数';
+
+  @override
+  String get gatewayPairingMaxFailedLabel => '最大失败次数';
+
+  @override
+  String get gatewayPairingLockoutLabel => '锁定时长（秒）';
+
+  @override
+  String get gatewayConfigUnavailable => '当前无法获取 Gateway 配置';
+
+  @override
+  String get gatewayHostRequired => 'Gateway 主机不能为空';
+
+  @override
+  String get gatewayPathPrefixStartWithSlash => '路径前缀必须以 / 开头';
+
+  @override
+  String get gatewayPathPrefixNoTrailingSlash => '路径前缀不能以 / 结尾';
+
+  @override
+  String get browserConfigUnavailable => '浏览器配置不可用';
+
+  @override
+  String get browserOverviewTitle => '浏览器运行时概览';
+
+  @override
+  String get browserOverviewDesc =>
+      '选择 DeskClaw 通过哪种运行时驱动浏览器任务，并在启用高级自动化前确认桌面端自带运行时是否就绪。';
+
+  @override
+  String get browserModeEnabled => '运行时已启用';
+
+  @override
+  String get browserModeDisabled => '运行时已停用';
+
+  @override
+  String get browserModeAgentBrowserReady => 'Agent Browser 已就绪';
+
+  @override
+  String get browserModeAgentBrowserMissing => 'Agent Browser 不可用';
+
+  @override
+  String get browserCommandLabel => '自带 Agent Browser 命令';
+
+  @override
+  String get browserCommandUnavailable => 'PATH 或桌面端捆绑运行时中不可用';
+
+  @override
+  String get browserCoreTitle => '核心运行时';
+
+  @override
+  String get browserCoreDesc => '设置主要浏览器后端、共享浏览会话名，以及暴露给 Agent 的域名白名单。';
+
+  @override
+  String get browserBackendLabel => '后端';
+
+  @override
+  String get browserBackendOptionAgentBrowser => '自带 Agent Browser';
+
+  @override
+  String get browserBackendOptionRustNative => 'Rust 原生';
+
+  @override
+  String get browserBackendOptionComputerUse => 'Computer Use';
+
+  @override
+  String get browserBackendOptionAuto => '自动检测';
+
+  @override
+  String get browserSessionNameLabel => '会话名称';
+
+  @override
+  String get browserSessionNameHint => '可选的共享会话名，用于自带浏览器运行时';
+
+  @override
+  String get browserAllowedDomainsLabel => '允许的域名';
+
+  @override
+  String get browserAllowedDomainsHint => '*.example.com, github.com, *';
+
+  @override
+  String get browserNativeTitle => 'Rust 原生后端';
+
+  @override
+  String get browserNativeDesc => '配置基于本地 WebDriver 的运行时，在选择原生后端时使用。';
+
+  @override
+  String get browserNativeHeadlessLabel => '无头模式';
+
+  @override
+  String get browserNativeHeadlessDesc => '当任务不需要可见窗口检查时，以无头模式启动原生浏览器。';
+
+  @override
+  String get browserNativeWebdriverUrlLabel => 'WebDriver 地址';
+
+  @override
+  String get browserNativeWebdriverUrlHint => 'http://127.0.0.1:9515';
+
+  @override
+  String get browserNativeChromePathLabel => 'Chrome 可执行文件路径';
+
+  @override
+  String get browserNativeChromePathHint => '可选的 Chrome 或 Chromium 可执行文件路径';
+
+  @override
+  String get browserComputerUseTitle => 'Computer Use 后端';
+
+  @override
+  String get browserComputerUseDesc =>
+      '连接到 computer-use 动作端点，用于完整桌面浏览和 GUI 控制流程。';
+
+  @override
+  String get browserComputerUseEndpointLabel => '动作端点';
+
+  @override
+  String get browserComputerUseEndpointHint =>
+      'http://127.0.0.1:8787/v1/actions';
+
+  @override
+  String get browserComputerUseApiKeyLabel => '端点 API Key';
+
+  @override
+  String get browserComputerUseAllowRemoteLabel => '允许远程端点';
+
+  @override
+  String get browserComputerUseAllowRemoteDesc => '允许使用非本机端点，而不再仅限本地自动化服务。';
+
+  @override
+  String get browserComputerUseWindowAllowlistLabel => '窗口白名单';
+
+  @override
+  String get browserComputerUseWindowAllowlistHint =>
+      'Cursor, Finder, Google Chrome';
+
+  @override
+  String get browserComputerUseMaxCoordinateXLabel => '最大坐标 X';
+
+  @override
+  String get browserComputerUseMaxCoordinateYLabel => '最大坐标 Y';
+
+  @override
+  String get workspaceAgentRoutingTitle => '高级 Agent 路由';
+
+  @override
+  String get workspaceAgentRoutingDesc =>
+      '调整同轮去重行为，并控制 Agent 在决定如何路由任务时可见的 MCP 工具范围。';
+
+  @override
+  String get workspaceDedupExemptLabel => '去重豁免工具';
+
+  @override
+  String get workspaceDedupExemptHint =>
+      'browser_open, web_fetch, mcp_browser_click';
+
+  @override
+  String get workspaceDedupExemptDesc => '逗号分隔的工具列表，这些工具会绕过同轮去重保护。';
+
+  @override
+  String get workspaceToolFilterGroupsLabel => '工具过滤组';
+
+  @override
+  String get workspaceAddFilterGroup => '添加过滤组';
+
+  @override
+  String get workspaceNoFilterGroups => '还没有配置 MCP 工具过滤组。添加后可按回合选择性暴露 MCP 工具。';
+
+  @override
+  String workspaceFilterGroupTitle(int index) {
+    return '第 $index 组';
+  }
+
+  @override
+  String get workspaceFilterGroupModeLabel => '激活模式';
+
+  @override
+  String get workspaceFilterGroupModeDynamic => '动态';
+
+  @override
+  String get workspaceFilterGroupModeAlways => '始终';
+
+  @override
+  String get workspaceFilterGroupToolsLabel => '工具模式';
+
+  @override
+  String get workspaceFilterGroupToolsHint => 'mcp_browser_*, mcp_filesystem_*';
+
+  @override
+  String get workspaceFilterGroupKeywordsLabel => '触发关键词';
+
+  @override
+  String get workspaceFilterGroupKeywordsHint => 'browse, website, docs';
+
+  @override
+  String get workspaceFilterBuiltinsLabel => '过滤内置工具';
+
+  @override
+  String get workspaceToolFilterGroupToolsRequired => '每个工具过滤组至少要包含一个工具模式';
+
+  @override
+  String get toolsProviderSectionDesc => '为 Web 类工具配置供应商凭据和上游端点。';
+
+  @override
+  String get toolsDomainPoliciesTitle => '域名策略';
+
+  @override
+  String get toolsDomainPoliciesDesc => '为不需要独立供应商账号的工具设置共享允许列表和阻止列表。';
+
+  @override
+  String get toolsAllowedDomainsLabel => '允许的域名';
+
+  @override
+  String get toolsBlockedDomainsLabel => '阻止的域名';
+
+  @override
+  String get toolsNoExtraCredentials => '无需额外凭据';
+
+  @override
+  String toolsBuiltInSummary(int count) {
+    return '$count 个内置工具';
+  }
+
+  @override
+  String get toolsDefaultFetcherLabel => '默认提取器';
+
+  @override
+  String get toolsWebFetchAllowedDomainsHint =>
+      'docs.github.com, api.openai.com';
+
+  @override
+  String get toolsWebFetchBlockedDomainsHint =>
+      'login.example.com, internal.example.com';
+
+  @override
+  String get toolsHttpAllowedDomainsHint => '*.openai.com, api.github.com';
+
+  @override
   String get languageLabel => '语言';
 
   @override
@@ -1150,6 +1532,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get subAgentsSectionDesc => '自定义子代理可接受委派执行专项任务，如研究、总结等。';
+
+  @override
+  String get navGateway => 'Gateway';
 
   @override
   String get navProxy => '网络代理';

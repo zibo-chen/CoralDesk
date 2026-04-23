@@ -14,7 +14,6 @@ class ProjectFormResult {
   final String colorTag;
   final ProjectType projectType;
   final String projectDir;
-  final List<String> roleIds;
 
   ProjectFormResult({
     required this.name,
@@ -23,7 +22,6 @@ class ProjectFormResult {
     required this.colorTag,
     required this.projectType,
     required this.projectDir,
-    this.roleIds = const [],
   });
 }
 
@@ -98,12 +96,6 @@ class _ProjectCreateDialogState extends State<ProjectCreateDialog> {
             const SizedBox(height: 8),
             _buildTemplateGrid(c),
             const SizedBox(height: 20),
-
-            // Template preview (recommended roles)
-            if (_selectedTemplateId != 'blank') ...[
-              _buildTemplatePreview(c),
-              const SizedBox(height: 20),
-            ],
 
             // Project name
             _sectionLabel(c, l10n.projectName),
@@ -199,12 +191,6 @@ class _ProjectCreateDialogState extends State<ProjectCreateDialog> {
                 colorTag: _colorTag,
                 projectType: _type,
                 projectDir: _dirCtrl.text.trim(),
-                roleIds: ProjectTemplate.all
-                    .firstWhere(
-                      (t) => t.id == _selectedTemplateId,
-                      orElse: () => ProjectTemplate.blank,
-                    )
-                    .recommendedRoleIds,
               ),
             );
           },
@@ -345,71 +331,6 @@ class _ProjectCreateDialogState extends State<ProjectCreateDialog> {
           }).toList(),
         );
       },
-    );
-  }
-
-  Widget _buildTemplatePreview(CoralDeskColors c) {
-    final template = ProjectTemplate.all.firstWhere(
-      (t) => t.id == _selectedTemplateId,
-      orElse: () => ProjectTemplate.blank,
-    );
-    if (template.recommendedRoleIds.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.people_outline,
-                size: 14,
-                color: AppColors.primary.withValues(alpha: 0.7),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'Included Roles (${template.recommendedRoleIds.length})',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary.withValues(alpha: 0.8),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: template.recommendedRoleIds.map((id) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: c.cardBg,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: c.inputBorder.withValues(alpha: 0.5),
-                  ),
-                ),
-                child: Text(
-                  id.replaceFirst('preset_', ''),
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: c.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
     );
   }
 

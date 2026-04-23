@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:coraldesk/models/models.dart';
-import 'package:coraldesk/providers/agent_workspace_provider.dart';
 import 'package:coraldesk/providers/chat_provider.dart';
 import 'package:coraldesk/providers/project_provider.dart';
 import 'package:coraldesk/providers/task_plan_provider.dart';
@@ -139,21 +138,13 @@ class ChatController {
   /// Create a new session within a project and switch to it.
   /// The session is tagged with [projectId] and will automatically
   /// inject the project's pinned context into the system prompt.
-  /// If [defaultRoleId] is provided and non-empty, the new session
-  /// is bound to that workspace so it reuses the same agent identity.
-  String createSessionInProject(String projectId, {String defaultRoleId = ''}) {
+  String createSessionInProject(String projectId) {
     _ref.read(messagesProvider.notifier).syncActiveToCache();
     final id = _ref
         .read(sessionsProvider.notifier)
         .createSession(projectId: projectId);
     _ref.read(activeSessionIdProvider.notifier).state = id;
     _ref.read(messagesProvider.notifier).switchToSession(id);
-
-    // Bind session to the project's default role so all sessions
-    // within the project use the same workspace / identity.
-    if (defaultRoleId.isNotEmpty) {
-      _ref.read(sessionAgentBindingProvider.notifier).bind(id, defaultRoleId);
-    }
 
     // Inject project context as the first system message
     _injectProjectContext(id, projectId);
@@ -795,18 +786,13 @@ class ChatController {
           )
           .toList();
 
-      // Get agent binding for this session
-      final binding = _ref
-          .read(sessionAgentBindingProvider.notifier)
-          .getBinding(sessionId);
-
       await sessions_api.saveSession(
         sessionId: sessionId,
         title: session.title,
         messages: sessionMessages,
         projectId: session.projectId ?? '',
         ephemeral: session.ephemeral,
-        agentBinding: binding ?? '',
+        agentBinding: '',
       );
     } catch (e) {
       debugPrint('Failed to persist session: $e');

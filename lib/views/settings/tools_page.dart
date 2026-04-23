@@ -22,18 +22,22 @@ class _ToolsPageState extends ConsumerState<ToolsPage> {
   bool _loading = true;
   bool _savingWebSearch = false;
   bool _savingWebFetch = false;
+  bool _savingHttpRequest = false;
   bool _messageIsError = false;
   bool _showWebSearchApiKey = false;
   bool _showWebFetchApiKey = false;
 
   String? _message;
   String _webSearchProvider = 'duckduckgo';
-  String _webFetchProvider = 'fast_html2md';
+  String _webFetchProvider = 'default';
 
   late final TextEditingController _webSearchApiKeyCtrl;
   late final TextEditingController _webSearchApiUrlCtrl;
   late final TextEditingController _webFetchApiKeyCtrl;
   late final TextEditingController _webFetchApiUrlCtrl;
+  late final TextEditingController _webFetchAllowedDomainsCtrl;
+  late final TextEditingController _webFetchBlockedDomainsCtrl;
+  late final TextEditingController _httpRequestAllowedDomainsCtrl;
 
   CoralDeskColors get c => CoralDeskColors.of(context);
 
@@ -44,6 +48,9 @@ class _ToolsPageState extends ConsumerState<ToolsPage> {
     _webSearchApiUrlCtrl = TextEditingController();
     _webFetchApiKeyCtrl = TextEditingController();
     _webFetchApiUrlCtrl = TextEditingController();
+    _webFetchAllowedDomainsCtrl = TextEditingController();
+    _webFetchBlockedDomainsCtrl = TextEditingController();
+    _httpRequestAllowedDomainsCtrl = TextEditingController();
     _loadAll();
   }
 
@@ -53,6 +60,9 @@ class _ToolsPageState extends ConsumerState<ToolsPage> {
     _webSearchApiUrlCtrl.dispose();
     _webFetchApiKeyCtrl.dispose();
     _webFetchApiUrlCtrl.dispose();
+    _webFetchAllowedDomainsCtrl.dispose();
+    _webFetchBlockedDomainsCtrl.dispose();
+    _httpRequestAllowedDomainsCtrl.dispose();
     super.dispose();
   }
 
@@ -75,26 +85,43 @@ class _ToolsPageState extends ConsumerState<ToolsPage> {
         await ws_api.getToolConfig(toolName: 'web_fetch'),
         fallback: const {
           'enabled': false,
-          'provider': 'fast_html2md',
+          'provider': 'default',
           'api_key': '',
           'api_url': '',
+          'allowed_domains': <String>[],
+          'blocked_domains': <String>[],
         },
+      );
+      final httpRequestConfig = _decodeToolConfig(
+        await ws_api.getToolConfig(toolName: 'http_request'),
+        fallback: const {'enabled': false, 'allowed_domains': <String>[]},
       );
 
       if (!mounted) return;
       setState(() {
         _features = features;
         _tools = tools;
-        _webSearchProvider =
-            (webSearchConfig['provider'] as String?) ?? 'duckduckgo';
-        _webFetchProvider =
-            (webFetchConfig['provider'] as String?) ?? 'fast_html2md';
+        _webSearchProvider = _normalizeWebSearchProvider(
+          webSearchConfig['provider'] as String?,
+        );
+        _webFetchProvider = _normalizeWebFetchProvider(
+          webFetchConfig['provider'] as String?,
+        );
         _webSearchApiKeyCtrl.text =
             (webSearchConfig['api_key'] as String?) ?? '';
         _webSearchApiUrlCtrl.text =
             (webSearchConfig['api_url'] as String?) ?? '';
         _webFetchApiKeyCtrl.text = (webFetchConfig['api_key'] as String?) ?? '';
         _webFetchApiUrlCtrl.text = (webFetchConfig['api_url'] as String?) ?? '';
+        _webFetchAllowedDomainsCtrl.text = _joinDomains(
+          webFetchConfig['allowed_domains'],
+        );
+        _webFetchBlockedDomainsCtrl.text = _joinDomains(
+          webFetchConfig['blocked_domains'],
+        );
+        _httpRequestAllowedDomainsCtrl.text = _joinDomains(
+          httpRequestConfig['allowed_domains'],
+        );
         _loading = false;
       });
     } catch (error) {
@@ -120,6 +147,41 @@ class _ToolsPageState extends ConsumerState<ToolsPage> {
       // Ignore invalid payloads and fall back to defaults.
     }
     return {...fallback};
+  }
+
+  String _joinDomains(dynamic raw) {
+    if (raw is List) {
+      return raw
+          .whereType<String>()
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .join(', ');
+    }
+    return '';
+  }
+
+  List<String> _parseDomainList(String raw) {
+    return raw
+        .split(',')
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toSet()
+        .toList();
+  }
+
+  String _normalizeWebSearchProvider(String? provider) {
+    return switch (provider) {
+      'duckduckgo' || 'brave' || 'searxng' => provider!,
+      _ => 'duckduckgo',
+    };
+  }
+
+  String _normalizeWebFetchProvider(String? provider) {
+    return switch (provider) {
+      'default' || 'firecrawl' => provider!,
+      'fast_html2md' || 'nanohtml2text' => 'default',
+      _ => 'default',
+    };
   }
 
   Future<void> _toggleFeature(String feature, bool enabled) async {
@@ -186,6 +248,10 @@ class _ToolsPageState extends ConsumerState<ToolsPage> {
         'api_url': _trimOrNull(
           isWebSearch ? _webSearchApiUrlCtrl.text : _webFetchApiUrlCtrl.text,
         ),
+        if (!isWebSearch)
+          'allowed_domains': _parseDomainList(_webFetchAllowedDomainsCtrl.text),
+        if (!isWebSearch)
+          'blocked_domains': _parseDomainList(_webFetchBlockedDomainsCtrl.text),
       }),
     );
 
@@ -198,6 +264,30 @@ class _ToolsPageState extends ConsumerState<ToolsPage> {
       }
     });
 
+    if (result == 'ok') {
+      _showMessage(l10n.configSaved);
+      _loadAll();
+    } else {
+      _showMessage(l10n.saveFailedWithError(result), isError: true);
+    }
+  }
+
+  Future<void> _saveHttpRequestConfig() async {
+    final l10n = AppLocalizations.of(context)!;
+    setState(() => _savingHttpRequest = true);
+
+    final result = await ws_api.saveToolConfig(
+      toolName: 'http_request',
+      configJson: jsonEncode({
+        'enabled': _features?.httpRequestEnabled ?? false,
+        'allowed_domains': _parseDomainList(
+          _httpRequestAllowedDomainsCtrl.text,
+        ),
+      }),
+    );
+
+    if (!mounted) return;
+    setState(() => _savingHttpRequest = false);
     if (result == 'ok') {
       _showMessage(l10n.configSaved);
       _loadAll();
@@ -228,11 +318,17 @@ class _ToolsPageState extends ConsumerState<ToolsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return SettingsScaffold(
-      title: AppLocalizations.of(context)!.pageTools,
+      title: l10n.pageTools,
       icon: Icons.extension,
       isLoading: _loading,
       actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh, size: 20),
+          tooltip: l10n.refresh,
+          onPressed: _loading ? null : _loadAll,
+        ),
         if (_message != null)
           StatusLabel(text: _message!, isError: _messageIsError),
       ],
@@ -242,6 +338,8 @@ class _ToolsPageState extends ConsumerState<ToolsPage> {
           _buildFeatureTogglesSection(),
           const SizedBox(height: 24),
           _buildToolConfigsSection(),
+          const SizedBox(height: 24),
+          _buildDomainPoliciesSection(),
           const SizedBox(height: 24),
           _buildToolsSection(),
         ],
@@ -455,7 +553,7 @@ class _ToolsPageState extends ConsumerState<ToolsPage> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Web Search / Web Fetch Provider, API Key, API URL',
+            l10n.toolsProviderSectionDesc,
             style: TextStyle(fontSize: 12, color: c.textHint),
           ),
           const SizedBox(height: 16),
@@ -473,6 +571,7 @@ class _ToolsPageState extends ConsumerState<ToolsPage> {
                   SizedBox(
                     width: cardWidth,
                     child: _buildWebToolCard(
+                      toolName: 'web_search',
                       title: l10n.featureWebSearch,
                       description: l10n.featureWebSearchDesc,
                       icon: Icons.search,
@@ -480,11 +579,7 @@ class _ToolsPageState extends ConsumerState<ToolsPage> {
                       providers: const [
                         _ToolProviderOption('duckduckgo', 'DuckDuckGo'),
                         _ToolProviderOption('brave', 'Brave'),
-                        _ToolProviderOption('firecrawl', 'Firecrawl'),
-                        _ToolProviderOption('tavily', 'Tavily'),
-                        _ToolProviderOption('perplexity', 'Perplexity'),
-                        _ToolProviderOption('exa', 'Exa'),
-                        _ToolProviderOption('jina', 'Jina'),
+                        _ToolProviderOption('searxng', 'SearXNG'),
                       ],
                       apiKeyController: _webSearchApiKeyCtrl,
                       apiUrlController: _webSearchApiUrlCtrl,
@@ -500,24 +595,22 @@ class _ToolsPageState extends ConsumerState<ToolsPage> {
                         setState(() => _webSearchProvider = value);
                       },
                       onSave: () => _saveWebToolConfig('web_search'),
-                      requiresApiKey: _requiresApiKey(
-                        'web_search',
-                        _webSearchProvider,
-                      ),
                     ),
                   ),
                   SizedBox(
                     width: cardWidth,
                     child: _buildWebToolCard(
+                      toolName: 'web_fetch',
                       title: l10n.featureWebFetch,
                       description: l10n.featureWebFetchDesc,
                       icon: Icons.download,
                       provider: _webFetchProvider,
-                      providers: const [
-                        _ToolProviderOption('fast_html2md', 'Fast HTML2MD'),
-                        _ToolProviderOption('nanohtml2text', 'Nano HTML2Text'),
-                        _ToolProviderOption('firecrawl', 'Firecrawl'),
-                        _ToolProviderOption('tavily', 'Tavily'),
+                      providers: [
+                        _ToolProviderOption(
+                          'default',
+                          l10n.toolsDefaultFetcherLabel,
+                        ),
+                        const _ToolProviderOption('firecrawl', 'Firecrawl'),
                       ],
                       apiKeyController: _webFetchApiKeyCtrl,
                       apiUrlController: _webFetchApiUrlCtrl,
@@ -533,10 +626,27 @@ class _ToolsPageState extends ConsumerState<ToolsPage> {
                         setState(() => _webFetchProvider = value);
                       },
                       onSave: () => _saveWebToolConfig('web_fetch'),
-                      requiresApiKey: _requiresApiKey(
-                        'web_fetch',
-                        _webFetchProvider,
-                      ),
+                      extraFields: [
+                        TextField(
+                          controller: _webFetchAllowedDomainsCtrl,
+                          decoration: InputDecoration(
+                            labelText: l10n.toolsAllowedDomainsLabel,
+                            hintText: l10n.toolsWebFetchAllowedDomainsHint,
+                          ),
+                          minLines: 1,
+                          maxLines: 2,
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _webFetchBlockedDomainsCtrl,
+                          decoration: InputDecoration(
+                            labelText: l10n.toolsBlockedDomainsLabel,
+                            hintText: l10n.toolsWebFetchBlockedDomainsHint,
+                          ),
+                          minLines: 1,
+                          maxLines: 2,
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -548,15 +658,82 @@ class _ToolsPageState extends ConsumerState<ToolsPage> {
     );
   }
 
+  Widget _buildDomainPoliciesSection() {
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: c.cardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: c.chatListBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.shield_outlined,
+                size: 18,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                l10n.toolsDomainPoliciesTitle,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: c.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            l10n.toolsDomainPoliciesDesc,
+            style: TextStyle(fontSize: 12, color: c.textHint),
+          ),
+          const SizedBox(height: 16),
+          _buildDomainPolicyCard(
+            title: AppLocalizations.of(context)!.featureHttpRequest,
+            description: AppLocalizations.of(context)!.featureHttpRequestDesc,
+            icon: Icons.http,
+            controller: _httpRequestAllowedDomainsCtrl,
+            hintText: l10n.toolsHttpAllowedDomainsHint,
+            saving: _savingHttpRequest,
+            onSave: _saveHttpRequestConfig,
+          ),
+        ],
+      ),
+    );
+  }
+
   bool _requiresApiKey(String toolName, String provider) {
     return switch (toolName) {
-      'web_search' => provider != 'duckduckgo',
-      'web_fetch' => provider == 'firecrawl' || provider == 'tavily',
+      'web_search' => provider == 'brave',
+      'web_fetch' => provider == 'firecrawl',
+      _ => false,
+    };
+  }
+
+  bool _requiresApiUrl(String toolName, String provider) {
+    return switch (toolName) {
+      'web_search' => provider == 'searxng',
+      _ => false,
+    };
+  }
+
+  bool _showsApiUrlField(String toolName, String provider) {
+    return switch (toolName) {
+      'web_search' => provider == 'searxng',
+      'web_fetch' => provider == 'firecrawl',
       _ => false,
     };
   }
 
   Widget _buildWebToolCard({
+    required String toolName,
     required String title,
     required String description,
     required IconData icon,
@@ -569,15 +746,23 @@ class _ToolsPageState extends ConsumerState<ToolsPage> {
     required VoidCallback onToggleObscure,
     required ValueChanged<String?> onProviderChanged,
     required VoidCallback onSave,
-    required bool requiresApiKey,
+    List<Widget> extraFields = const [],
   }) {
     final l10n = AppLocalizations.of(context)!;
+    final requiresApiKey = _requiresApiKey(toolName, provider);
+    final requiresApiUrl = _requiresApiUrl(toolName, provider);
+    final showApiUrlField = _showsApiUrlField(toolName, provider);
     final hasApiKey = apiKeyController.text.trim().isNotEmpty;
-    final statusText = requiresApiKey
-        ? (hasApiKey ? l10n.configured : l10n.missing)
-        : l10n.agentOptional;
-    final statusColor = requiresApiKey
-        ? (hasApiKey ? AppColors.success : AppColors.warning)
+    final hasApiUrl = apiUrlController.text.trim().isNotEmpty;
+    final configured =
+        (!requiresApiKey || hasApiKey) && (!requiresApiUrl || hasApiUrl);
+    final needsCredentials =
+        requiresApiKey || requiresApiUrl || showApiUrlField;
+    final statusText = needsCredentials
+        ? (configured ? l10n.configured : l10n.missing)
+        : l10n.toolsNoExtraCredentials;
+    final statusColor = needsCredentials
+        ? (configured ? AppColors.success : AppColors.warning)
         : c.textHint;
 
     return Container(
@@ -644,7 +829,7 @@ class _ToolsPageState extends ConsumerState<ToolsPage> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            key: ValueKey(provider),
+            key: ValueKey('$toolName:$provider'),
             initialValue: provider,
             decoration: InputDecoration(labelText: l10n.providerLabel),
             items: providers
@@ -657,35 +842,59 @@ class _ToolsPageState extends ConsumerState<ToolsPage> {
                 .toList(),
             onChanged: onProviderChanged,
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: apiKeyController,
-            obscureText: obscureApiKey,
-            autocorrect: false,
-            enableSuggestions: false,
-            decoration: InputDecoration(
-              labelText: requiresApiKey
-                  ? l10n.apiKeyLabel
-                  : '${l10n.apiKeyLabel} (${l10n.agentOptional})',
-              hintText: l10n.apiKeyHint,
-              suffixIcon: IconButton(
-                onPressed: onToggleObscure,
-                icon: Icon(
-                  obscureApiKey ? Icons.visibility : Icons.visibility_off,
+          if (requiresApiKey) ...[
+            const SizedBox(height: 12),
+            TextField(
+              controller: apiKeyController,
+              obscureText: obscureApiKey,
+              autocorrect: false,
+              enableSuggestions: false,
+              decoration: InputDecoration(
+                labelText: l10n.apiKeyLabel,
+                hintText: l10n.apiKeyHint,
+                suffixIcon: IconButton(
+                  onPressed: onToggleObscure,
+                  icon: Icon(
+                    obscureApiKey ? Icons.visibility : Icons.visibility_off,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: apiUrlController,
-            autocorrect: false,
-            enableSuggestions: false,
-            decoration: InputDecoration(
-              labelText: '${l10n.apiBaseUrlLabel} (${l10n.agentOptional})',
-              hintText: _apiUrlHint(provider),
+          ],
+          if (showApiUrlField) ...[
+            const SizedBox(height: 12),
+            TextField(
+              controller: apiUrlController,
+              autocorrect: false,
+              enableSuggestions: false,
+              decoration: InputDecoration(
+                labelText: requiresApiUrl
+                    ? l10n.apiBaseUrlLabel
+                    : '${l10n.apiBaseUrlLabel} (${l10n.agentOptional})',
+                hintText: _apiUrlHint(provider),
+              ),
             ),
-          ),
+          ],
+          if (!requiresApiKey && !showApiUrlField) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: c.cardBg,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: c.inputBorder),
+              ),
+              child: Text(
+                l10n.toolsNoExtraCredentials,
+                style: TextStyle(fontSize: 12, color: c.textSecondary),
+              ),
+            ),
+          ],
+          if (extraFields.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            ...extraFields,
+          ],
           const SizedBox(height: 16),
           Align(
             alignment: Alignment.centerRight,
@@ -708,11 +917,8 @@ class _ToolsPageState extends ConsumerState<ToolsPage> {
 
   String _apiUrlHint(String provider) {
     return switch (provider) {
-      'tavily' => 'https://api.tavily.com',
       'firecrawl' => 'https://api.firecrawl.dev',
-      'perplexity' => 'https://api.perplexity.ai',
-      'exa' => 'https://api.exa.ai',
-      'jina' => 'https://s.jina.ai',
+      'searxng' => 'https://search.example.com',
       _ => '',
     };
   }
@@ -754,7 +960,9 @@ class _ToolsPageState extends ConsumerState<ToolsPage> {
               ),
               const Spacer(),
               Text(
-                '${_tools.length} ${AppLocalizations.of(context)!.builtInTools}',
+                AppLocalizations.of(
+                  context,
+                )!.toolsBuiltInSummary(_tools.length),
                 style: TextStyle(fontSize: 12, color: c.textHint),
               ),
             ],
@@ -959,6 +1167,90 @@ class _ToolsPageState extends ConsumerState<ToolsPage> {
       'cron' => Icons.schedule,
       _ => Icons.extension,
     };
+  }
+
+  Widget _buildDomainPolicyCard({
+    required String title,
+    required String description,
+    required IconData icon,
+    required TextEditingController controller,
+    required String hintText,
+    required bool saving,
+    required VoidCallback onSave,
+  }) {
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: c.inputBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: c.inputBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 18, color: AppColors.primary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: c.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      description,
+                      style: TextStyle(fontSize: 11, color: c.textHint),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              labelText: l10n.toolsAllowedDomainsLabel,
+              hintText: hintText,
+            ),
+            minLines: 1,
+            maxLines: 2,
+          ),
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.icon(
+              onPressed: saving ? null : onSave,
+              icon: saving
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.save_outlined, size: 16),
+              label: Text(saving ? l10n.saving : l10n.save),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

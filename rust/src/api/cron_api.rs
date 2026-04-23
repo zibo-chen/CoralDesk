@@ -714,16 +714,19 @@ async fn run_shell_job(job: &CronJobDto) -> (String, String) {
 /// Execute an agent job
 async fn run_agent_job(job: &CronJobDto) -> (String, String) {
     // Use the existing agent infrastructure
-    let config = {
+    let (config, selected_profile_id) = {
         let cs = super::agent_api::config_state().read().await;
+        let gc = super::agent_api::global_config().read().await;
         match &cs.config {
-            Some(c) => c.clone(),
+            Some(c) => (c.clone(), gc.default_profile_id.clone()),
             None => return ("error".into(), "runtime not initialized".into()),
         }
     };
+    let runtime_config =
+        super::agent_api::build_runtime_config(&config, selected_profile_id.as_deref());
 
     // Create a temporary agent for this job
-    let mut agent = match zeroclaw::agent::Agent::from_config(&config) {
+    let mut agent = match zeroclaw::agent::Agent::from_config(&runtime_config).await {
         Ok(a) => a,
         Err(e) => return ("error".into(), format!("failed to create agent: {e}")),
     };

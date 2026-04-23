@@ -380,6 +380,738 @@ abstract class AppLocalizations {
   /// **'Workspace'**
   String get pageWorkspace;
 
+  /// No description provided for @pageGateway.
+  ///
+  /// In en, this message translates to:
+  /// **'Gateway'**
+  String get pageGateway;
+
+  /// No description provided for @gatewayOverviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Gateway Overview'**
+  String get gatewayOverviewTitle;
+
+  /// No description provided for @gatewayOverviewDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage the network-facing control plane used for pairing, webhooks, and reverse-proxy access. Most desktop-only workflows can keep these defaults unchanged.'**
+  String get gatewayOverviewDesc;
+
+  /// No description provided for @gatewayUsagePairing.
+  ///
+  /// In en, this message translates to:
+  /// **'Pairing dashboards for browsers or remote devices'**
+  String get gatewayUsagePairing;
+
+  /// No description provided for @gatewayUsageWebhooks.
+  ///
+  /// In en, this message translates to:
+  /// **'Webhook ingress for external integrations'**
+  String get gatewayUsageWebhooks;
+
+  /// No description provided for @gatewayUsageProxy.
+  ///
+  /// In en, this message translates to:
+  /// **'Reverse-proxy routing and stable public URLs'**
+  String get gatewayUsageProxy;
+
+  /// No description provided for @gatewayModeLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Local Only'**
+  String get gatewayModeLocal;
+
+  /// No description provided for @gatewayModePublic.
+  ///
+  /// In en, this message translates to:
+  /// **'Public Bind'**
+  String get gatewayModePublic;
+
+  /// No description provided for @gatewayModePairingOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Pairing Required'**
+  String get gatewayModePairingOn;
+
+  /// No description provided for @gatewayModePairingOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Pairing Disabled'**
+  String get gatewayModePairingOff;
+
+  /// No description provided for @gatewayModeSessionsOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions Persisted'**
+  String get gatewayModeSessionsOn;
+
+  /// No description provided for @gatewayModeSessionsOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Ephemeral Sessions'**
+  String get gatewayModeSessionsOff;
+
+  /// No description provided for @gatewayEndpointTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Endpoint Preview'**
+  String get gatewayEndpointTitle;
+
+  /// No description provided for @gatewayEndpointDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this base URL for pairing flows, webhook integrations, and reverse-proxy routing.'**
+  String get gatewayEndpointDesc;
+
+  /// No description provided for @gatewayCopyEndpoint.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Endpoint'**
+  String get gatewayCopyEndpoint;
+
+  /// No description provided for @gatewayCoreTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Core Server'**
+  String get gatewayCoreTitle;
+
+  /// No description provided for @gatewayCoreDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure where the gateway listens and how dashboard assets are resolved.'**
+  String get gatewayCoreDesc;
+
+  /// No description provided for @gatewaySecurityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Access & Session Security'**
+  String get gatewaySecurityTitle;
+
+  /// No description provided for @gatewaySecurityDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Control pairing requirements, public exposure, proxy trust, and whether web sessions survive restarts.'**
+  String get gatewaySecurityDesc;
+
+  /// No description provided for @gatewayLimitsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate Limits & Retention'**
+  String get gatewayLimitsTitle;
+
+  /// No description provided for @gatewayLimitsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Protect the gateway from abuse and control how long request/session state is retained.'**
+  String get gatewayLimitsDesc;
+
+  /// No description provided for @gatewayPairingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pairing Dashboard'**
+  String get gatewayPairingTitle;
+
+  /// No description provided for @gatewayPairingDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Tune one-time pairing codes for browser onboarding and remote access flows.'**
+  String get gatewayPairingDesc;
+
+  /// No description provided for @gatewayHostLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Host'**
+  String get gatewayHostLabel;
+
+  /// No description provided for @gatewayHostHint.
+  ///
+  /// In en, this message translates to:
+  /// **'127.0.0.1 or localhost'**
+  String get gatewayHostHint;
+
+  /// No description provided for @gatewayPortLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Port'**
+  String get gatewayPortLabel;
+
+  /// No description provided for @gatewayPortHint.
+  ///
+  /// In en, this message translates to:
+  /// **'42617'**
+  String get gatewayPortHint;
+
+  /// No description provided for @gatewayPathPrefixLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Path Prefix'**
+  String get gatewayPathPrefixLabel;
+
+  /// No description provided for @gatewayPathPrefixHint.
+  ///
+  /// In en, this message translates to:
+  /// **'/gateway'**
+  String get gatewayPathPrefixHint;
+
+  /// No description provided for @gatewayWebDistDirLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Web Dashboard Dist Directory'**
+  String get gatewayWebDistDirLabel;
+
+  /// No description provided for @gatewayWebDistDirHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional custom dashboard assets directory'**
+  String get gatewayWebDistDirHint;
+
+  /// No description provided for @gatewayRequirePairingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Require Pairing'**
+  String get gatewayRequirePairingLabel;
+
+  /// No description provided for @gatewayRequirePairingDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'New browser or remote clients must complete pairing before they can access the gateway.'**
+  String get gatewayRequirePairingDesc;
+
+  /// No description provided for @gatewayAllowPublicBindLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow Public Bind'**
+  String get gatewayAllowPublicBindLabel;
+
+  /// No description provided for @gatewayAllowPublicBindDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Bind on a public interface instead of localhost only. Enable this only when you intentionally expose the gateway.'**
+  String get gatewayAllowPublicBindDesc;
+
+  /// No description provided for @gatewayTrustForwardedHeadersLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Trust Forwarded Headers'**
+  String get gatewayTrustForwardedHeadersLabel;
+
+  /// No description provided for @gatewayTrustForwardedHeadersDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Honor X-Forwarded-* headers from a trusted reverse proxy.'**
+  String get gatewayTrustForwardedHeadersDesc;
+
+  /// No description provided for @gatewaySessionPersistenceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Persist Gateway Sessions'**
+  String get gatewaySessionPersistenceLabel;
+
+  /// No description provided for @gatewaySessionPersistenceDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep gateway web sessions across restarts until the configured TTL expires.'**
+  String get gatewaySessionPersistenceDesc;
+
+  /// No description provided for @gatewayPairRateLimitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Pair Requests Per Minute'**
+  String get gatewayPairRateLimitLabel;
+
+  /// No description provided for @gatewayWebhookRateLimitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Webhook Requests Per Minute'**
+  String get gatewayWebhookRateLimitLabel;
+
+  /// No description provided for @gatewayRateLimitMaxKeysLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate Limit Key Capacity'**
+  String get gatewayRateLimitMaxKeysLabel;
+
+  /// No description provided for @gatewayIdempotencyTtlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Idempotency TTL (seconds)'**
+  String get gatewayIdempotencyTtlLabel;
+
+  /// No description provided for @gatewayIdempotencyMaxKeysLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Idempotency Key Capacity'**
+  String get gatewayIdempotencyMaxKeysLabel;
+
+  /// No description provided for @gatewaySessionTtlHoursLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Session TTL (hours)'**
+  String get gatewaySessionTtlHoursLabel;
+
+  /// No description provided for @gatewayPairingCodeLengthLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Code Length'**
+  String get gatewayPairingCodeLengthLabel;
+
+  /// No description provided for @gatewayPairingCodeTtlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Code TTL (seconds)'**
+  String get gatewayPairingCodeTtlLabel;
+
+  /// No description provided for @gatewayPairingMaxPendingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Max Pending Codes'**
+  String get gatewayPairingMaxPendingLabel;
+
+  /// No description provided for @gatewayPairingMaxFailedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Max Failed Attempts'**
+  String get gatewayPairingMaxFailedLabel;
+
+  /// No description provided for @gatewayPairingLockoutLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Lockout Duration (seconds)'**
+  String get gatewayPairingLockoutLabel;
+
+  /// No description provided for @gatewayConfigUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Gateway configuration is unavailable'**
+  String get gatewayConfigUnavailable;
+
+  /// No description provided for @gatewayHostRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Gateway host cannot be empty'**
+  String get gatewayHostRequired;
+
+  /// No description provided for @gatewayPathPrefixStartWithSlash.
+  ///
+  /// In en, this message translates to:
+  /// **'Path prefix must start with /'**
+  String get gatewayPathPrefixStartWithSlash;
+
+  /// No description provided for @gatewayPathPrefixNoTrailingSlash.
+  ///
+  /// In en, this message translates to:
+  /// **'Path prefix must not end with /'**
+  String get gatewayPathPrefixNoTrailingSlash;
+
+  /// No description provided for @browserConfigUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Browser configuration is unavailable'**
+  String get browserConfigUnavailable;
+
+  /// No description provided for @browserOverviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Browser Runtime Overview'**
+  String get browserOverviewTitle;
+
+  /// No description provided for @browserOverviewDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how DeskClaw drives browser tasks and verify whether the bundled desktop runtime is ready before enabling advanced automation flows.'**
+  String get browserOverviewDesc;
+
+  /// No description provided for @browserModeEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Runtime Enabled'**
+  String get browserModeEnabled;
+
+  /// No description provided for @browserModeDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Runtime Disabled'**
+  String get browserModeDisabled;
+
+  /// No description provided for @browserModeAgentBrowserReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent Browser Ready'**
+  String get browserModeAgentBrowserReady;
+
+  /// No description provided for @browserModeAgentBrowserMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent Browser Missing'**
+  String get browserModeAgentBrowserMissing;
+
+  /// No description provided for @browserCommandLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Bundled Agent Browser Command'**
+  String get browserCommandLabel;
+
+  /// No description provided for @browserCommandUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available on PATH or in the bundled desktop runtime'**
+  String get browserCommandUnavailable;
+
+  /// No description provided for @browserCoreTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Core Runtime'**
+  String get browserCoreTitle;
+
+  /// No description provided for @browserCoreDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Set the primary browser backend, shared browsing session name, and the domain allowlist exposed to agents.'**
+  String get browserCoreDesc;
+
+  /// No description provided for @browserBackendLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Backend'**
+  String get browserBackendLabel;
+
+  /// No description provided for @browserBackendOptionAgentBrowser.
+  ///
+  /// In en, this message translates to:
+  /// **'Bundled Agent Browser'**
+  String get browserBackendOptionAgentBrowser;
+
+  /// No description provided for @browserBackendOptionRustNative.
+  ///
+  /// In en, this message translates to:
+  /// **'Rust Native'**
+  String get browserBackendOptionRustNative;
+
+  /// No description provided for @browserBackendOptionComputerUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Computer Use'**
+  String get browserBackendOptionComputerUse;
+
+  /// No description provided for @browserBackendOptionAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto Detect'**
+  String get browserBackendOptionAuto;
+
+  /// No description provided for @browserSessionNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Session Name'**
+  String get browserSessionNameLabel;
+
+  /// No description provided for @browserSessionNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional shared session name for the bundled browser runtime'**
+  String get browserSessionNameHint;
+
+  /// No description provided for @browserAllowedDomainsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Allowed Domains'**
+  String get browserAllowedDomainsLabel;
+
+  /// No description provided for @browserAllowedDomainsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'*.example.com, github.com, *'**
+  String get browserAllowedDomainsHint;
+
+  /// No description provided for @browserNativeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rust Native Backend'**
+  String get browserNativeTitle;
+
+  /// No description provided for @browserNativeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure the local WebDriver-based runtime used when the native backend is selected.'**
+  String get browserNativeDesc;
+
+  /// No description provided for @browserNativeHeadlessLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Headless Mode'**
+  String get browserNativeHeadlessLabel;
+
+  /// No description provided for @browserNativeHeadlessDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Launch the native browser without a visible window when the task does not need interactive inspection.'**
+  String get browserNativeHeadlessDesc;
+
+  /// No description provided for @browserNativeWebdriverUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'WebDriver URL'**
+  String get browserNativeWebdriverUrlLabel;
+
+  /// No description provided for @browserNativeWebdriverUrlHint.
+  ///
+  /// In en, this message translates to:
+  /// **'http://127.0.0.1:9515'**
+  String get browserNativeWebdriverUrlHint;
+
+  /// No description provided for @browserNativeChromePathLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Chrome Executable Path'**
+  String get browserNativeChromePathLabel;
+
+  /// No description provided for @browserNativeChromePathHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional Chrome or Chromium executable path'**
+  String get browserNativeChromePathHint;
+
+  /// No description provided for @browserComputerUseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Computer Use Backend'**
+  String get browserComputerUseTitle;
+
+  /// No description provided for @browserComputerUseDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to a computer-use action endpoint for full desktop browsing and GUI control workflows.'**
+  String get browserComputerUseDesc;
+
+  /// No description provided for @browserComputerUseEndpointLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Action Endpoint'**
+  String get browserComputerUseEndpointLabel;
+
+  /// No description provided for @browserComputerUseEndpointHint.
+  ///
+  /// In en, this message translates to:
+  /// **'http://127.0.0.1:8787/v1/actions'**
+  String get browserComputerUseEndpointHint;
+
+  /// No description provided for @browserComputerUseApiKeyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Endpoint API Key'**
+  String get browserComputerUseApiKeyLabel;
+
+  /// No description provided for @browserComputerUseAllowRemoteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow Remote Endpoint'**
+  String get browserComputerUseAllowRemoteLabel;
+
+  /// No description provided for @browserComputerUseAllowRemoteDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Permit non-local endpoints instead of restricting requests to local machine automation services only.'**
+  String get browserComputerUseAllowRemoteDesc;
+
+  /// No description provided for @browserComputerUseWindowAllowlistLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Window Allowlist'**
+  String get browserComputerUseWindowAllowlistLabel;
+
+  /// No description provided for @browserComputerUseWindowAllowlistHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Cursor, Finder, Google Chrome'**
+  String get browserComputerUseWindowAllowlistHint;
+
+  /// No description provided for @browserComputerUseMaxCoordinateXLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Max Coordinate X'**
+  String get browserComputerUseMaxCoordinateXLabel;
+
+  /// No description provided for @browserComputerUseMaxCoordinateYLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Max Coordinate Y'**
+  String get browserComputerUseMaxCoordinateYLabel;
+
+  /// No description provided for @workspaceAgentRoutingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced Agent Routing'**
+  String get workspaceAgentRoutingTitle;
+
+  /// No description provided for @workspaceAgentRoutingDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Tune same-turn dedup behavior and filter which MCP tools are exposed when the agent decides how to route work.'**
+  String get workspaceAgentRoutingDesc;
+
+  /// No description provided for @workspaceDedupExemptLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Dedup Exempt Tools'**
+  String get workspaceDedupExemptLabel;
+
+  /// No description provided for @workspaceDedupExemptHint.
+  ///
+  /// In en, this message translates to:
+  /// **'browser_open, web_fetch, mcp_browser_click'**
+  String get workspaceDedupExemptHint;
+
+  /// No description provided for @workspaceDedupExemptDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Comma-separated tools that bypass same-turn dedup protection.'**
+  String get workspaceDedupExemptDesc;
+
+  /// No description provided for @workspaceToolFilterGroupsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tool Filter Groups'**
+  String get workspaceToolFilterGroupsLabel;
+
+  /// No description provided for @workspaceAddFilterGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Group'**
+  String get workspaceAddFilterGroup;
+
+  /// No description provided for @workspaceNoFilterGroups.
+  ///
+  /// In en, this message translates to:
+  /// **'No MCP filter groups configured yet. Add one to selectively expose MCP tools per turn.'**
+  String get workspaceNoFilterGroups;
+
+  /// No description provided for @workspaceFilterGroupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Group {index}'**
+  String workspaceFilterGroupTitle(int index);
+
+  /// No description provided for @workspaceFilterGroupModeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Activation Mode'**
+  String get workspaceFilterGroupModeLabel;
+
+  /// No description provided for @workspaceFilterGroupModeDynamic.
+  ///
+  /// In en, this message translates to:
+  /// **'Dynamic'**
+  String get workspaceFilterGroupModeDynamic;
+
+  /// No description provided for @workspaceFilterGroupModeAlways.
+  ///
+  /// In en, this message translates to:
+  /// **'Always'**
+  String get workspaceFilterGroupModeAlways;
+
+  /// No description provided for @workspaceFilterGroupToolsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tool Patterns'**
+  String get workspaceFilterGroupToolsLabel;
+
+  /// No description provided for @workspaceFilterGroupToolsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'mcp_browser_*, mcp_filesystem_*'**
+  String get workspaceFilterGroupToolsHint;
+
+  /// No description provided for @workspaceFilterGroupKeywordsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Activation Keywords'**
+  String get workspaceFilterGroupKeywordsLabel;
+
+  /// No description provided for @workspaceFilterGroupKeywordsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'browse, website, docs'**
+  String get workspaceFilterGroupKeywordsHint;
+
+  /// No description provided for @workspaceFilterBuiltinsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter Built-in Tools'**
+  String get workspaceFilterBuiltinsLabel;
+
+  /// No description provided for @workspaceToolFilterGroupToolsRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Each tool filter group must include at least one tool pattern'**
+  String get workspaceToolFilterGroupToolsRequired;
+
+  /// No description provided for @toolsProviderSectionDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure provider-specific credentials and upstream endpoints for web-facing tools.'**
+  String get toolsProviderSectionDesc;
+
+  /// No description provided for @toolsDomainPoliciesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Domain Policies'**
+  String get toolsDomainPoliciesTitle;
+
+  /// No description provided for @toolsDomainPoliciesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Set shared allowlists and blocklists for tools that do not need a dedicated provider account.'**
+  String get toolsDomainPoliciesDesc;
+
+  /// No description provided for @toolsAllowedDomainsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Allowed Domains'**
+  String get toolsAllowedDomainsLabel;
+
+  /// No description provided for @toolsBlockedDomainsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked Domains'**
+  String get toolsBlockedDomainsLabel;
+
+  /// No description provided for @toolsNoExtraCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'No Extra Credentials'**
+  String get toolsNoExtraCredentials;
+
+  /// No description provided for @toolsBuiltInSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} built-in tools'**
+  String toolsBuiltInSummary(int count);
+
+  /// No description provided for @toolsDefaultFetcherLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Default Extractor'**
+  String get toolsDefaultFetcherLabel;
+
+  /// No description provided for @toolsWebFetchAllowedDomainsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'docs.github.com, api.openai.com'**
+  String get toolsWebFetchAllowedDomainsHint;
+
+  /// No description provided for @toolsWebFetchBlockedDomainsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'login.example.com, internal.example.com'**
+  String get toolsWebFetchBlockedDomainsHint;
+
+  /// No description provided for @toolsHttpAllowedDomainsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'*.openai.com, api.github.com'**
+  String get toolsHttpAllowedDomainsHint;
+
   /// Language selector label
   ///
   /// In en, this message translates to:
@@ -2239,6 +2971,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Custom sub-agents handle specialized tasks independently, such as research or summarization.'**
   String get subAgentsSectionDesc;
+
+  /// Gateway nav item
+  ///
+  /// In en, this message translates to:
+  /// **'Gateway'**
+  String get navGateway;
 
   /// Proxy nav item
   ///

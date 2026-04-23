@@ -58,6 +58,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AgentEvent dco_decode_agent_event(dynamic raw);
 
   @protected
+  AgentToolFilterGroupDto dco_decode_agent_tool_filter_group_dto(dynamic raw);
+
+  @protected
   AgentWorkspaceDto dco_decode_agent_workspace_dto(dynamic raw);
 
   @protected
@@ -82,6 +85,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool dco_decode_box_autoadd_bool(dynamic raw);
 
   @protected
+  BrowserConfigDto dco_decode_box_autoadd_browser_config_dto(dynamic raw);
+
+  @protected
   DelegateAgentDto dco_decode_box_autoadd_delegate_agent_dto(dynamic raw);
 
   @protected
@@ -92,6 +98,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   double dco_decode_box_autoadd_f_64(dynamic raw);
+
+  @protected
+  GatewayConfigDto dco_decode_box_autoadd_gateway_config_dto(dynamic raw);
 
   @protected
   PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
@@ -129,6 +138,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BigInt dco_decode_box_autoadd_u_64(dynamic raw);
 
   @protected
+  BrowserConfigDto dco_decode_browser_config_dto(dynamic raw);
+
+  @protected
   ChannelSummary dco_decode_channel_summary(dynamic raw);
 
   @protected
@@ -162,6 +174,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   DelegateAgentDto dco_decode_delegate_agent_dto(dynamic raw);
 
   @protected
+  DelegateAgentMeta dco_decode_delegate_agent_meta(dynamic raw);
+
+  @protected
   EmbeddingConfigDto dco_decode_embedding_config_dto(dynamic raw);
 
   @protected
@@ -172,6 +187,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   FeatureToggles dco_decode_feature_toggles(dynamic raw);
+
+  @protected
+  GatewayConfigDto dco_decode_gateway_config_dto(dynamic raw);
 
   @protected
   int dco_decode_i_32(dynamic raw);
@@ -196,6 +214,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<AgentEvent> dco_decode_list_agent_event(dynamic raw);
+
+  @protected
+  List<AgentToolFilterGroupDto> dco_decode_list_agent_tool_filter_group_dto(
+    dynamic raw,
+  );
 
   @protected
   List<AgentWorkspaceSummary> dco_decode_list_agent_workspace_summary(
@@ -341,6 +364,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw);
 
   @protected
+  List<String>? dco_decode_opt_list_String(dynamic raw);
+
+  @protected
+  List<AgentToolFilterGroupDto>?
+  dco_decode_opt_list_agent_tool_filter_group_dto(dynamic raw);
+
+  @protected
   ProjectDto dco_decode_project_dto(dynamic raw);
 
   @protected
@@ -401,6 +431,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ToolSpecDto dco_decode_tool_spec_dto(dynamic raw);
 
   @protected
+  int dco_decode_u_16(dynamic raw);
+
+  @protected
   int dco_decode_u_32(dynamic raw);
 
   @protected
@@ -438,6 +471,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AgentEvent sse_decode_agent_event(SseDeserializer deserializer);
 
   @protected
+  AgentToolFilterGroupDto sse_decode_agent_tool_filter_group_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   AgentWorkspaceDto sse_decode_agent_workspace_dto(
     SseDeserializer deserializer,
   );
@@ -468,6 +506,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool sse_decode_box_autoadd_bool(SseDeserializer deserializer);
 
   @protected
+  BrowserConfigDto sse_decode_box_autoadd_browser_config_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   DelegateAgentDto sse_decode_box_autoadd_delegate_agent_dto(
     SseDeserializer deserializer,
   );
@@ -484,6 +527,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   double sse_decode_box_autoadd_f_64(SseDeserializer deserializer);
+
+  @protected
+  GatewayConfigDto sse_decode_box_autoadd_gateway_config_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
@@ -533,6 +581,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer);
 
   @protected
+  BrowserConfigDto sse_decode_browser_config_dto(SseDeserializer deserializer);
+
+  @protected
   ChannelSummary sse_decode_channel_summary(SseDeserializer deserializer);
 
   @protected
@@ -572,6 +623,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   DelegateAgentDto sse_decode_delegate_agent_dto(SseDeserializer deserializer);
 
   @protected
+  DelegateAgentMeta sse_decode_delegate_agent_meta(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   EmbeddingConfigDto sse_decode_embedding_config_dto(
     SseDeserializer deserializer,
   );
@@ -586,6 +642,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   FeatureToggles sse_decode_feature_toggles(SseDeserializer deserializer);
+
+  @protected
+  GatewayConfigDto sse_decode_gateway_config_dto(SseDeserializer deserializer);
 
   @protected
   int sse_decode_i_32(SseDeserializer deserializer);
@@ -610,6 +669,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<AgentEvent> sse_decode_list_agent_event(SseDeserializer deserializer);
+
+  @protected
+  List<AgentToolFilterGroupDto> sse_decode_list_agent_tool_filter_group_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   List<AgentWorkspaceSummary> sse_decode_list_agent_workspace_summary(
@@ -801,6 +865,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
 
   @protected
+  List<String>? sse_decode_opt_list_String(SseDeserializer deserializer);
+
+  @protected
+  List<AgentToolFilterGroupDto>?
+  sse_decode_opt_list_agent_tool_filter_group_dto(SseDeserializer deserializer);
+
+  @protected
   ProjectDto sse_decode_project_dto(SseDeserializer deserializer);
 
   @protected
@@ -861,6 +932,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ToolSpecDto sse_decode_tool_spec_dto(SseDeserializer deserializer);
 
   @protected
+  int sse_decode_u_16(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_u_32(SseDeserializer deserializer);
 
   @protected
@@ -906,6 +980,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_agent_event(AgentEvent self, SseSerializer serializer);
 
   @protected
+  void sse_encode_agent_tool_filter_group_dto(
+    AgentToolFilterGroupDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_agent_workspace_dto(
     AgentWorkspaceDto self,
     SseSerializer serializer,
@@ -945,6 +1025,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_browser_config_dto(
+    BrowserConfigDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_delegate_agent_dto(
     DelegateAgentDto self,
     SseSerializer serializer,
@@ -964,6 +1050,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_box_autoadd_f_64(double self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_gateway_config_dto(
+    GatewayConfigDto self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_box_autoadd_i_64(
@@ -1026,6 +1118,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer);
 
   @protected
+  void sse_encode_browser_config_dto(
+    BrowserConfigDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_channel_summary(
     ChannelSummary self,
     SseSerializer serializer,
@@ -1080,6 +1178,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_delegate_agent_meta(
+    DelegateAgentMeta self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_embedding_config_dto(
     EmbeddingConfigDto self,
     SseSerializer serializer,
@@ -1097,6 +1201,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_feature_toggles(
     FeatureToggles self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_gateway_config_dto(
+    GatewayConfigDto self,
     SseSerializer serializer,
   );
 
@@ -1130,6 +1240,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_agent_event(
     List<AgentEvent> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_agent_tool_filter_group_dto(
+    List<AgentToolFilterGroupDto> self,
     SseSerializer serializer,
   );
 
@@ -1374,6 +1490,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_list_String(List<String>? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_list_agent_tool_filter_group_dto(
+    List<AgentToolFilterGroupDto>? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_project_dto(ProjectDto self, SseSerializer serializer);
 
   @protected
@@ -1453,6 +1578,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_tool_spec_dto(ToolSpecDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_u_16(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_32(int self, SseSerializer serializer);

@@ -67,8 +67,6 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
           colorTag: result.colorTag,
           projectType: result.projectType,
           projectDir: result.projectDir,
-          roleIds: result.roleIds,
-          defaultRoleId: result.roleIds.isNotEmpty ? result.roleIds.first : '',
         );
 
     if (projectId != null) {
@@ -427,8 +425,8 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
           final crossAxisCount = constraints.maxWidth > 900
               ? 3
               : constraints.maxWidth > 600
-                  ? 2
-                  : 1;
+              ? 2
+              : 1;
           return GridView.builder(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: crossAxisCount,
@@ -439,8 +437,7 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
             itemCount: projects.length,
             itemBuilder: (ctx, i) => _ProjectCard(
               project: projects[i],
-              onTap: () =>
-                  setState(() => _selectedProjectId = projects[i].id),
+              onTap: () => setState(() => _selectedProjectId = projects[i].id),
               onDelete: () => _deleteProject(projects[i]),
               onChangeStatus: (s) => _changeStatus(projects[i], s),
             ),
@@ -678,38 +675,60 @@ class _ProjectCardState extends ConsumerState<_ProjectCard> {
         final project = widget.project;
 
         if (project.status != ProjectStatus.active) {
-          items.add(PopupMenuItem(
-            value: 'activate',
-            child: _menuRow(Icons.play_circle_outline,
-                l10n.projectStatusActive, AppColors.success),
-          ));
+          items.add(
+            PopupMenuItem(
+              value: 'activate',
+              child: _menuRow(
+                Icons.play_circle_outline,
+                l10n.projectStatusActive,
+                AppColors.success,
+              ),
+            ),
+          );
         }
         if (project.status != ProjectStatus.paused) {
-          items.add(PopupMenuItem(
-            value: 'pause',
-            child: _menuRow(Icons.pause_circle_outline,
-                l10n.projectStatusPaused, AppColors.warning),
-          ));
+          items.add(
+            PopupMenuItem(
+              value: 'pause',
+              child: _menuRow(
+                Icons.pause_circle_outline,
+                l10n.projectStatusPaused,
+                AppColors.warning,
+              ),
+            ),
+          );
         }
         if (project.status != ProjectStatus.completed) {
-          items.add(PopupMenuItem(
-            value: 'complete',
-            child: _menuRow(Icons.check_circle_outline,
-                l10n.projectStatusCompleted, const Color(0xFF2196F3)),
-          ));
+          items.add(
+            PopupMenuItem(
+              value: 'complete',
+              child: _menuRow(
+                Icons.check_circle_outline,
+                l10n.projectStatusCompleted,
+                const Color(0xFF2196F3),
+              ),
+            ),
+          );
         }
         if (project.status != ProjectStatus.archived) {
-          items.add(PopupMenuItem(
-            value: 'archive',
-            child: _menuRow(Icons.archive_outlined,
-                l10n.projectStatusArchived, c.textHint),
-          ));
+          items.add(
+            PopupMenuItem(
+              value: 'archive',
+              child: _menuRow(
+                Icons.archive_outlined,
+                l10n.projectStatusArchived,
+                c.textHint,
+              ),
+            ),
+          );
         }
         items.add(const PopupMenuDivider());
-        items.add(PopupMenuItem(
-          value: 'delete',
-          child: _menuRow(Icons.delete_outline, l10n.delete, Colors.red),
-        ));
+        items.add(
+          PopupMenuItem(
+            value: 'delete',
+            child: _menuRow(Icons.delete_outline, l10n.delete, Colors.red),
+          ),
+        );
         return items;
       },
     );
@@ -739,19 +758,6 @@ class _ProjectCardState extends ConsumerState<_ProjectCard> {
             fontWeight: FontWeight.w500,
           ),
         ),
-        if (project.hasRoles) ...[
-          const SizedBox(width: 12),
-          Icon(Icons.people_outline, size: 13, color: c.textHint),
-          const SizedBox(width: 4),
-          Text(
-            '${project.roleCount}',
-            style: TextStyle(
-              fontSize: 11,
-              color: c.textHint,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
         if (project.hasProjectDir) ...[
           const SizedBox(width: 12),
           Icon(Icons.folder_open_outlined, size: 13, color: c.textHint),

@@ -35,8 +35,7 @@ Future<String> switchActiveModel({
 );
 
 /// Set a provider profile as the default.
-/// Updates default_provider, api_url, api_key, and default_model based on the profile.
-/// Uses custom:{base_url} format when base_url is provided with OpenAI-compatible endpoints.
+/// Marks a saved profile as the active fallback profile.
 Future<String> setDefaultProfile({required String id}) =>
     RustLib.instance.api.crateApiProvidersApiSetDefaultProfile(id: id);
 
@@ -50,7 +49,7 @@ int modelProviderProfileCount() =>
     RustLib.instance.api.crateApiProvidersApiModelProviderProfileCount();
 
 /// A configured model provider profile exposed to Flutter UI.
-/// Maps to zeroclaw's `[model_providers.<id>]` config section.
+/// Maps to zeroclaw's `[providers.models.<id>]` config section.
 class ModelProviderProfileDto {
   /// Unique profile id (config key)
   final String id;

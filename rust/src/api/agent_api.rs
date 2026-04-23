@@ -7,6 +7,9 @@ use std::time::Instant;
 use tokio::sync::{Mutex as TokioMutex, RwLock};
 use tokio::time::{timeout, Duration};
 use tokio_util::sync::CancellationToken;
+use zeroclaw_api::agent::TurnEvent;
+use zeroclaw_api::channel::ChannelApprovalResponse;
+use zeroclaw_config::autonomy::AutonomyLevel;
 
 fn mark_turn_activity(activity_epoch: &Instant, last_activity_ms: &AtomicU64) {
     last_activity_ms.store(
@@ -147,6 +150,33 @@ pub(crate) struct SessionAgent {
     pub(crate) injected_allowed_roots: Vec<String>,
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct DelegateAgentMeta {
+    pub(crate) capabilities: Vec<String>,
+    pub(crate) priority: i32,
+    pub(crate) enabled: bool,
+    pub(crate) role_label: Option<String>,
+    pub(crate) role_color: Option<String>,
+    pub(crate) role_icon: Option<String>,
+    pub(crate) is_preset: bool,
+    pub(crate) allow_nested_delegate: bool,
+}
+
+impl Default for DelegateAgentMeta {
+    fn default() -> Self {
+        Self {
+            capabilities: Vec::new(),
+            priority: 0,
+            enabled: true,
+            role_label: None,
+            role_color: None,
+            role_icon: None,
+            is_preset: false,
+            allow_nested_delegate: false,
+        }
+    }
+}
+
 /// Global configuration (shared across all sessions)
 pub(crate) struct GlobalConfig {
     pub(crate) config: Option<zeroclaw::Config>,
@@ -154,6 +184,8 @@ pub(crate) struct GlobalConfig {
     pub(crate) default_profile_id: Option<String>,
     /// API key for embedding provider (not in zeroclaw::Config)
     pub(crate) embedding_api_key: Option<String>,
+    /// DeskClaw-specific delegate metadata not represented in zeroclaw v0.7 config.
+    pub(crate) delegate_agent_meta: HashMap<String, DelegateAgentMeta>,
 }
 
 pub(crate) fn global_config() -> &'static RwLock<GlobalConfig> {
@@ -163,6 +195,7 @@ pub(crate) fn global_config() -> &'static RwLock<GlobalConfig> {
             config: None,
             default_profile_id: None,
             embedding_api_key: None,
+            delegate_agent_meta: HashMap::new(),
         })
     })
 }
@@ -181,7 +214,6 @@ pub(crate) fn session_agents() -> &'static RwLock<SessionAgentMap> {
 pub(crate) struct ConfigState {
     pub(crate) config: Option<zeroclaw::Config>,
     pub(crate) active_session_id: Option<String>,
-    pub(crate) injected_allowed_roots: Vec<String>,
 }
 
 pub(crate) fn config_state() -> &'static RwLock<ConfigState> {
@@ -190,7 +222,6 @@ pub(crate) fn config_state() -> &'static RwLock<ConfigState> {
         RwLock::new(ConfigState {
             config: None,
             active_session_id: None,
-            injected_allowed_roots: Vec::new(),
         })
     })
 }
@@ -243,7 +274,7 @@ pub async fn cancel_generation(session_id: String) -> String {
 
 /// Pending approval request waiting for Flutter's response.
 struct PendingApproval {
-    response_tx: tokio::sync::oneshot::Sender<zeroclaw::approval::ApprovalResponse>,
+    response_tx: tokio::sync::oneshot::Sender<ChannelApprovalResponse>,
 }
 
 /// Map of pending approval requests: request_id -> PendingApproval
@@ -271,9 +302,9 @@ fn pending_approvals() -> &'static TokioMutex<PendingApprovalsMap> {
 /// `decision` values: "yes", "no", "always"
 pub async fn respond_to_tool_approval(decision: String) -> String {
     let response = match decision.to_lowercase().as_str() {
-        "yes" | "y" => zeroclaw::approval::ApprovalResponse::Yes,
-        "always" | "a" => zeroclaw::approval::ApprovalResponse::Always,
-        _ => zeroclaw::approval::ApprovalResponse::No,
+        "yes" | "y" => ChannelApprovalResponse::Approve,
+        "always" | "a" => ChannelApprovalResponse::AlwaysApprove,
+        _ => ChannelApprovalResponse::Deny,
     };
 
     // First try the legacy slot (most recent request)
@@ -303,9 +334,9 @@ pub async fn respond_to_tool_approval(decision: String) -> String {
 /// `decision` values: "yes", "no", "always"
 pub async fn respond_to_tool_approval_by_id(request_id: String, decision: String) -> String {
     let response = match decision.to_lowercase().as_str() {
-        "yes" | "y" => zeroclaw::approval::ApprovalResponse::Yes,
-        "always" | "a" => zeroclaw::approval::ApprovalResponse::Always,
-        _ => zeroclaw::approval::ApprovalResponse::No,
+        "yes" | "y" => ChannelApprovalResponse::Approve,
+        "always" | "a" => ChannelApprovalResponse::AlwaysApprove,
+        _ => ChannelApprovalResponse::Deny,
     };
 
     // Check legacy slot first
@@ -362,6 +393,204 @@ async fn load_embedding_api_key(config_path: &std::path::Path) -> Option<String>
         .map(String::from)
 }
 
+async fn load_delegate_agent_meta(
+    config_path: &std::path::Path,
+) -> HashMap<String, DelegateAgentMeta> {
+    let content = match tokio::fs::read_to_string(config_path).await {
+        Ok(content) => content,
+        Err(_) => return HashMap::new(),
+    };
+    let table: toml::Table = match content.parse() {
+        Ok(table) => table,
+        Err(_) => return HashMap::new(),
+    };
+
+    table
+        .get("deskclaw_agents_meta")
+        .and_then(|value| value.as_table())
+        .map(|meta_table| {
+            meta_table
+                .iter()
+                .filter_map(|(name, value)| {
+                    let entry = value.as_table()?;
+                    let capabilities = entry
+                        .get("capabilities")
+                        .and_then(|v| v.as_array())
+                        .map(|items| {
+                            items
+                                .iter()
+                                .filter_map(|item| item.as_str().map(ToOwned::to_owned))
+                                .collect::<Vec<_>>()
+                        })
+                        .unwrap_or_default();
+                    let priority = entry
+                        .get("priority")
+                        .and_then(|v| v.as_integer())
+                        .unwrap_or(0) as i32;
+                    let enabled = entry
+                        .get("enabled")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(true);
+                    let role_label = entry
+                        .get("role_label")
+                        .and_then(|v| v.as_str())
+                        .map(ToOwned::to_owned);
+                    let role_color = entry
+                        .get("role_color")
+                        .and_then(|v| v.as_str())
+                        .map(ToOwned::to_owned);
+                    let role_icon = entry
+                        .get("role_icon")
+                        .and_then(|v| v.as_str())
+                        .map(ToOwned::to_owned);
+                    let is_preset = entry
+                        .get("is_preset")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false);
+                    let allow_nested_delegate = entry
+                        .get("allow_nested_delegate")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false);
+
+                    Some((
+                        name.clone(),
+                        DelegateAgentMeta {
+                            capabilities,
+                            priority,
+                            enabled,
+                            role_label,
+                            role_color,
+                            role_icon,
+                            is_preset,
+                            allow_nested_delegate,
+                        },
+                    ))
+                })
+                .collect::<HashMap<_, _>>()
+        })
+        .unwrap_or_default()
+}
+
+const DEFAULT_PROVIDER_NAME: &str = "openrouter";
+const DEFAULT_MODEL_NAME: &str = "anthropic/claude-sonnet-4-20250514";
+const KNOWN_PROVIDER_KEYS: &[&str] = &[
+    "openai",
+    "anthropic",
+    "google",
+    "gemini",
+    "azure",
+    "ollama",
+    "openrouter",
+    "bedrock",
+    "vertexai",
+    "databricks",
+    "mistral",
+    "cerebras",
+    "deepseek",
+    "groq",
+    "xai",
+    "copilot",
+    "compatible",
+];
+
+fn derive_effective_provider_key(
+    profile_id: &str,
+    profile: &zeroclaw::config::ModelProviderConfig,
+) -> String {
+    let base_url = profile
+        .base_url
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+    let provider_name = profile
+        .name
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+
+    if let Some(url) = base_url {
+        if let Some(name) = provider_name {
+            let normalized = name.to_ascii_lowercase();
+            if KNOWN_PROVIDER_KEYS.iter().any(|key| *key == normalized)
+                && normalized != "compatible"
+            {
+                name.to_string()
+            } else {
+                format!("custom:{url}")
+            }
+        } else {
+            format!("custom:{url}")
+        }
+    } else if let Some(name) = provider_name {
+        name.to_string()
+    } else {
+        profile_id.to_string()
+    }
+}
+
+fn materialize_runtime_provider(config: &mut zeroclaw::Config, selected_profile_id: Option<&str>) {
+    let Some(profile_id) = selected_profile_id.or(config.providers.fallback.as_deref()) else {
+        return;
+    };
+    let Some(profile) = config.providers.models.get(profile_id).cloned() else {
+        return;
+    };
+
+    let effective_provider = derive_effective_provider_key(profile_id, &profile);
+    if effective_provider != profile_id {
+        config
+            .providers
+            .models
+            .insert(effective_provider.clone(), profile);
+    }
+    config.providers.fallback = Some(effective_provider);
+}
+
+pub(crate) fn build_runtime_config(
+    config: &zeroclaw::Config,
+    selected_profile_id: Option<&str>,
+) -> zeroclaw::Config {
+    let mut runtime_config = config.clone();
+    materialize_runtime_provider(&mut runtime_config, selected_profile_id);
+    runtime_config
+}
+
+fn runtime_provider_snapshot(
+    config: &zeroclaw::Config,
+    selected_profile_id: Option<&str>,
+) -> (String, String, Option<String>, Option<String>, Option<f64>) {
+    let runtime_config = build_runtime_config(config, selected_profile_id);
+
+    let fallback_key = runtime_config
+        .providers
+        .fallback
+        .clone()
+        .unwrap_or_else(|| DEFAULT_PROVIDER_NAME.into());
+    let fallback_profile = runtime_config.providers.fallback_provider();
+
+    let provider = if fallback_key.starts_with("custom:") {
+        "compatible".to_string()
+    } else {
+        fallback_key.clone()
+    };
+    let model = fallback_profile
+        .and_then(|profile| profile.model.clone())
+        .unwrap_or_else(|| DEFAULT_MODEL_NAME.into());
+    let api_key = fallback_profile.and_then(|profile| profile.api_key.clone());
+    let api_base = if fallback_key.starts_with("custom:") {
+        fallback_key.strip_prefix("custom:").map(str::to_string)
+    } else {
+        fallback_profile.and_then(|profile| profile.base_url.clone())
+    };
+    let temperature = fallback_profile.and_then(|profile| profile.temperature);
+
+    (provider, model, api_key, api_base, temperature)
+}
+
+fn trust_me_enabled(config: &zeroclaw::Config) -> bool {
+    matches!(config.autonomy.level, AutonomyLevel::Full)
+}
+
 /// Initialize the agent runtime: load zeroclaw config from ~/.coraldesk/config.toml.
 /// Returns a status string describing what was loaded.
 pub async fn init_runtime() -> String {
@@ -385,103 +614,22 @@ pub async fn init_runtime() -> String {
             tracing::info!(
                 browser_enabled = config.browser.enabled,
                 browser_backend = %config.browser.backend,
-                agent_browser_cmd = %config.browser.agent_browser_command,
                 "Browser defaults applied"
-            );
-
-            let info = format!(
-                "provider={}, model={}, has_key={}",
-                config.default_provider.as_deref().unwrap_or("(none)"),
-                config.default_model.as_deref().unwrap_or("(none)"),
-                config.api_key.is_some(),
             );
 
             // Load default_profile_id from config file (not part of zeroclaw::Config)
             let default_profile_id = load_default_profile_id(&config.config_path).await;
             // Load embedding_api_key from config file
             let embedding_api_key = load_embedding_api_key(&config.config_path).await;
-
-            // Sync embedding_api_key to config.memory for zeroclaw to use
-            if embedding_api_key.is_some() {
-                config.memory.embedding_api_key = embedding_api_key.clone();
-            }
-
-            // ── Reconcile default_provider/default_model with default_profile_id ──
-            // If a default profile is set, ensure the top-level provider/model match
-            // that profile. This prevents stale or wrong provider/model from persisting
-            // (e.g., user selected profile A but top-level still says "gemini").
-            if let Some(ref pid) = default_profile_id {
-                if let Some(profile) = config.model_providers.get(pid) {
-                    let base_url = profile
-                        .base_url
-                        .as_deref()
-                        .map(str::trim)
-                        .filter(|s| !s.is_empty());
-                    let provider_name = profile
-                        .name
-                        .as_deref()
-                        .map(str::trim)
-                        .filter(|s| !s.is_empty());
-
-                    const KNOWN_PROVIDERS: &[&str] = &[
-                        "openai",
-                        "anthropic",
-                        "google",
-                        "gemini",
-                        "azure",
-                        "ollama",
-                        "openrouter",
-                        "bedrock",
-                        "vertexai",
-                        "databricks",
-                        "mistral",
-                        "cerebras",
-                        "deepseek",
-                        "groq",
-                        "xai",
-                    ];
-
-                    let effective_provider = if let Some(url) = base_url {
-                        if let Some(name) = provider_name {
-                            let name_lower = name.to_lowercase();
-                            if KNOWN_PROVIDERS.iter().any(|p| *p == name_lower) {
-                                name.to_string()
-                            } else {
-                                format!("custom:{}", url)
-                            }
-                        } else {
-                            format!("custom:{}", url)
-                        }
-                    } else if let Some(name) = provider_name {
-                        name.to_string()
-                    } else {
-                        pid.clone()
-                    };
-
-                    let effective_model = profile.default_model.clone().unwrap_or_default();
-
-                    tracing::info!(
-                        profile_id = pid.as_str(),
-                        provider = effective_provider.as_str(),
-                        model = effective_model.as_str(),
-                        "Reconciled default provider/model from default_profile_id"
-                    );
-
-                    config.default_provider = Some(effective_provider);
-                    if !effective_model.is_empty() {
-                        config.default_model = Some(effective_model);
-                    }
-
-                    if let Some(ref key) = profile.api_key {
-                        if !key.trim().is_empty() {
-                            config.api_key = Some(key.trim().to_string());
-                        }
-                    }
-                    if let Some(url) = base_url {
-                        config.api_url = Some(url.to_string());
-                    }
-                }
-            }
+            let delegate_agent_meta = load_delegate_agent_meta(&config.config_path).await;
+            let (provider, model, api_key, _, _) =
+                runtime_provider_snapshot(&config, default_profile_id.as_deref());
+            let info = format!(
+                "provider={}, model={}, has_key={}",
+                provider,
+                model,
+                api_key.is_some(),
+            );
 
             // Update global config
             {
@@ -489,6 +637,7 @@ pub async fn init_runtime() -> String {
                 gc.config = Some(config.clone());
                 gc.default_profile_id = default_profile_id;
                 gc.embedding_api_key = embedding_api_key;
+                gc.delegate_agent_meta = delegate_agent_meta;
             }
 
             // Also update legacy config_state for backward compatibility
@@ -526,19 +675,18 @@ pub async fn init_runtime() -> String {
 /// Check if the runtime has a loaded config with an API key
 pub async fn get_runtime_status() -> RuntimeStatus {
     let cs = config_state().read().await;
+    let selected_profile_id = global_config().read().await.default_profile_id.clone();
     match &cs.config {
-        Some(config) => RuntimeStatus {
-            initialized: true,
-            has_api_key: config.api_key.is_some(),
-            provider: config
-                .default_provider
-                .clone()
-                .unwrap_or_else(|| "openrouter".into()),
-            model: config
-                .default_model
-                .clone()
-                .unwrap_or_else(|| "anthropic/claude-sonnet-4-20250514".into()),
-        },
+        Some(config) => {
+            let (provider, model, api_key, _, _) =
+                runtime_provider_snapshot(config, selected_profile_id.as_deref());
+            RuntimeStatus {
+                initialized: true,
+                has_api_key: api_key.is_some(),
+                provider,
+                model,
+            }
+        }
         None => RuntimeStatus {
             initialized: false,
             has_api_key: false,
@@ -562,84 +710,14 @@ pub async fn reload_config_from_disk() -> String {
             // Reload auxiliary settings from disk
             let default_profile_id = load_default_profile_id(&config.config_path).await;
             let embedding_api_key = load_embedding_api_key(&config.config_path).await;
-
-            // Sync embedding_api_key to config.memory for zeroclaw to use
-            if embedding_api_key.is_some() {
-                config.memory.embedding_api_key = embedding_api_key.clone();
-            }
-
-            // ── Reconcile default_provider/default_model with default_profile_id ──
-            if let Some(ref pid) = default_profile_id {
-                if let Some(profile) = config.model_providers.get(pid) {
-                    let base_url = profile
-                        .base_url
-                        .as_deref()
-                        .map(str::trim)
-                        .filter(|s| !s.is_empty());
-                    let provider_name = profile
-                        .name
-                        .as_deref()
-                        .map(str::trim)
-                        .filter(|s| !s.is_empty());
-
-                    const KNOWN_PROVIDERS: &[&str] = &[
-                        "openai",
-                        "anthropic",
-                        "google",
-                        "gemini",
-                        "azure",
-                        "ollama",
-                        "openrouter",
-                        "bedrock",
-                        "vertexai",
-                        "databricks",
-                        "mistral",
-                        "cerebras",
-                        "deepseek",
-                        "groq",
-                        "xai",
-                    ];
-
-                    let effective_provider = if let Some(url) = base_url {
-                        if let Some(name) = provider_name {
-                            let name_lower = name.to_lowercase();
-                            if KNOWN_PROVIDERS.iter().any(|p| *p == name_lower) {
-                                name.to_string()
-                            } else {
-                                format!("custom:{}", url)
-                            }
-                        } else {
-                            format!("custom:{}", url)
-                        }
-                    } else if let Some(name) = provider_name {
-                        name.to_string()
-                    } else {
-                        pid.clone()
-                    };
-
-                    let effective_model = profile.default_model.clone().unwrap_or_default();
-
-                    config.default_provider = Some(effective_provider);
-                    if !effective_model.is_empty() {
-                        config.default_model = Some(effective_model);
-                    }
-                    if let Some(ref key) = profile.api_key {
-                        if !key.trim().is_empty() {
-                            config.api_key = Some(key.trim().to_string());
-                        }
-                    }
-                    if let Some(url) = base_url {
-                        config.api_url = Some(url.to_string());
-                    }
-                }
-            }
-
+            let delegate_agent_meta = load_delegate_agent_meta(&config.config_path).await;
             // Update global config
             {
                 let mut gc = global_config().write().await;
                 gc.config = Some(config.clone());
                 gc.default_profile_id = default_profile_id;
                 gc.embedding_api_key = embedding_api_key;
+                gc.delegate_agent_meta = delegate_agent_meta;
             }
 
             // Update legacy config_state
@@ -690,40 +768,51 @@ pub async fn update_config(
         None => return "error: runtime not initialized".into(),
     };
 
-    // Handle api_base first since "compatible" provider needs it
-    if let Some(base) = api_base {
-        config.api_url = if base.is_empty() {
-            None
-        } else {
-            Some(base.clone())
-        };
-    }
-    if let Some(p) = provider {
-        // Map "compatible" to zeroclaw's "custom:<url>" format
-        if p == "compatible" {
-            let base_url = config.api_url.clone().unwrap_or_default();
-            if !base_url.is_empty() {
-                config.default_provider = Some(format!("custom:{base_url}"));
-            } else {
-                config.default_provider = Some("compatible".into());
+    let current_fallback = config
+        .providers
+        .fallback
+        .clone()
+        .unwrap_or_else(|| DEFAULT_PROVIDER_NAME.into());
+    let mut fallback_key = current_fallback;
+
+    if let Some(ref p) = provider {
+        fallback_key = if p == "compatible" {
+            match api_base.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+                Some(base) => format!("custom:{base}"),
+                None => "compatible".into(),
             }
         } else {
-            config.default_provider = Some(p);
+            p.clone()
+        };
+    } else if let Some(ref base) = api_base {
+        let trimmed = base.trim();
+        if !trimmed.is_empty() && fallback_key == "compatible" {
+            fallback_key = format!("custom:{trimmed}");
         }
     }
+
+    let clear_selected_profile = provider.is_some();
+
+    config.providers.fallback = Some(fallback_key.clone());
+    let active_profile = config.providers.models.entry(fallback_key).or_default();
     if let Some(m) = model {
-        config.default_model = Some(m);
+        active_profile.model = if m.is_empty() { None } else { Some(m) };
     }
     if let Some(k) = api_key {
-        config.api_key = if k.is_empty() { None } else { Some(k) };
+        active_profile.api_key = if k.is_empty() { None } else { Some(k) };
+    }
+    if let Some(base) = api_base {
+        active_profile.base_url = if base.is_empty() { None } else { Some(base) };
     }
     if let Some(t) = temperature {
-        config.default_temperature = t;
+        active_profile.temperature = Some(t);
     }
-
     // Sync to legacy config_state
     cs.config = Some(config.clone());
     cs.active_session_id = None;
+    if clear_selected_profile {
+        gc.default_profile_id = None;
+    }
     drop(gc);
     drop(cs);
 
@@ -751,11 +840,16 @@ pub async fn save_config_to_disk() -> String {
         return "error: config_path not set".into();
     }
 
-    // Read existing TOML or start fresh
-    let mut table: toml::Table = match tokio::fs::read_to_string(config_path).await {
-        Ok(content) => content.parse().unwrap_or_default(),
-        Err(_) => toml::Table::new(),
+    let mut config_to_save = config.clone();
+    if let Some(ref profile_id) = gc.default_profile_id {
+        config_to_save.providers.fallback = Some(profile_id.clone());
+    }
+
+    let encoded = match toml::to_string_pretty(&config_to_save) {
+        Ok(s) => s,
+        Err(e) => return format!("error: serialize failed: {e}"),
     };
+    let mut table: toml::Table = encoded.parse().unwrap_or_default();
 
     // Persist default_profile_id (UI-selected profile)
     if let Some(ref profile_id) = gc.default_profile_id {
@@ -767,203 +861,11 @@ pub async fn save_config_to_disk() -> String {
         table.remove("default_profile_id");
     }
 
-    // Remove legacy top-level embedding_api_key (now stored in [memory])
-    table.remove("embedding_api_key");
-
-    // Update the user-facing fields
-    if let Some(ref provider) = config.default_provider {
-        table.insert(
-            "default_provider".into(),
-            toml::Value::String(provider.clone()),
-        );
-    }
-    if let Some(ref model) = config.default_model {
-        table.insert("default_model".into(), toml::Value::String(model.clone()));
-    }
-    if let Some(ref key) = config.api_key {
-        table.insert("api_key".into(), toml::Value::String(key.clone()));
-    }
-    if let Some(ref url) = config.api_url {
-        table.insert("api_url".into(), toml::Value::String(url.clone()));
-    }
-    table.insert(
-        "default_temperature".into(),
-        toml::Value::Float(config.default_temperature),
-    );
-
-    // ── Persist feature toggles ──────────────────────────────
-    // [mcp]
-    {
-        let mut mcp_table = table
-            .get("mcp")
-            .and_then(|v| v.as_table())
-            .cloned()
-            .unwrap_or_default();
-        mcp_table.insert("enabled".into(), toml::Value::Boolean(config.mcp.enabled));
-        let servers: Vec<toml::Value> = config
-            .mcp
-            .servers
-            .iter()
-            .map(|s| {
-                let mut t = toml::Table::new();
-                t.insert("name".into(), toml::Value::String(s.name.clone()));
-                let transport_str = match s.transport {
-                    zeroclaw::config::schema::McpTransport::Stdio => "stdio",
-                    zeroclaw::config::schema::McpTransport::Http => "http",
-                    zeroclaw::config::schema::McpTransport::Sse => "sse",
-                };
-                t.insert(
-                    "transport".into(),
-                    toml::Value::String(transport_str.into()),
-                );
-                if let Some(ref url) = s.url {
-                    t.insert("url".into(), toml::Value::String(url.clone()));
-                }
-                if !s.command.is_empty() {
-                    t.insert("command".into(), toml::Value::String(s.command.clone()));
-                }
-                if !s.args.is_empty() {
-                    t.insert(
-                        "args".into(),
-                        toml::Value::Array(
-                            s.args
-                                .iter()
-                                .map(|a| toml::Value::String(a.clone()))
-                                .collect(),
-                        ),
-                    );
-                }
-                if !s.env.is_empty() {
-                    let mut env_table = toml::Table::new();
-                    for (k, v) in &s.env {
-                        env_table.insert(k.clone(), toml::Value::String(v.clone()));
-                    }
-                    t.insert("env".into(), toml::Value::Table(env_table));
-                }
-                if !s.headers.is_empty() {
-                    let mut hdr_table = toml::Table::new();
-                    for (k, v) in &s.headers {
-                        hdr_table.insert(k.clone(), toml::Value::String(v.clone()));
-                    }
-                    t.insert("headers".into(), toml::Value::Table(hdr_table));
-                }
-                if let Some(timeout) = s.tool_timeout_secs {
-                    t.insert(
-                        "tool_timeout_secs".into(),
-                        toml::Value::Integer(timeout as i64),
-                    );
-                }
-                toml::Value::Table(t)
-            })
-            .collect();
-        mcp_table.insert("servers".into(), toml::Value::Array(servers));
-        table.insert("mcp".into(), toml::Value::Table(mcp_table));
-    }
-
-    // [web_search]
-    let mut ws_table = table
-        .get("web_search")
-        .and_then(|v| v.as_table())
-        .cloned()
-        .unwrap_or_default();
-    ws_table.insert(
-        "enabled".into(),
-        toml::Value::Boolean(config.web_search.enabled),
-    );
-    table.insert("web_search".into(), toml::Value::Table(ws_table));
-
-    // [web_fetch]
-    let mut wf_table = table
-        .get("web_fetch")
-        .and_then(|v| v.as_table())
-        .cloned()
-        .unwrap_or_default();
-    wf_table.insert(
-        "enabled".into(),
-        toml::Value::Boolean(config.web_fetch.enabled),
-    );
-    table.insert("web_fetch".into(), toml::Value::Table(wf_table));
-
-    // [browser] — persist full browser config for out-of-box experience
-    let mut br_table = table
-        .get("browser")
-        .and_then(|v| v.as_table())
-        .cloned()
-        .unwrap_or_default();
-    br_table.insert(
-        "enabled".into(),
-        toml::Value::Boolean(config.browser.enabled),
-    );
-    br_table.insert(
-        "backend".into(),
-        toml::Value::String(config.browser.backend.clone()),
-    );
-    br_table.insert(
-        "agent_browser_command".into(),
-        toml::Value::String(config.browser.agent_browser_command.clone()),
-    );
-    if !config.browser.allowed_domains.is_empty() {
-        br_table.insert(
-            "allowed_domains".into(),
-            toml::Value::Array(
-                config
-                    .browser
-                    .allowed_domains
-                    .iter()
-                    .map(|d| toml::Value::String(d.clone()))
-                    .collect(),
-            ),
-        );
-    }
-    table.insert("browser".into(), toml::Value::Table(br_table));
-
-    // [http_request]
-    let mut hr_table = table
-        .get("http_request")
-        .and_then(|v| v.as_table())
-        .cloned()
-        .unwrap_or_default();
-    hr_table.insert(
-        "enabled".into(),
-        toml::Value::Boolean(config.http_request.enabled),
-    );
-    table.insert("http_request".into(), toml::Value::Table(hr_table));
-
-    // [memory]
     let mut mem_table = table
         .get("memory")
         .and_then(|v| v.as_table())
         .cloned()
         .unwrap_or_default();
-    mem_table.insert(
-        "auto_save".into(),
-        toml::Value::Boolean(config.memory.auto_save),
-    );
-    mem_table.insert(
-        "embedding_provider".into(),
-        toml::Value::String(config.memory.embedding_provider.clone()),
-    );
-    mem_table.insert(
-        "embedding_model".into(),
-        toml::Value::String(config.memory.embedding_model.clone()),
-    );
-    mem_table.insert(
-        "embedding_dimensions".into(),
-        toml::Value::Integer(config.memory.embedding_dimensions as i64),
-    );
-    mem_table.insert(
-        "vector_weight".into(),
-        toml::Value::Float(config.memory.vector_weight),
-    );
-    mem_table.insert(
-        "keyword_weight".into(),
-        toml::Value::Float(config.memory.keyword_weight),
-    );
-    mem_table.insert(
-        "min_relevance_score".into(),
-        toml::Value::Float(config.memory.min_relevance_score),
-    );
-    // Persist embedding_api_key in [memory] section
     if let Some(ref api_key) = gc.embedding_api_key {
         mem_table.insert(
             "embedding_api_key".into(),
@@ -973,167 +875,6 @@ pub async fn save_config_to_disk() -> String {
         mem_table.remove("embedding_api_key");
     }
     table.insert("memory".into(), toml::Value::Table(mem_table));
-
-    // [[model_routes]]
-    if !config.model_routes.is_empty() {
-        let routes: Vec<toml::Value> = config
-            .model_routes
-            .iter()
-            .map(|r| {
-                let mut t = toml::Table::new();
-                t.insert("hint".into(), toml::Value::String(r.hint.clone()));
-                t.insert("provider".into(), toml::Value::String(r.provider.clone()));
-                t.insert("model".into(), toml::Value::String(r.model.clone()));
-                if let Some(ref key) = r.api_key {
-                    t.insert("api_key".into(), toml::Value::String(key.clone()));
-                }
-                toml::Value::Table(t)
-            })
-            .collect();
-        table.insert("model_routes".into(), toml::Value::Array(routes));
-    } else {
-        table.remove("model_routes");
-    }
-
-    // [[embedding_routes]]
-    if !config.embedding_routes.is_empty() {
-        let routes: Vec<toml::Value> = config
-            .embedding_routes
-            .iter()
-            .map(|r| {
-                let mut t = toml::Table::new();
-                t.insert("hint".into(), toml::Value::String(r.hint.clone()));
-                t.insert("provider".into(), toml::Value::String(r.provider.clone()));
-                t.insert("model".into(), toml::Value::String(r.model.clone()));
-                if let Some(dims) = r.dimensions {
-                    t.insert("dimensions".into(), toml::Value::Integer(dims as i64));
-                }
-                if let Some(ref key) = r.api_key {
-                    t.insert("api_key".into(), toml::Value::String(key.clone()));
-                }
-                toml::Value::Table(t)
-            })
-            .collect();
-        table.insert("embedding_routes".into(), toml::Value::Array(routes));
-    } else {
-        table.remove("embedding_routes");
-    }
-
-    // [cost]
-    let mut cost_table = table
-        .get("cost")
-        .and_then(|v| v.as_table())
-        .cloned()
-        .unwrap_or_default();
-    cost_table.insert("enabled".into(), toml::Value::Boolean(config.cost.enabled));
-    table.insert("cost".into(), toml::Value::Table(cost_table));
-
-    // [skills]
-    let mut skills_table = table
-        .get("skills")
-        .and_then(|v| v.as_table())
-        .cloned()
-        .unwrap_or_default();
-    skills_table.insert(
-        "open_skills_enabled".into(),
-        toml::Value::Boolean(config.skills.open_skills_enabled),
-    );
-    let injection_mode = match config.skills.prompt_injection_mode {
-        zeroclaw::config::SkillsPromptInjectionMode::Compact => "compact",
-        _ => "full",
-    };
-    skills_table.insert(
-        "prompt_injection_mode".into(),
-        toml::Value::String(injection_mode.into()),
-    );
-    table.insert("skills".into(), toml::Value::Table(skills_table));
-
-    // ── Persist autonomy / tool approval settings ────────────
-    let mut autonomy_table = table
-        .get("autonomy")
-        .and_then(|v| v.as_table())
-        .cloned()
-        .unwrap_or_default();
-    autonomy_table.insert(
-        "trust_me".into(),
-        toml::Value::Boolean(config.autonomy.trust_me),
-    );
-    autonomy_table.insert(
-        "auto_approve".into(),
-        toml::Value::Array(
-            config
-                .autonomy
-                .auto_approve
-                .iter()
-                .map(|s| toml::Value::String(s.clone()))
-                .collect(),
-        ),
-    );
-    autonomy_table.insert(
-        "always_ask".into(),
-        toml::Value::Array(
-            config
-                .autonomy
-                .always_ask
-                .iter()
-                .map(|s| toml::Value::String(s.clone()))
-                .collect(),
-        ),
-    );
-    autonomy_table.insert(
-        "allowed_commands".into(),
-        toml::Value::Array(
-            config
-                .autonomy
-                .allowed_commands
-                .iter()
-                .map(|s| toml::Value::String(s.clone()))
-                .collect(),
-        ),
-    );
-    table.insert("autonomy".into(), toml::Value::Table(autonomy_table));
-
-    // ── Persist model provider profiles [model_providers.<id>] ───
-    let mut mp_table = toml::Table::new();
-    for (id, profile) in &config.model_providers {
-        // Skip invalid profiles (must have at least name or base_url)
-        let has_name = profile
-            .name
-            .as_deref()
-            .map(str::trim)
-            .is_some_and(|v| !v.is_empty());
-        let has_base_url = profile
-            .base_url
-            .as_deref()
-            .map(str::trim)
-            .is_some_and(|v| !v.is_empty());
-        if !has_name && !has_base_url {
-            continue;
-        }
-
-        let mut entry = toml::Table::new();
-        if let Some(ref name) = profile.name {
-            entry.insert("name".into(), toml::Value::String(name.clone()));
-        }
-        if let Some(ref base_url) = profile.base_url {
-            entry.insert("base_url".into(), toml::Value::String(base_url.clone()));
-        }
-        if let Some(ref wire_api) = profile.wire_api {
-            entry.insert("wire_api".into(), toml::Value::String(wire_api.clone()));
-        }
-        if let Some(ref model) = profile.default_model {
-            entry.insert("default_model".into(), toml::Value::String(model.clone()));
-        }
-        if let Some(ref key) = profile.api_key {
-            entry.insert("api_key".into(), toml::Value::String(key.clone()));
-        }
-        mp_table.insert(id.clone(), toml::Value::Table(entry));
-    }
-    if !mp_table.is_empty() {
-        table.insert("model_providers".into(), toml::Value::Table(mp_table));
-    } else {
-        table.remove("model_providers");
-    }
 
     // ── Persist delegate agents [agents.<name>] ─────────────
     let mut agents_table = toml::Table::new();
@@ -1157,27 +898,6 @@ pub async fn save_config_to_disk() -> String {
             "max_depth".into(),
             toml::Value::Integer(agent_cfg.max_depth as i64),
         );
-        if !agent_cfg.enabled {
-            entry.insert("enabled".into(), toml::Value::Boolean(false));
-        }
-        if !agent_cfg.capabilities.is_empty() {
-            entry.insert(
-                "capabilities".into(),
-                toml::Value::Array(
-                    agent_cfg
-                        .capabilities
-                        .iter()
-                        .map(|s| toml::Value::String(s.clone()))
-                        .collect(),
-                ),
-            );
-        }
-        if agent_cfg.priority != 0 {
-            entry.insert(
-                "priority".into(),
-                toml::Value::Integer(agent_cfg.priority as i64),
-            );
-        }
         if agent_cfg.agentic {
             entry.insert("agentic".into(), toml::Value::Boolean(true));
             entry.insert(
@@ -1195,21 +915,29 @@ pub async fn save_config_to_disk() -> String {
                 toml::Value::Integer(agent_cfg.max_iterations as i64),
             );
         }
-        // Persist role metadata for multi-agent UI and collaboration
-        if let Some(ref label) = agent_cfg.role_label {
-            entry.insert("role_label".into(), toml::Value::String(label.clone()));
+        if let Some(timeout_secs) = agent_cfg.timeout_secs {
+            entry.insert(
+                "timeout_secs".into(),
+                toml::Value::Integer(timeout_secs as i64),
+            );
         }
-        if let Some(ref color) = agent_cfg.role_color {
-            entry.insert("role_color".into(), toml::Value::String(color.clone()));
+        if let Some(timeout_secs) = agent_cfg.agentic_timeout_secs {
+            entry.insert(
+                "agentic_timeout_secs".into(),
+                toml::Value::Integer(timeout_secs as i64),
+            );
         }
-        if let Some(ref icon) = agent_cfg.role_icon {
-            entry.insert("role_icon".into(), toml::Value::String(icon.clone()));
+        if let Some(ref skills_directory) = agent_cfg.skills_directory {
+            entry.insert(
+                "skills_directory".into(),
+                toml::Value::String(skills_directory.clone()),
+            );
         }
-        if agent_cfg.is_preset {
-            entry.insert("is_preset".into(), toml::Value::Boolean(true));
-        }
-        if agent_cfg.allow_nested_delegate {
-            entry.insert("allow_nested_delegate".into(), toml::Value::Boolean(true));
+        if let Some(ref memory_namespace) = agent_cfg.memory_namespace {
+            entry.insert(
+                "memory_namespace".into(),
+                toml::Value::String(memory_namespace.clone()),
+            );
         }
         agents_table.insert(name.clone(), toml::Value::Table(entry));
     }
@@ -1217,6 +945,57 @@ pub async fn save_config_to_disk() -> String {
         table.insert("agents".into(), toml::Value::Table(agents_table));
     } else {
         table.remove("agents");
+    }
+
+    let mut meta_table = toml::Table::new();
+    for (name, meta) in &gc.delegate_agent_meta {
+        let mut entry = toml::Table::new();
+        if !meta.capabilities.is_empty() {
+            entry.insert(
+                "capabilities".into(),
+                toml::Value::Array(
+                    meta.capabilities
+                        .iter()
+                        .map(|value| toml::Value::String(value.clone()))
+                        .collect(),
+                ),
+            );
+        }
+        if meta.priority != 0 {
+            entry.insert(
+                "priority".into(),
+                toml::Value::Integer(meta.priority as i64),
+            );
+        }
+        if !meta.enabled {
+            entry.insert("enabled".into(), toml::Value::Boolean(false));
+        }
+        if let Some(ref label) = meta.role_label {
+            entry.insert("role_label".into(), toml::Value::String(label.clone()));
+        }
+        if let Some(ref color) = meta.role_color {
+            entry.insert("role_color".into(), toml::Value::String(color.clone()));
+        }
+        if let Some(ref icon) = meta.role_icon {
+            entry.insert("role_icon".into(), toml::Value::String(icon.clone()));
+        }
+        if meta.is_preset {
+            entry.insert("is_preset".into(), toml::Value::Boolean(true));
+        }
+        if meta.allow_nested_delegate {
+            entry.insert("allow_nested_delegate".into(), toml::Value::Boolean(true));
+        }
+        if !entry.is_empty() {
+            meta_table.insert(name.clone(), toml::Value::Table(entry));
+        }
+    }
+    if !meta_table.is_empty() {
+        table.insert(
+            "deskclaw_agents_meta".into(),
+            toml::Value::Table(meta_table),
+        );
+    } else {
+        table.remove("deskclaw_agents_meta");
     }
 
     // [proxy]
@@ -1294,31 +1073,20 @@ pub async fn save_config_to_disk() -> String {
 pub async fn get_current_config() -> super::config_api::AppConfig {
     let cs = config_state().read().await;
     if let Some(config) = &cs.config {
-        let raw_provider = config
-            .default_provider
-            .clone()
-            .unwrap_or_else(|| "openrouter".into());
-
-        // Reverse-map zeroclaw's "custom:<url>" back to UI's "compatible"
-        let (ui_provider, ui_api_base) = if raw_provider.starts_with("custom:") {
-            let url = raw_provider
-                .strip_prefix("custom:")
-                .unwrap_or("")
-                .to_string();
-            ("compatible".to_string(), Some(url))
-        } else {
-            (raw_provider, config.api_url.clone())
-        };
+        let selected_profile_id = super::agent_api::global_config()
+            .read()
+            .await
+            .default_profile_id
+            .clone();
+        let (ui_provider, model, api_key, ui_api_base, temperature) =
+            runtime_provider_snapshot(config, selected_profile_id.as_deref());
 
         super::config_api::AppConfig {
             provider: ui_provider,
-            model: config
-                .default_model
-                .clone()
-                .unwrap_or_else(|| "anthropic/claude-sonnet-4-20250514".into()),
-            api_key: config.api_key.clone().unwrap_or_default(),
+            model,
+            api_key: api_key.unwrap_or_default(),
             api_base: ui_api_base,
-            temperature: config.default_temperature,
+            temperature: temperature.unwrap_or(0.7),
             max_tool_iterations: config.agent.max_tool_iterations as u32,
             language: "en".into(),
         }
@@ -1362,9 +1130,25 @@ pub async fn truncate_session_agent_history(session_id: String, keep_user_turns:
     let agents = session_agents().read().await;
     if let Some(agent_arc) = agents.get(&session_id) {
         let mut agent_guard = agent_arc.lock().await;
-        agent_guard
-            .agent
-            .truncate_to_n_user_turns(keep_user_turns as usize);
+        let mut seeded_history = Vec::new();
+        let mut user_turns_seen = 0usize;
+
+        for message in agent_guard.agent.history() {
+            if let zeroclaw::providers::ConversationMessage::Chat(chat) = message {
+                if chat.role == "user" {
+                    if user_turns_seen >= keep_user_turns as usize {
+                        break;
+                    }
+                    user_turns_seen += 1;
+                }
+                seeded_history.push(chat.clone());
+            }
+        }
+
+        agent_guard.agent.clear_history();
+        if !seeded_history.is_empty() {
+            agent_guard.agent.seed_history(&seeded_history);
+        }
     }
 }
 
@@ -1416,19 +1200,20 @@ async fn evict_oldest_agent_if_needed() {
     }
 }
 
-/// Resolve delegate agent provider names through model_providers profiles.
+/// Resolve delegate agent provider names through provider profiles.
 ///
 /// When a delegate agent has `provider = "openai"` and the same API key as a
-/// model_providers profile that specifies a custom `base_url`, the provider is
+/// provider profile that specifies a custom `base_url`, the provider is
 /// rewritten to `"custom:{base_url}"` so the delegate hits the correct endpoint.
 ///
 /// Without this, a delegate with `provider = "openai"` would always go to
 /// `api.openai.com`, even when the user configured a DashScope/compatible endpoint.
 fn resolve_delegate_providers(config: &mut zeroclaw::Config) {
-    let main_provider = config.default_provider.clone().unwrap_or_default();
-    let main_api_url = config.api_url.clone().unwrap_or_default();
-    let main_api_key = config.api_key.clone().unwrap_or_default();
-    let model_providers = config.model_providers.clone();
+    let fallback_key = config.providers.fallback.clone();
+    let (_, _, main_api_key, main_api_url, _) =
+        runtime_provider_snapshot(config, fallback_key.as_deref());
+    let main_provider = fallback_key.unwrap_or_default();
+    let model_providers = config.providers.models.clone();
 
     for (agent_name, agent_config) in config.agents.iter_mut() {
         // Skip if already using a custom URL provider
@@ -1440,7 +1225,7 @@ fn resolve_delegate_providers(config: &mut zeroclaw::Config) {
 
         let agent_key = agent_config.api_key.as_deref().unwrap_or("").trim();
 
-        // Strategy 1: Match against model_providers profiles
+        // Strategy 1: Match against configured provider profiles.
         // Look for a profile whose name matches the delegate's provider type
         // AND whose api_key matches the delegate's api_key, AND has a base_url.
         let matched_url = model_providers.values().find_map(|profile| {
@@ -1464,26 +1249,30 @@ fn resolve_delegate_providers(config: &mut zeroclaw::Config) {
                 agent = agent_name,
                 old_provider = %agent_config.provider,
                 new_provider = %format!("custom:{url}"),
-                "Resolved delegate agent provider through model_providers profile"
+                "Resolved delegate agent provider through provider profile"
             );
             agent_config.provider = format!("custom:{url}");
             continue;
         }
 
         // Strategy 2: If the delegate uses the same provider and API key as the
-        // main config and a custom api_url is configured globally, inherit it.
+        // fallback runtime config and a custom api_url is configured, inherit it.
         if agent_config.provider == main_provider
             && !agent_key.is_empty()
-            && agent_key == main_api_key.trim()
-            && !main_api_url.trim().is_empty()
+            && Some(agent_key) == main_api_key.as_deref().map(str::trim)
+            && main_api_url
+                .as_deref()
+                .map(str::trim)
+                .is_some_and(|url| !url.is_empty())
         {
+            let inherited_api_url = main_api_url.as_deref().unwrap_or("").trim();
             tracing::info!(
                 agent = agent_name,
                 old_provider = %agent_config.provider,
-                new_provider = %format!("custom:{}", main_api_url.trim()),
+                new_provider = %format!("custom:{inherited_api_url}"),
                 "Resolved delegate agent provider through main config api_url"
             );
-            agent_config.provider = format!("custom:{}", main_api_url.trim());
+            agent_config.provider = format!("custom:{inherited_api_url}");
         }
     }
 }
@@ -1492,18 +1281,19 @@ fn resolve_delegate_providers(config: &mut zeroclaw::Config) {
 /// Returns an Arc to the session's agent mutex for concurrent access.
 async fn ensure_session_agent(session_id: &str) -> Result<Arc<TokioMutex<SessionAgent>>, String> {
     // 1. Read global config
-    let mut config = {
+    let (mut config, selected_profile_id) = {
         let gc = global_config().read().await;
         match &gc.config {
-            Some(c) => c.clone(),
+            Some(c) => (c.clone(), gc.default_profile_id.clone()),
             None => return Err("Runtime not initialized. Call init_runtime() first.".into()),
         }
     };
 
     // 2. Check API key
-    let provider_name = config.default_provider.as_deref().unwrap_or("openrouter");
-    let needs_key = !matches!(provider_name, "ollama");
-    if needs_key && config.api_key.is_none() {
+    let (provider_name, _, api_key, _, _) =
+        runtime_provider_snapshot(&config, selected_profile_id.as_deref());
+    let needs_key = !matches!(provider_name.as_str(), "ollama");
+    if needs_key && api_key.is_none() {
         return Err("No API key configured. Please set your API key in Settings → Models.".into());
     }
 
@@ -1534,9 +1324,7 @@ async fn ensure_session_agent(session_id: &str) -> Result<Arc<TokioMutex<Session
         session_files.len()
     );
 
-    // 6. Configure session-specific workspace
-    // Check if this session is bound to an agent workspace
-    let agent_binding = super::agent_workspace_api::get_binding_for_session(session_id).await;
+    // 6. Configure the default session workspace.
 
     // 6a. Check if this session belongs to a project and inject project context
     let session_project_id = super::project_api::get_session_project(session_id.to_string()).await;
@@ -1552,37 +1340,14 @@ async fn ensure_session_agent(session_id: &str) -> Result<Arc<TokioMutex<Session
         }
     }
 
-    let session_workspace = if let Some(ref ws_id) = agent_binding {
-        // Use agent workspace directory — independent identity/personality
-        if let Err(e) =
-            super::agent_workspace_api::resolve_workspace_config(&mut config, ws_id).await
-        {
-            tracing::warn!("Failed to resolve agent workspace {ws_id}: {e}");
-            // Fall back to default session workspace
-            let fallback = dirs::home_dir()
-                .unwrap_or_default()
-                .join(".coraldesk")
-                .join("workspace")
-                .join("session")
-                .join(session_id);
-            let _ = std::fs::create_dir_all(&fallback);
-            config.workspace_dir = fallback.clone();
-            fallback
-        } else {
-            config.workspace_dir.clone()
-        }
-    } else {
-        // Default: session-specific workspace
-        let ws = dirs::home_dir()
-            .unwrap_or_default()
-            .join(".coraldesk")
-            .join("workspace")
-            .join("session")
-            .join(session_id);
-        let _ = std::fs::create_dir_all(&ws);
-        config.workspace_dir = ws.clone();
-        ws
-    };
+    let session_workspace = dirs::home_dir()
+        .unwrap_or_default()
+        .join(".coraldesk")
+        .join("workspace")
+        .join("session")
+        .join(session_id);
+    let _ = std::fs::create_dir_all(&session_workspace);
+    config.workspace_dir = session_workspace.clone();
 
     // Symlink shared memory directory
     let global_memory_dir = dirs::home_dir()
@@ -1617,8 +1382,12 @@ async fn ensure_session_agent(session_id: &str) -> Result<Arc<TokioMutex<Session
         }
     }
 
-    // 7. Resolve delegate agent providers through model_providers profiles.
-    //    When a delegate agent's provider + api_key matches a model_providers
+    // Materialize the selected profile into a valid provider key only for this
+    // execution config. The stored config keeps profile ids unchanged.
+    materialize_runtime_provider(&mut config, selected_profile_id.as_deref());
+
+    // 7. Resolve delegate agent providers through provider profiles.
+    //    When a delegate agent's provider + api_key matches a provider profile
     //    profile that has a custom base_url, transform the provider to
     //    "custom:{base_url}" so the delegate hits the correct API endpoint
     //    instead of the provider's default URL (e.g. api.openai.com).
@@ -1627,7 +1396,7 @@ async fn ensure_session_agent(session_id: &str) -> Result<Arc<TokioMutex<Session
     // 7a. In trust-me mode, allow all public domains for network-facing tools
     // without mutating the persisted config. Private/local network guards still
     // apply inside zeroclaw's URL validation layer.
-    if config.autonomy.trust_me {
+    if trust_me_enabled(&config) {
         config.browser.allowed_domains = vec!["*".to_string()];
         config.http_request.allowed_domains = vec!["*".to_string()];
         config.web_fetch.allowed_domains = vec!["*".to_string()];
@@ -1640,15 +1409,21 @@ async fn ensure_session_agent(session_id: &str) -> Result<Arc<TokioMutex<Session
     {
         let ma_sessions = super::agents_api::multi_agent_sessions().read().await;
         if let Some(active_roles) = ma_sessions.get(session_id) {
+            let delegate_agent_meta = global_config().read().await.delegate_agent_meta.clone();
             let roles_desc = active_roles
                 .iter()
                 .filter_map(|name| {
-                    config.agents.get(name).map(|cfg| {
-                        let label = cfg.role_label.as_deref().unwrap_or(name.as_str());
-                        let icon = cfg.role_icon.as_deref().unwrap_or("");
+                    let meta = delegate_agent_meta.get(name).cloned().unwrap_or_default();
+                    config.agents.get(name).map(|_| {
+                        let label = meta.role_label.as_deref().unwrap_or(name.as_str());
+                        let icon = meta.role_icon.as_deref().unwrap_or("");
                         format!(
                             "- **{icon} {label}** (`{name}`): {}",
-                            cfg.capabilities.join(", ")
+                            if meta.capabilities.is_empty() {
+                                "delegate".to_string()
+                            } else {
+                                meta.capabilities.join(", ")
+                            }
                         )
                     })
                 })
@@ -1702,97 +1477,13 @@ async fn ensure_session_agent(session_id: &str) -> Result<Arc<TokioMutex<Session
                 let combined = format!("{orchestrator_prompt}\n{existing_soul}");
                 let _ = std::fs::write(&soul_path, combined);
             }
-
-            // Ensure agent teams are enabled
-            config.agent.teams.enabled = true;
-            config.agent.teams.auto_activate = true;
-
-            // ── Workspace-aware delegate enrichment ──────────────────
-            // For each active role, if there is a corresponding agent workspace
-            // (e.g. "architect" → "preset_architect"), enrich the delegate
-            // agent config with the workspace's SOUL.md, allowed_tools,
-            // allowed_mcp_servers, and allowed_skills.  This ensures that
-            // when the delegate tool invokes a role, the role receives its
-            // full workspace identity instead of a minimal system prompt.
-            for role_name in active_roles {
-                let workspace_id = format!("preset_{}", role_name);
-                if let Some(ws_config) =
-                    super::agent_workspace_api::get_workspace_identity(&workspace_id).await
-                {
-                    if let Some(agent_cfg) = config.agents.get_mut(role_name) {
-                        // Merge workspace SOUL.md into the delegate's system prompt
-                        if !ws_config.soul_md.trim().is_empty() {
-                            let existing = agent_cfg.system_prompt.as_deref().unwrap_or("");
-                            if !existing.contains(&ws_config.soul_md) {
-                                agent_cfg.system_prompt =
-                                    Some(format!("{}\n\n{}", ws_config.soul_md, existing));
-                            }
-                        }
-
-                        // Merge workspace allowed_tools (additive)
-                        if !ws_config.allowed_tools.is_empty() {
-                            for tool in &ws_config.allowed_tools {
-                                if !agent_cfg.allowed_tools.contains(tool) {
-                                    agent_cfg.allowed_tools.push(tool.clone());
-                                }
-                            }
-                        }
-
-                        // Inject workspace identity context into a marker
-                        // so the delegate tool can reference it.
-                        if !ws_config.identity_md.trim().is_empty() {
-                            let prompt = agent_cfg.system_prompt.get_or_insert_with(String::new);
-                            if !prompt.contains("[IDENTITY]") {
-                                prompt.push_str(&format!(
-                                    "\n\n[IDENTITY]\n{}",
-                                    ws_config.identity_md
-                                ));
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 
     // 8. Create the agent
-    let mut agent = zeroclaw::agent::Agent::from_config(&config)
+    let agent = zeroclaw::agent::Agent::from_config(&config)
+        .await
         .map_err(|e| format!("Failed to create agent: {e}"))?;
-
-    // 8a. Asynchronously connect MCP servers and inject their tools
-    if config.mcp.enabled && !config.mcp.servers.is_empty() {
-        tracing::info!(
-            "DeskClaw: initializing MCP — {} server(s)",
-            config.mcp.servers.len()
-        );
-        match zeroclaw::tools::McpRegistry::connect_all(&config.mcp.servers).await {
-            Ok(registry) => {
-                let registry = std::sync::Arc::new(registry);
-                let names = registry.tool_names();
-                let mut mcp_tools: Vec<Box<dyn zeroclaw::tools::Tool>> = Vec::new();
-                for name in names {
-                    if let Some(def) = registry.get_tool_def(&name).await {
-                        let wrapper = zeroclaw::tools::McpToolWrapper::new(
-                            name,
-                            def,
-                            std::sync::Arc::clone(&registry),
-                        );
-                        mcp_tools.push(Box::new(wrapper));
-                    }
-                }
-                let count = mcp_tools.len();
-                agent.add_tools(mcp_tools);
-                tracing::info!(
-                    "DeskClaw MCP: {} tool(s) registered from {} server(s)",
-                    count,
-                    registry.server_count()
-                );
-            }
-            Err(e) => {
-                tracing::error!("DeskClaw MCP failed to initialize: {e:#}");
-            }
-        }
-    }
 
     let session_agent = SessionAgent {
         agent,
@@ -2021,9 +1712,8 @@ pub async fn send_message_stream(
 
     let _ = sink.add(AgentEvent::Thinking);
 
-    // Create an mpsc channel for streaming deltas from zeroclaw
-    // Use larger buffer to prevent backpressure during high-frequency deltas
-    let (tx, mut rx) = tokio::sync::mpsc::channel::<String>(256);
+    // Create an mpsc channel for streaming turn events from zeroclaw.
+    let (tx, mut rx) = tokio::sync::mpsc::channel::<TurnEvent>(256);
 
     // Wrap the sink in an Arc so it can be shared with the relay task
     let sink = Arc::new(sink);
@@ -2034,7 +1724,6 @@ pub async fn send_message_stream(
     let activity_epoch = Arc::new(Instant::now());
     let last_activity_ms = Arc::new(AtomicU64::new(0));
     let tool_active = Arc::new(AtomicBool::new(false));
-    let awaiting_approval = Arc::new(AtomicBool::new(false));
     let idle_timeout_triggered = Arc::new(AtomicBool::new(false));
 
     mark_turn_activity(activity_epoch.as_ref(), last_activity_ms.as_ref());
@@ -2045,7 +1734,6 @@ pub async fn send_message_stream(
         let activity_epoch = activity_epoch.clone();
         let last_activity_ms = last_activity_ms.clone();
         let tool_active = tool_active.clone();
-        let awaiting_approval = awaiting_approval.clone();
         let idle_timeout_triggered = idle_timeout_triggered.clone();
 
         tokio::spawn(async move {
@@ -2055,8 +1743,7 @@ pub async fn send_message_stream(
                     _ = tokio::time::sleep(Duration::from_millis(TURN_IDLE_POLL_MILLIS)) => {}
                 }
 
-                if tool_active.load(Ordering::Relaxed) || awaiting_approval.load(Ordering::Relaxed)
-                {
+                if tool_active.load(Ordering::Relaxed) {
                     continue;
                 }
 
@@ -2083,19 +1770,7 @@ pub async fn send_message_stream(
         tokens.insert(session_id.clone(), stream_cancel_token.clone());
     }
 
-    // Spawn a relay task that converts zeroclaw's string-based delta protocol
-    // into typed AgentEvent messages for Flutter.
-    //
-    // Zeroclaw sends progress deltas with sentinel prefixes:
-    //   - `\x00PROGRESS\x00`      — verbose-only progress line (thinking, tool counts, retries)
-    //   - `\x00PROGRESS_BLOCK\x00` — compact progress block (tool start/end lifecycle)
-    //   - `\x00CLEAR\x00`         — clear accumulated progress before final answer
-    //   - `\x01TOOL_RESULT\x02`   — structured tool result
-    //   - plain text              — final answer chunks
-    //
-    // For multi-agent role tracking: when a delegate tool call is detected,
-    // we look up the agent's role_label/role_color/role_icon metadata and
-    // emit a RoleSwitch event so the Flutter UI can render role headers.
+    // Relay typed turn events into the Flutter event model.
     let relay_activity_epoch = activity_epoch.clone();
     let relay_last_activity_ms = last_activity_ms.clone();
     let relay_tool_active = tool_active.clone();
@@ -2103,31 +1778,24 @@ pub async fn send_message_stream(
         let activity_epoch = relay_activity_epoch;
         let last_activity_ms = relay_last_activity_ms;
         let tool_active = relay_tool_active;
-        // Snapshot agent role metadata for delegate tracking
         let agent_role_metadata: HashMap<String, (String, String, String)> = {
             let gc = global_config().read().await;
-            gc.config
-                .as_ref()
-                .map(|c| {
-                    c.agents
-                        .iter()
-                        .filter_map(|(name, cfg)| {
-                            let label = cfg.role_label.clone().unwrap_or_else(|| name.clone());
-                            let color = cfg.role_color.clone().unwrap_or_default();
-                            let icon = cfg.role_icon.clone().unwrap_or_default();
-                            if color.is_empty() && icon.is_empty() {
-                                None
-                            } else {
-                                Some((name.clone(), (label, color, icon)))
-                            }
-                        })
-                        .collect()
+            gc.delegate_agent_meta
+                .iter()
+                .filter_map(|(name, meta)| {
+                    let label = meta.role_label.clone().unwrap_or_else(|| name.clone());
+                    let color = meta.role_color.clone().unwrap_or_default();
+                    let icon = meta.role_icon.clone().unwrap_or_default();
+                    if color.is_empty() && icon.is_empty() {
+                        None
+                    } else {
+                        Some((name.clone(), (label, color, icon)))
+                    }
                 })
-                .unwrap_or_default()
+                .collect()
         };
-        // Track current active role for annotating TextDelta events
         let mut current_role: Option<String> = None;
-        // Helper macro to send events and exit early if sink is closed
+
         macro_rules! send_or_break {
             ($event:expr) => {
                 if sink_clone.add($event).is_err() {
@@ -2138,330 +1806,126 @@ pub async fn send_message_stream(
             };
         }
 
-        while let Some(delta) = rx.recv().await {
+        while let Some(event) = rx.recv().await {
             mark_turn_activity(activity_epoch.as_ref(), last_activity_ms.as_ref());
-            let trimmed = delta.trim();
-
-            // Sentinel: clear accumulated progress (final answer coming)
-            if trimmed == "\x00CLEAR\x00" {
-                send_or_break!(AgentEvent::ClearStreamedContent);
-                continue;
-            }
-
-            // Structured tool result: \x01TOOL_RESULT\x02name\x02success\x02output\x01
-            // Sent right after ✅/❌ with the actual tool output.
-            if delta.starts_with('\x01') && delta.contains("TOOL_RESULT\x02") {
-                if let Some(rest) = delta
-                    .trim_start_matches('\x01')
-                    .strip_prefix("TOOL_RESULT\x02")
-                {
-                    // rest = "name\x02success\x02output\x01"
-                    let rest = rest.trim_end_matches('\x01');
-                    let parts: Vec<&str> = rest.splitn(3, '\x02').collect();
-                    if parts.len() == 3 {
-                        let name = parts[0].to_string();
-                        let success = parts[1] == "true";
-                        let result = parts[2].to_string();
-                        tool_active.store(false, Ordering::Relaxed);
-                        // Reset current role when delegate tool completes.
-                        // Try to parse handoff protocol from the result to emit
-                        // a RoleHandoff event for the UI.
-                        if name == "delegate" {
-                            if let Some(from_role) = current_role.take() {
-                                // Look for handoff markers in the result:
-                                //   **Next**: agent_name: task description
-                                let mut to_role = String::new();
-                                let mut summary = String::new();
-                                for line in result.lines() {
-                                    let trimmed_line = line.trim().trim_start_matches("- ");
-                                    if trimmed_line.starts_with("**Summary**:")
-                                        || trimmed_line.starts_with("**Summary:**")
-                                    {
-                                        summary = trimmed_line
-                                            .trim_start_matches("**Summary**:")
-                                            .trim_start_matches("**Summary:**")
-                                            .trim()
-                                            .to_string();
-                                    }
-                                    if trimmed_line.starts_with("**Next**:")
-                                        || trimmed_line.starts_with("**Next:**")
-                                    {
-                                        let next_text = trimmed_line
-                                            .trim_start_matches("**Next**:")
-                                            .trim_start_matches("**Next:**")
-                                            .trim();
-                                        if let Some((role, _task)) = next_text.split_once(':') {
-                                            to_role = role
-                                                .trim()
-                                                .to_lowercase()
-                                                .replace("**", "")
-                                                .replace('*', "");
-                                        }
-                                    }
-                                }
-                                if !to_role.is_empty() || !summary.is_empty() {
-                                    send_or_break!(AgentEvent::RoleHandoff {
-                                        from_role: from_role.clone(),
-                                        to_role: to_role.clone(),
-                                        summary: summary.clone(),
-                                    });
-                                }
-                            }
-                        }
-                        send_or_break!(AgentEvent::ToolCallEnd {
-                            name,
-                            result,
-                            success,
+            match event {
+                TurnEvent::Thinking { .. } => {
+                    send_or_break!(AgentEvent::Thinking);
+                }
+                TurnEvent::Chunk { delta } => {
+                    if !delta.is_empty() {
+                        send_or_break!(AgentEvent::TextDelta {
+                            text: delta,
+                            role_name: current_role.clone(),
                         });
                     }
                 }
-                continue;
-            }
-
-            // Strip sentinel prefixes added by zeroclaw v0.1.7+.
-            // \x00PROGRESS\x00 wraps verbose-only lines (🤔, 💬, ↻, ⚠️)
-            // \x00PROGRESS_BLOCK\x00 wraps compact tool lifecycle lines (⏳, ✅, ❌)
-            //
-            // A PROGRESS_BLOCK may contain multiple lines (one per tool),
-            // e.g. "⏳ shell: pwd\n⏳ shell: ls".  We split by newline and
-            // process each line individually so every tool gets its own event.
-            let is_progress_block = trimmed.starts_with("\x00PROGRESS_BLOCK\x00");
-            let effective_block = if let Some(inner) = trimmed
-                .strip_prefix("\x00PROGRESS_BLOCK\x00")
-                .or_else(|| trimmed.strip_prefix("\x00PROGRESS\x00"))
-            {
-                inner.trim()
-            } else {
-                trimmed
-            };
-
-            // Collect lines to process.  For PROGRESS_BLOCK deltas we split
-            // on newlines; for everything else we treat as a single line.
-            let lines: Vec<&str> = if is_progress_block {
-                effective_block
-                    .lines()
-                    .map(|l| l.trim())
-                    .filter(|l| !l.is_empty())
-                    .collect()
-            } else {
-                vec![effective_block]
-            };
-
-            // Track whether any line triggered a `continue` (i.e. was handled)
-            let mut handled = false;
-
-            for effective in lines {
-                // Tool start: "⏳ tool_name: args" or "⏳ tool_name"
-                if effective.starts_with('⏳') {
-                    let rest = effective.trim_start_matches('⏳').trim();
-                    let (name, args) = if let Some((n, a)) = rest.split_once(':') {
-                        (n.trim().to_string(), a.trim().to_string())
-                    } else {
-                        (rest.to_string(), String::new())
-                    };
+                TurnEvent::ToolCall { name, args } => {
                     tool_active.store(true, Ordering::Relaxed);
-
-                    // Detect delegate tool calls → emit RoleSwitch for multi-agent UI
                     if name == "delegate" {
-                        let mut resolved_key: Option<String> = None;
-                        // Try to parse agent name from args JSON
-                        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&args) {
-                            if let Some(agent_name) = parsed.get("agent").and_then(|v| v.as_str()) {
-                                let key = agent_name.to_string();
-                                if key != "auto" && agent_role_metadata.contains_key(&key) {
-                                    resolved_key = Some(key);
-                                }
-                            }
-                        }
-                        // Fallback: if only one role is configured, use it
+                        let mut resolved_key = args
+                            .get("agent")
+                            .and_then(|value| value.as_str())
+                            .map(ToOwned::to_owned)
+                            .filter(|value| value != "auto");
                         if resolved_key.is_none() && agent_role_metadata.len() == 1 {
                             resolved_key = agent_role_metadata.keys().next().cloned();
                         }
                         if let Some(agent_key) = resolved_key {
                             if let Some((label, color, icon)) = agent_role_metadata.get(&agent_key)
                             {
-                                if !color.is_empty() || !icon.is_empty() {
-                                    send_or_break!(AgentEvent::RoleSwitch {
-                                        role_name: label.clone(),
-                                        role_color: color.clone(),
-                                        role_icon: icon.clone(),
-                                    });
-                                    current_role = Some(agent_key);
-                                }
+                                send_or_break!(AgentEvent::RoleSwitch {
+                                    role_name: label.clone(),
+                                    role_color: color.clone(),
+                                    role_icon: icon.clone(),
+                                });
+                                current_role = Some(agent_key);
                             }
                         }
                     }
 
                     send_or_break!(AgentEvent::ToolCallStart {
                         name,
-                        args,
-                        role_name: current_role.clone()
+                        args: serde_json::to_string(&args).unwrap_or_default(),
+                        role_name: current_role.clone(),
                     });
-                    handled = true;
-                    continue;
                 }
-
-                // Tool success: "✅ tool_name (Ns)"
-                // Status-only; the actual result follows in the TOOL_RESULT message.
-                if effective.starts_with('✅') {
+                TurnEvent::ToolResult { name, output } => {
                     tool_active.store(false, Ordering::Relaxed);
-                    handled = true;
-                    continue;
+                    if name == "delegate" {
+                        if let Some(from_role) = current_role.take() {
+                            let mut to_role = String::new();
+                            let mut summary = String::new();
+                            for line in output.lines() {
+                                let trimmed_line = line.trim().trim_start_matches("- ");
+                                if trimmed_line.starts_with("**Summary**:")
+                                    || trimmed_line.starts_with("**Summary:**")
+                                {
+                                    summary = trimmed_line
+                                        .trim_start_matches("**Summary**:")
+                                        .trim_start_matches("**Summary:**")
+                                        .trim()
+                                        .to_string();
+                                }
+                                if trimmed_line.starts_with("**Next**:")
+                                    || trimmed_line.starts_with("**Next:**")
+                                {
+                                    let next_text = trimmed_line
+                                        .trim_start_matches("**Next**:")
+                                        .trim_start_matches("**Next:**")
+                                        .trim();
+                                    if let Some((role, _task)) = next_text.split_once(':') {
+                                        to_role = role
+                                            .trim()
+                                            .to_lowercase()
+                                            .replace("**", "")
+                                            .replace('*', "");
+                                    }
+                                }
+                            }
+                            if !to_role.is_empty() || !summary.is_empty() {
+                                send_or_break!(AgentEvent::RoleHandoff {
+                                    from_role,
+                                    to_role,
+                                    summary,
+                                });
+                            }
+                        }
+                    }
+
+                    send_or_break!(AgentEvent::ToolCallEnd {
+                        name,
+                        result: output,
+                        success: true,
+                    });
                 }
-
-                // Tool failure: "❌ tool_name (Ns)"
-                // Status-only; the actual result follows in the TOOL_RESULT message.
-                if effective.starts_with('❌') {
-                    tool_active.store(false, Ordering::Relaxed);
-                    handled = true;
-                    continue;
-                }
-
-                // Thinking progress: "🤔 Thinking..."
-                if effective.starts_with('🤔') {
-                    send_or_break!(AgentEvent::Thinking);
-                    handled = true;
-                    continue;
-                }
-
-                // Tool call count: "💬 Got N tool call(s) ..."
-                if effective.starts_with('💬') {
-                    // Informational — skip or treat as thinking
-                    handled = true;
-                    continue;
-                }
-
-                // Retry progress: "↻ Retrying: ..."
-                if effective.starts_with('↻') {
-                    // Informational — skip
-                    handled = true;
-                    continue;
-                }
-
-                // Loop detection warning: "⚠️ Loop detected..."
-                if effective.starts_with('⚠') {
-                    // Informational — skip
-                    handled = true;
-                    continue;
-                }
-            } // end for each line
-
-            if handled {
-                continue;
-            }
-
-            // If the original delta had a sentinel prefix, it was a progress
-            // line we didn't specifically handle above — skip it silently
-            // rather than leaking raw text to the UI.
-            if trimmed.starts_with('\x00') {
-                continue;
-            }
-
-            // Everything else is streamed text content.
-            if !delta.is_empty() {
-                send_or_break!(AgentEvent::TextDelta {
-                    text: delta,
-                    role_name: current_role.clone()
-                });
             }
         }
     });
 
-    // Determine whether to enable desktop approval (non-trust-me mode).
-    let trust_me = {
-        let gc = global_config().read().await;
-        gc.config
-            .as_ref()
-            .map(|c| c.autonomy.trust_me)
-            .unwrap_or(false)
-    };
+    let turn_handle = tokio::spawn({
+        let agent_arc = agent_arc.clone();
+        let enriched_message = enriched_message.clone();
+        async move {
+            let mut session_agent = agent_arc.lock().await;
+            session_agent.last_used = Instant::now();
+            session_agent
+                .agent
+                .turn_streamed(&enriched_message, tx)
+                .await
+        }
+    });
 
-    // Build the approval callback. When trust_me is OFF, this callback sends
-    // a ToolApprovalRequest event to Flutter and waits for the user's decision
-    // via `respond_to_tool_approval()`.
-    let sink_for_approval = sink.clone();
-    let session_id_for_approval = session_id.clone();
-    let approval_activity_epoch = activity_epoch.clone();
-    let approval_last_activity_ms = last_activity_ms.clone();
-    let approval_awaiting_flag = awaiting_approval.clone();
-    let on_approval_fn: Option<zeroclaw::agent::loop_::OnApprovalFn> = if !trust_me {
-        Some(Box::new(
-            move |tool_name: String, tool_args: serde_json::Value| {
-                let sink_inner = sink_for_approval.clone();
-                let _session_id = session_id_for_approval.clone();
-                let activity_epoch = approval_activity_epoch.clone();
-                let last_activity_ms = approval_last_activity_ms.clone();
-                let awaiting_approval = approval_awaiting_flag.clone();
-                Box::pin(async move {
-                    let request_id = uuid::Uuid::new_v4().to_string();
-                    let args_str = serde_json::to_string(&tool_args).unwrap_or_default();
-
-                    // Send approval request to Flutter UI
-                    awaiting_approval.store(true, Ordering::Relaxed);
-                    mark_turn_activity(activity_epoch.as_ref(), last_activity_ms.as_ref());
-                    let _ = sink_inner.add(AgentEvent::ToolApprovalRequest {
-                        request_id: request_id.clone(),
-                        name: tool_name,
-                        args: args_str,
-                    });
-
-                    // Create a oneshot channel
-                    let (resp_tx, resp_rx) = tokio::sync::oneshot::channel();
-
-                    // Store in legacy slot for FRB single-argument respond_to_tool_approval
-                    {
-                        let mut legacy = legacy_pending_approval().lock().await;
-                        *legacy = Some((
-                            request_id.clone(),
-                            PendingApproval {
-                                response_tx: resp_tx,
-                            },
-                        ));
-                    }
-
-                    // Wait for Flutter to respond (with a generous timeout)
-                    match tokio::time::timeout(Duration::from_secs(300), resp_rx).await {
-                        Ok(Ok(decision)) => {
-                            awaiting_approval.store(false, Ordering::Relaxed);
-                            mark_turn_activity(activity_epoch.as_ref(), last_activity_ms.as_ref());
-                            decision
-                        }
-                        Ok(Err(_)) => {
-                            awaiting_approval.store(false, Ordering::Relaxed);
-                            // Channel was dropped — treat as denied
-                            zeroclaw::approval::ApprovalResponse::No
-                        }
-                        Err(_) => {
-                            awaiting_approval.store(false, Ordering::Relaxed);
-                            // Timeout — clean up and treat as denied
-                            {
-                                let mut legacy = legacy_pending_approval().lock().await;
-                                *legacy = None;
-                            }
-                            tracing::warn!("Tool approval timed out for request {request_id}");
-                            zeroclaw::approval::ApprovalResponse::No
-                        }
-                    }
-                })
-            },
-        ))
-    } else {
-        None
-    };
-
-    // Lock only this session's agent — other sessions remain unblocked
-    let turn_result = {
-        let mut session_agent = agent_arc.lock().await;
-        session_agent.last_used = Instant::now();
-        let agent = &mut session_agent.agent;
-        agent
-            .turn_streaming(
-                &enriched_message,
-                tx,
-                Some(stream_cancel_token.clone()),
-                on_approval_fn.as_ref(),
-            )
-            .await
+    let turn_abort = turn_handle.abort_handle();
+    let turn_result: anyhow::Result<String> = tokio::select! {
+        result = turn_handle => match result {
+            Ok(result) => result,
+            Err(err) => Err(anyhow::anyhow!("agent task join error: {err}")),
+        },
+        _ = stream_cancel_token.cancelled() => {
+            turn_abort.abort();
+            Err(anyhow::anyhow!("agent turn cancelled"))
+        }
     };
 
     watchdog_done_token.cancel();
@@ -2549,31 +2013,12 @@ pub async fn send_message_stream(
 
 // ──────────────────── Tool Listing ────────────────────────────
 
-/// List available tools dynamically from any agent's registered tool specs.
-/// Falls back to a minimal static list if no agent is currently initialized.
+/// List available tools.
 ///
-/// Note: kept as sync (#[frb(sync)]) to match the existing FRB generated binding.
-/// Uses `try_lock` to avoid blocking if agents are busy.
+/// Zeroclaw v0.7 no longer exposes the agent's internal tool registry as a
+/// public API, so keep a stable UI-oriented fallback list here.
 #[frb(sync)]
 pub fn list_tools() -> Vec<ToolSpecDto> {
-    // Try to get tool specs from any available session agent
-    if let Ok(agents) = session_agents().try_read() {
-        for (_session_id, agent_arc) in agents.iter() {
-            if let Ok(session_agent) = agent_arc.try_lock() {
-                return session_agent
-                    .agent
-                    .tool_specs()
-                    .iter()
-                    .map(|spec| ToolSpecDto {
-                        name: spec.name.clone(),
-                        description: spec.description.clone(),
-                    })
-                    .collect();
-            }
-        }
-    }
-
-    // Fallback: no agents yet or all agents are busy
     vec![
         ToolSpecDto {
             name: "shell".into(),

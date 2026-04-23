@@ -19,12 +19,24 @@ class _WorkspacePageState extends ConsumerState<WorkspacePage> {
   MemoryConfigDto? _memoryConfig;
   CostConfigDto? _costConfig;
   bool _loading = true;
+  bool _savingAdvancedAgent = false;
+  bool _messageIsError = false;
+  String? _message;
+  late final TextEditingController _dedupExemptCtrl;
+  List<ws_api.AgentToolFilterGroupDto> _toolFilterGroups = [];
   CoralDeskColors get c => CoralDeskColors.of(context);
 
   @override
   void initState() {
     super.initState();
+    _dedupExemptCtrl = TextEditingController();
     _loadAll();
+  }
+
+  @override
+  void dispose() {
+    _dedupExemptCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _loadAll() async {
@@ -38,17 +50,119 @@ class _WorkspacePageState extends ConsumerState<WorkspacePage> {
         _agentConfig = agent;
         _memoryConfig = memory;
         _costConfig = cost;
+        _dedupExemptCtrl.text = _joinList(agent.toolCallDedupExempt);
+        _toolFilterGroups = agent.toolFilterGroups
+            .map(
+              (group) => ws_api.AgentToolFilterGroupDto(
+                mode: group.mode,
+                tools: List<String>.from(group.tools),
+                keywords: List<String>.from(group.keywords),
+                filterBuiltins: group.filterBuiltins,
+              ),
+            )
+            .toList();
         _loading = false;
       });
     }
   }
 
+  String _joinList(List<String> values) => values.join(', ');
+
+  List<String> _parseList(String raw) {
+    return raw
+        .split(',')
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toSet()
+        .toList();
+  }
+
+  Future<void> _saveAdvancedAgentSettings() async {
+    final l10n = AppLocalizations.of(context)!;
+    final hasEmptyGroup = _toolFilterGroups.any((group) => group.tools.isEmpty);
+    if (hasEmptyGroup) {
+      _showMessage(l10n.workspaceToolFilterGroupToolsRequired, isError: true);
+      return;
+    }
+
+    setState(() => _savingAdvancedAgent = true);
+    final result = await ws_api.updateAgentConfig(
+      toolCallDedupExempt: _parseList(_dedupExemptCtrl.text),
+      toolFilterGroups: _toolFilterGroups,
+    );
+
+    if (!mounted) return;
+    setState(() => _savingAdvancedAgent = false);
+    if (result == 'ok') {
+      _showMessage(l10n.configSaved);
+      _loadAll();
+    } else {
+      _showMessage(result, isError: true);
+    }
+  }
+
+  void _showMessage(String message, {bool isError = false}) {
+    setState(() {
+      _message = message;
+      _messageIsError = isError;
+    });
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      setState(() {
+        _message = null;
+        _messageIsError = false;
+      });
+    });
+  }
+
+  void _addToolFilterGroup() {
+    setState(() {
+      _toolFilterGroups = [
+        ..._toolFilterGroups,
+        const ws_api.AgentToolFilterGroupDto(
+          mode: 'dynamic',
+          tools: [],
+          keywords: [],
+          filterBuiltins: false,
+        ),
+      ];
+    });
+  }
+
+  void _updateToolFilterGroup(int index, ws_api.AgentToolFilterGroupDto group) {
+    setState(() {
+      _toolFilterGroups = [
+        for (var i = 0; i < _toolFilterGroups.length; i++)
+          if (i == index) group else _toolFilterGroups[i],
+      ];
+    });
+  }
+
+  void _removeToolFilterGroup(int index) {
+    setState(() {
+      _toolFilterGroups = [
+        for (var i = 0; i < _toolFilterGroups.length; i++)
+          if (i != index) _toolFilterGroups[i],
+      ];
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return SettingsScaffold(
-      title: AppLocalizations.of(context)!.pageWorkspace,
+      title: l10n.pageWorkspace,
       icon: Icons.business,
       isLoading: _loading,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh, size: 20),
+          tooltip: l10n.refresh,
+          onPressed: _loading ? null : _loadAll,
+        ),
+        if (_message != null)
+          StatusLabel(text: _message!, isError: _messageIsError),
+      ],
       body: _buildContent(),
     );
   }
@@ -60,6 +174,8 @@ class _WorkspacePageState extends ConsumerState<WorkspacePage> {
         _buildWorkspaceSection(),
         const SizedBox(height: 24),
         _buildAgentSection(),
+        const SizedBox(height: 24),
+        _buildAgentRoutingSection(),
         const SizedBox(height: 24),
         _buildMemorySection(),
         const SizedBox(height: 24),
@@ -201,6 +317,210 @@ class _WorkspacePageState extends ConsumerState<WorkspacePage> {
           '${cost.warnAtPercent}%',
         ),
       ],
+    );
+  }
+
+  Widget _buildAgentRoutingSection() {
+    final l10n = AppLocalizations.of(context)!;
+    return _buildCard(
+      title: l10n.workspaceAgentRoutingTitle,
+      icon: Icons.alt_route,
+      children: [
+        Text(
+          l10n.workspaceAgentRoutingDesc,
+          style: TextStyle(fontSize: 12, height: 1.5, color: c.textHint),
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _dedupExemptCtrl,
+          decoration: InputDecoration(
+            labelText: l10n.workspaceDedupExemptLabel,
+            hintText: l10n.workspaceDedupExemptHint,
+          ),
+          minLines: 1,
+          maxLines: 2,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          l10n.workspaceDedupExemptDesc,
+          style: TextStyle(fontSize: 12, color: c.textHint),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Text(
+              l10n.workspaceToolFilterGroupsLabel,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: c.textPrimary,
+              ),
+            ),
+            const Spacer(),
+            OutlinedButton.icon(
+              onPressed: _addToolFilterGroup,
+              icon: const Icon(Icons.add, size: 16),
+              label: Text(l10n.workspaceAddFilterGroup),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (_toolFilterGroups.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: c.inputBg,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: c.inputBorder),
+            ),
+            child: Text(
+              l10n.workspaceNoFilterGroups,
+              style: TextStyle(fontSize: 12, color: c.textSecondary),
+            ),
+          )
+        else
+          ...List.generate(
+            _toolFilterGroups.length,
+            (index) =>
+                _buildToolFilterGroupCard(index, _toolFilterGroups[index]),
+          ),
+        const SizedBox(height: 16),
+        Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton.icon(
+            onPressed: _savingAdvancedAgent ? null : _saveAdvancedAgentSettings,
+            icon: _savingAdvancedAgent
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save_outlined, size: 16),
+            label: Text(
+              _savingAdvancedAgent
+                  ? AppLocalizations.of(context)!.saving
+                  : AppLocalizations.of(context)!.save,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildToolFilterGroupCard(
+    int index,
+    ws_api.AgentToolFilterGroupDto group,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: c.inputBg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: c.inputBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                l10n.workspaceFilterGroupTitle(index + 1),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: c.textPrimary,
+                ),
+              ),
+              const Spacer(),
+              IconButton(
+                onPressed: () => _removeToolFilterGroup(index),
+                icon: const Icon(Icons.delete_outline, size: 18),
+                tooltip: AppLocalizations.of(context)!.delete,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            initialValue: group.mode,
+            decoration: InputDecoration(
+              labelText: l10n.workspaceFilterGroupModeLabel,
+            ),
+            items: [
+              DropdownMenuItem(
+                value: 'dynamic',
+                child: Text(l10n.workspaceFilterGroupModeDynamic),
+              ),
+              DropdownMenuItem(
+                value: 'always',
+                child: Text(l10n.workspaceFilterGroupModeAlways),
+              ),
+            ],
+            onChanged: (value) {
+              if (value == null) return;
+              _updateToolFilterGroup(
+                index,
+                ws_api.AgentToolFilterGroupDto(
+                  mode: value,
+                  tools: group.tools,
+                  keywords: group.keywords,
+                  filterBuiltins: group.filterBuiltins,
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            initialValue: _joinList(group.tools),
+            decoration: InputDecoration(
+              labelText: l10n.workspaceFilterGroupToolsLabel,
+              hintText: l10n.workspaceFilterGroupToolsHint,
+            ),
+            onChanged: (value) {
+              _toolFilterGroups[index] = ws_api.AgentToolFilterGroupDto(
+                mode: group.mode,
+                tools: _parseList(value),
+                keywords: group.keywords,
+                filterBuiltins: group.filterBuiltins,
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            initialValue: _joinList(group.keywords),
+            decoration: InputDecoration(
+              labelText: l10n.workspaceFilterGroupKeywordsLabel,
+              hintText: l10n.workspaceFilterGroupKeywordsHint,
+            ),
+            onChanged: (value) {
+              _toolFilterGroups[index] = ws_api.AgentToolFilterGroupDto(
+                mode: group.mode,
+                tools: group.tools,
+                keywords: _parseList(value),
+                filterBuiltins: group.filterBuiltins,
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          _buildSwitchField(
+            l10n.workspaceFilterBuiltinsLabel,
+            group.filterBuiltins,
+            (value) {
+              _updateToolFilterGroup(
+                index,
+                ws_api.AgentToolFilterGroupDto(
+                  mode: group.mode,
+                  tools: group.tools,
+                  keywords: group.keywords,
+                  filterBuiltins: value,
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 

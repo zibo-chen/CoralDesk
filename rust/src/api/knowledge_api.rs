@@ -44,11 +44,22 @@ async fn ensure_memory_backend() -> Result<(), String> {
 
     let cs = super::agent_api::config_state().read().await;
     let config = cs.config.as_ref().ok_or("not initialized")?;
+    let embedding_api_key = super::agent_api::global_config()
+        .read()
+        .await
+        .embedding_api_key
+        .clone();
+    let fallback_api_key = config
+        .providers
+        .fallback_provider()
+        .and_then(|p| p.api_key.as_deref());
 
-    let backend = zeroclaw::memory::create_memory(
+    let backend = zeroclaw::memory::create_memory_with_storage_and_routes(
         &config.memory,
+        &config.providers.embedding_routes,
+        Some(&config.storage.provider.config),
         &config.workspace_dir,
-        config.api_key.as_deref(),
+        embedding_api_key.as_deref().or(fallback_api_key),
     )
     .map_err(|e| format!("memory init failed: {e}"))?;
 
@@ -135,7 +146,10 @@ pub async fn search_knowledge(query: String, limit: u32) -> Vec<KnowledgeEntry> 
         None => return vec![],
     };
 
-    match backend.recall(&query, limit as usize, None).await {
+    match backend
+        .recall(&query, limit as usize, None, None, None)
+        .await
+    {
         Ok(entries) => entries.into_iter().map(entry_to_dto).collect(),
         Err(_) => vec![],
     }

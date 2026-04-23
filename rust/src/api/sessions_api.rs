@@ -137,16 +137,6 @@ pub async fn init_session_store() -> String {
 
     let count = store.sessions.len();
 
-    // Restore agent workspace bindings from persisted session metadata
-    {
-        let mut bindings = super::agent_workspace_api::session_bindings_mut().await;
-        for session in &store.sessions {
-            if !session.agent_binding.is_empty() {
-                bindings.insert(session.id.clone(), session.agent_binding.clone());
-            }
-        }
-    }
-
     *session_store().lock().await = store;
     format!("loaded {} sessions", count)
 }

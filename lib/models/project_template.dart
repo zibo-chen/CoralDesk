@@ -1,8 +1,7 @@
 import 'package:coraldesk/models/project.dart';
 
 /// Pre-built project templates for quick setup.
-/// Each template pre-fills project type, icon, color, description,
-/// and recommends built-in agent roles.
+/// Each template pre-fills project type, icon, color, and description.
 class ProjectTemplate {
   final String id;
   final String name;
@@ -11,9 +10,6 @@ class ProjectTemplate {
   final String colorTag;
   final ProjectType projectType;
 
-  /// Built-in role IDs to auto-attach when user creates from template.
-  final List<String> recommendedRoleIds;
-
   const ProjectTemplate({
     required this.id,
     required this.name,
@@ -21,7 +17,6 @@ class ProjectTemplate {
     required this.icon,
     required this.colorTag,
     required this.projectType,
-    this.recommendedRoleIds = const [],
   });
 
   /// All available templates
@@ -53,12 +48,6 @@ class ProjectTemplate {
     icon: '💻',
     colorTag: '#4A90D9',
     projectType: ProjectType.codeProject,
-    recommendedRoleIds: [
-      'preset_architect',
-      'preset_coder',
-      'preset_critic',
-      'preset_validator',
-    ],
   );
 
   /// Desktop automation project
@@ -70,7 +59,6 @@ class ProjectTemplate {
     icon: '⚙️',
     colorTag: '#1ABC9C',
     projectType: ProjectType.automation,
-    recommendedRoleIds: ['preset_coder', 'preset_integrator'],
   );
 
   /// Data analysis project
@@ -81,7 +69,6 @@ class ProjectTemplate {
     icon: '📊',
     colorTag: '#F39C12',
     projectType: ProjectType.dataProcessing,
-    recommendedRoleIds: ['preset_coder', 'preset_validator'],
   );
 
   /// Daily assistant project
@@ -93,7 +80,6 @@ class ProjectTemplate {
     icon: '🎯',
     colorTag: '#9B59B6',
     projectType: ProjectType.general,
-    recommendedRoleIds: ['preset_context_keeper'],
   );
 
   /// Writing / content project
@@ -105,6 +91,5 @@ class ProjectTemplate {
     icon: '✍️',
     colorTag: '#E74C3C',
     projectType: ProjectType.writing,
-    recommendedRoleIds: ['preset_coder', 'preset_critic'],
   );
 }

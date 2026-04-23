@@ -10,18 +10,21 @@ import 'package:coraldesk/views/chat/chat_list_panel.dart';
 import 'package:coraldesk/views/chat/chat_view.dart';
 import 'package:coraldesk/views/settings/models_page.dart';
 
+import 'package:coraldesk/views/settings/browser_page.dart';
 import 'package:coraldesk/views/settings/configuration_page.dart';
 import 'package:coraldesk/views/settings/channels_page.dart';
+import 'package:coraldesk/views/settings/gateway_page.dart';
 import 'package:coraldesk/views/settings/skills_page.dart';
 import 'package:coraldesk/views/settings/mcp_page.dart';
 import 'package:coraldesk/views/settings/agents_page.dart';
-import 'package:coraldesk/views/settings/agent_workspaces_page.dart';
 import 'package:coraldesk/views/settings/proxy_page.dart';
 import 'package:coraldesk/views/settings/sessions_page.dart';
 import 'package:coraldesk/views/settings/cron_jobs_page.dart';
 import 'package:coraldesk/views/settings/knowledge_page.dart';
 import 'package:coraldesk/views/settings/llm_debug_page.dart';
 import 'package:coraldesk/views/settings/app_settings_page.dart';
+import 'package:coraldesk/views/settings/tools_page.dart';
+import 'package:coraldesk/views/settings/workspace_page.dart';
 import 'package:coraldesk/views/notification/notification_panel.dart';
 import 'package:coraldesk/views/project/projects_page.dart';
 import 'package:window_manager/window_manager.dart';
@@ -43,14 +46,7 @@ class _AppShellState extends ConsumerState<AppShell> with WindowListener {
     super.initState();
     // Load persisted sessions from Rust store on startup
     Future.microtask(() async {
-      final bindings = await ref
-          .read(sessionsProvider.notifier)
-          .loadPersistedSessions();
-      if (bindings.isNotEmpty) {
-        ref
-            .read(sessionAgentBindingProvider.notifier)
-            .initFromPersisted(bindings);
-      }
+      await ref.read(sessionsProvider.notifier).loadPersistedSessions();
       // Load projects
       ref.read(projectsProvider.notifier).load();
       // Eagerly initialise the cron notification subscription so events
@@ -229,6 +225,8 @@ class _AppShellState extends ConsumerState<AppShell> with WindowListener {
       NavSection.projects => const ProjectsPage(),
       NavSection.models => const ModelsPage(),
       NavSection.channels => const ChannelsPage(),
+      NavSection.browser => const BrowserPage(),
+      NavSection.gateway => const GatewayPage(),
       NavSection.configuration => const ConfigurationPage(),
       NavSection.sessions => const SessionsPage(),
       NavSection.cronJobs => const CronJobsPage(),
@@ -236,7 +234,8 @@ class _AppShellState extends ConsumerState<AppShell> with WindowListener {
       NavSection.skills => const SkillsPage(),
       NavSection.mcp => const McpPage(),
       NavSection.agents => const AgentsPage(),
-      NavSection.agentWorkspaces => const AgentWorkspacesPage(),
+      NavSection.workspace => const WorkspacePage(),
+      NavSection.tools => const ToolsPage(),
       NavSection.proxy => const ProxyPage(),
       NavSection.llmDebug => const LlmDebugPage(),
       NavSection.appSettings => const AppSettingsPage(),

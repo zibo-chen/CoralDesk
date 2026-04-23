@@ -5,8 +5,6 @@ import 'package:coraldesk/l10n/app_localizations.dart';
 import 'package:coraldesk/models/models.dart';
 import 'package:coraldesk/providers/providers.dart';
 import 'package:coraldesk/theme/app_theme.dart';
-import 'package:coraldesk/src/rust/api/agent_workspace_api.dart'
-    as workspace_api;
 import 'package:coraldesk/views/project/projects_page.dart'
     show projectTypeIcon;
 import 'package:coraldesk/views/project/project_edit_dialog.dart';
@@ -63,25 +61,12 @@ class _ProjectDetailViewState extends ConsumerState<ProjectDetailView>
 
   void _createSessionInProject(Project project) {
     final controller = ref.read(chatControllerProvider);
-    final sessionId = controller.createSessionInProject(
-      project.id,
-      defaultRoleId: project.defaultRoleId,
-    );
+    final sessionId = controller.createSessionInProject(project.id);
     ref.read(projectsProvider.notifier).addSession(project.id, sessionId);
     ref.read(currentNavProvider.notifier).state = NavSection.chat;
   }
 
-  void _openSession(String sessionId, {String defaultRoleId = ''}) {
-    if (defaultRoleId.isNotEmpty) {
-      final currentBinding = ref
-          .read(sessionAgentBindingProvider.notifier)
-          .getBinding(sessionId);
-      if (currentBinding == null) {
-        ref
-            .read(sessionAgentBindingProvider.notifier)
-            .bind(sessionId, defaultRoleId);
-      }
-    }
+  void _openSession(String sessionId) {
     ref.read(chatControllerProvider).switchSession(sessionId);
     ref.read(currentNavProvider.notifier).state = NavSection.chat;
   }
@@ -151,102 +136,6 @@ class _ProjectDetailViewState extends ConsumerState<ProjectDetailView>
     if (confirmed != true || !mounted) return;
     await ref.read(projectsProvider.notifier).deleteProject(project.id);
     widget.onBack();
-  }
-
-  // ── Roles ──
-
-  Future<void> _showAddRoleDialog(Project project) async {
-    final l10n = AppLocalizations.of(context)!;
-    final workspaces = ref.read(agentWorkspacesProvider);
-    final available = workspaces
-        .where((w) => !project.roleIds.contains(w.id))
-        .toList();
-
-    if (available.isEmpty) {
-      _showMessage(l10n.projectAllRolesAdded);
-      return;
-    }
-
-    final selected = await showDialog<String>(
-      context: context,
-      builder: (ctx) => SimpleDialog(
-        title: Text(l10n.projectAddRole),
-        children: available.map((w) {
-          return SimpleDialogOption(
-            onPressed: () => Navigator.pop(ctx, w.id),
-            child: Row(
-              children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Center(
-                    child: Text(w.avatar, style: const TextStyle(fontSize: 16)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        w.name,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      if (w.description.isNotEmpty)
-                        Text(
-                          w.description,
-                          style: TextStyle(fontSize: 12, color: c.textHint),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-
-    if (selected == null || !mounted) return;
-    await ref.read(projectsProvider.notifier).addRole(project.id, selected);
-    if (project.roleIds.isEmpty) {
-      await ref
-          .read(projectsProvider.notifier)
-          .setDefaultRole(project.id, selected);
-    }
-    ref.invalidate(projectDetailProvider(project.id));
-    _showMessage(l10n.projectRoleAdded);
-  }
-
-  Future<void> _removeRole(Project project, String roleId) async {
-    final l10n = AppLocalizations.of(context)!;
-    await ref.read(projectsProvider.notifier).removeRole(project.id, roleId);
-
-    // Sync Dart-side bindings
-    final bindings = ref.read(sessionAgentBindingProvider);
-    final sessions = ref.read(sessionsProvider);
-    for (final s in sessions.where((s) => s.projectId == project.id)) {
-      if (bindings[s.id] == roleId) {
-        ref.read(sessionAgentBindingProvider.notifier).removeLocal(s.id);
-      }
-    }
-
-    ref.invalidate(projectDetailProvider(project.id));
-    _showMessage(l10n.projectRoleRemoved);
-  }
-
-  Future<void> _setDefaultRole(Project project, String roleId) async {
-    await ref
-        .read(projectsProvider.notifier)
-        .setDefaultRole(project.id, roleId);
-    ref.invalidate(projectDetailProvider(project.id));
-    _showMessage('Default role updated');
   }
 
   @override
@@ -442,11 +331,6 @@ class _ProjectDetailViewState extends ConsumerState<ProjectDetailView>
                       Icons.chat_bubble_outline,
                       l10n.projectSessionCount(project.sessionIds.length),
                     ),
-                    if (project.hasRoles)
-                      _infoBadge(
-                        Icons.people_outline,
-                        l10n.projectRoleCount(project.roleCount),
-                      ),
                     if (project.hasProjectDir)
                       _infoBadge(
                         Icons.folder_open_outlined,
@@ -575,10 +459,6 @@ class _ProjectDetailViewState extends ConsumerState<ProjectDetailView>
 
           // Pinned Context
           _buildPinnedContextSection(project, l10n),
-          const SizedBox(height: 24),
-
-          // Roles
-          _buildRolesSection(project, l10n),
         ],
       ),
     );
@@ -678,73 +558,6 @@ class _ProjectDetailViewState extends ConsumerState<ProjectDetailView>
     );
   }
 
-  Widget _buildRolesSection(Project project, AppLocalizations l10n) {
-    final workspaces = ref.watch(agentWorkspacesProvider);
-    final projectRoles = workspaces
-        .where((w) => project.roleIds.contains(w.id))
-        .toList();
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: c.cardBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: c.inputBorder.withValues(alpha: 0.5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.people_outline, size: 16, color: c.textSecondary),
-              const SizedBox(width: 6),
-              Text(
-                l10n.projectRoles,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: c.textPrimary,
-                ),
-              ),
-              const Spacer(),
-              _iconTextButton(
-                Icons.add,
-                l10n.projectAddRole,
-                () => _showAddRoleDialog(project),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (projectRoles.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: c.inputBg,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                l10n.projectNoRoles,
-                style: TextStyle(fontSize: 13, color: c.textHint),
-              ),
-            )
-          else
-            Column(
-              children: projectRoles.map((role) {
-                final isDefault = role.id == project.defaultRoleId;
-                return _RoleTile(
-                  role: role,
-                  isDefault: isDefault,
-                  onSetDefault: () => _setDefaultRole(project, role.id),
-                  onRemove: () => _removeRole(project, role.id),
-                );
-              }).toList(),
-            ),
-        ],
-      ),
-    );
-  }
-
   // ── Sessions Tab ──
 
   Widget _buildSessionsTab(Project project, AppLocalizations l10n) {
@@ -805,10 +618,7 @@ class _ProjectDetailViewState extends ConsumerState<ProjectDetailView>
                     return _SessionTile(
                       session: session,
                       project: project,
-                      onOpen: () => _openSession(
-                        session.id,
-                        defaultRoleId: project.defaultRoleId,
-                      ),
+                      onOpen: () => _openSession(session.id),
                       onRemove: () => _removeSession(project, session.id),
                     );
                   },
@@ -1100,153 +910,6 @@ class _ProjectDetailViewState extends ConsumerState<ProjectDetailView>
     } catch (_) {
       return AppColors.primary;
     }
-  }
-}
-
-// ──────────────────── Role Tile ──────────────────────────
-
-class _RoleTile extends StatefulWidget {
-  const _RoleTile({
-    required this.role,
-    required this.isDefault,
-    required this.onSetDefault,
-    required this.onRemove,
-  });
-
-  final workspace_api.AgentWorkspaceSummary role;
-  final bool isDefault;
-  final VoidCallback onSetDefault;
-  final VoidCallback onRemove;
-
-  @override
-  State<_RoleTile> createState() => _RoleTileState();
-}
-
-class _RoleTileState extends State<_RoleTile> {
-  bool _hovering = false;
-
-  CoralDeskColors get c => CoralDeskColors.of(context);
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovering = true),
-      onExit: (_) => setState(() => _hovering = false),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: widget.isDefault
-              ? AppColors.primary.withValues(alpha: 0.06)
-              : _hovering
-              ? c.inputBg
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: widget.isDefault
-                ? AppColors.primary.withValues(alpha: 0.3)
-                : c.inputBorder.withValues(alpha: 0.3),
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Text(
-                  widget.role.avatar,
-                  style: const TextStyle(fontSize: 16),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        widget.role.name,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: c.textPrimary,
-                        ),
-                      ),
-                      if (widget.isDefault) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 5,
-                            vertical: 1,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            l10n.projectDefaultRoleBadge,
-                            style: const TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  if (widget.role.description.isNotEmpty)
-                    Text(
-                      widget.role.description,
-                      style: TextStyle(fontSize: 11, color: c.textHint),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
-              ),
-            ),
-            // Actions on hover
-            if (_hovering || widget.isDefault) ...[
-              if (!widget.isDefault)
-                Tooltip(
-                  message: l10n.projectSetDefaultRole,
-                  child: IconButton(
-                    icon: const Icon(Icons.star_border, size: 16),
-                    onPressed: widget.onSetDefault,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 28,
-                      minHeight: 28,
-                    ),
-                    splashRadius: 14,
-                  ),
-                ),
-              Tooltip(
-                message: l10n.delete,
-                child: IconButton(
-                  icon: Icon(Icons.close, size: 16, color: c.textHint),
-                  onPressed: widget.onRemove,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 28,
-                    minHeight: 28,
-                  ),
-                  splashRadius: 14,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
   }
 }
 

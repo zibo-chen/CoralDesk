@@ -6,9 +6,9 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `json_str_array`, `json_value_to_toml`, `save_channel_config_to_disk`, `save_tool_config_to_disk`
+// These functions are ignored because they are not marked as `pub`: `apply_browser_config_value`, `browser_config_to_dto`, `gateway_config_to_dto`, `json_str_array`, `normalize_optional_string`, `persist_config_state_to_disk`, `sanitize_string_list`, `save_channel_config_to_disk`, `save_tool_config_to_disk`, `tool_filter_group_from_dto`, `tool_filter_group_to_dto`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ChannelConfigField`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// Get workspace configuration
 Future<WorkspaceConfig> getWorkspaceConfig() =>
@@ -55,12 +55,36 @@ Future<String> updateAgentConfig({
   int? maxHistoryMessages,
   bool? parallelTools,
   bool? compactContext,
+  List<String>? toolCallDedupExempt,
+  List<AgentToolFilterGroupDto>? toolFilterGroups,
 }) => RustLib.instance.api.crateApiWorkspaceApiUpdateAgentConfig(
   maxToolIterations: maxToolIterations,
   maxHistoryMessages: maxHistoryMessages,
   parallelTools: parallelTools,
   compactContext: compactContext,
+  toolCallDedupExempt: toolCallDedupExempt,
+  toolFilterGroups: toolFilterGroups,
 );
+
+/// Get browser configuration
+Future<BrowserConfigDto> getBrowserConfig() =>
+    RustLib.instance.api.crateApiWorkspaceApiGetBrowserConfig();
+
+/// Save browser configuration
+Future<String> saveBrowserConfig({required BrowserConfigDto configDto}) =>
+    RustLib.instance.api.crateApiWorkspaceApiSaveBrowserConfig(
+      configDto: configDto,
+    );
+
+/// Get gateway configuration
+Future<GatewayConfigDto> getGatewayConfig() =>
+    RustLib.instance.api.crateApiWorkspaceApiGetGatewayConfig();
+
+/// Save gateway configuration
+Future<String> saveGatewayConfig({required GatewayConfigDto configDto}) =>
+    RustLib.instance.api.crateApiWorkspaceApiSaveGatewayConfig(
+      configDto: configDto,
+    );
 
 /// Get memory configuration
 Future<MemoryConfigDto> getMemoryConfig() =>
@@ -153,6 +177,8 @@ class AgentConfigDto {
   final bool parallelTools;
   final String toolDispatcher;
   final bool compactContext;
+  final List<String> toolCallDedupExempt;
+  final List<AgentToolFilterGroupDto> toolFilterGroups;
 
   const AgentConfigDto({
     required this.maxToolIterations,
@@ -160,6 +186,8 @@ class AgentConfigDto {
     required this.parallelTools,
     required this.toolDispatcher,
     required this.compactContext,
+    required this.toolCallDedupExempt,
+    required this.toolFilterGroups,
   });
 
   @override
@@ -168,7 +196,9 @@ class AgentConfigDto {
       maxHistoryMessages.hashCode ^
       parallelTools.hashCode ^
       toolDispatcher.hashCode ^
-      compactContext.hashCode;
+      compactContext.hashCode ^
+      toolCallDedupExempt.hashCode ^
+      toolFilterGroups.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -179,7 +209,41 @@ class AgentConfigDto {
           maxHistoryMessages == other.maxHistoryMessages &&
           parallelTools == other.parallelTools &&
           toolDispatcher == other.toolDispatcher &&
-          compactContext == other.compactContext;
+          compactContext == other.compactContext &&
+          toolCallDedupExempt == other.toolCallDedupExempt &&
+          toolFilterGroups == other.toolFilterGroups;
+}
+
+/// Agent tool-filter group DTO
+class AgentToolFilterGroupDto {
+  final String mode;
+  final List<String> tools;
+  final List<String> keywords;
+  final bool filterBuiltins;
+
+  const AgentToolFilterGroupDto({
+    required this.mode,
+    required this.tools,
+    required this.keywords,
+    required this.filterBuiltins,
+  });
+
+  @override
+  int get hashCode =>
+      mode.hashCode ^
+      tools.hashCode ^
+      keywords.hashCode ^
+      filterBuiltins.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AgentToolFilterGroupDto &&
+          runtimeType == other.runtimeType &&
+          mode == other.mode &&
+          tools == other.tools &&
+          keywords == other.keywords &&
+          filterBuiltins == other.filterBuiltins;
 }
 
 /// Autonomy configuration DTO
@@ -240,6 +304,83 @@ class AutonomyConfig {
           blockHighRiskCommands == other.blockHighRiskCommands &&
           autoApprove == other.autoApprove &&
           alwaysAsk == other.alwaysAsk;
+}
+
+/// Browser configuration DTO
+class BrowserConfigDto {
+  final bool enabled;
+  final String backend;
+  final List<String> allowedDomains;
+  final String? sessionName;
+  final bool nativeHeadless;
+  final String nativeWebdriverUrl;
+  final String? nativeChromePath;
+  final String computerUseEndpoint;
+  final String? computerUseApiKey;
+  final bool computerUseAllowRemoteEndpoint;
+  final List<String> computerUseWindowAllowlist;
+  final PlatformInt64? computerUseMaxCoordinateX;
+  final PlatformInt64? computerUseMaxCoordinateY;
+  final String agentBrowserCommand;
+  final bool agentBrowserAvailable;
+
+  const BrowserConfigDto({
+    required this.enabled,
+    required this.backend,
+    required this.allowedDomains,
+    this.sessionName,
+    required this.nativeHeadless,
+    required this.nativeWebdriverUrl,
+    this.nativeChromePath,
+    required this.computerUseEndpoint,
+    this.computerUseApiKey,
+    required this.computerUseAllowRemoteEndpoint,
+    required this.computerUseWindowAllowlist,
+    this.computerUseMaxCoordinateX,
+    this.computerUseMaxCoordinateY,
+    required this.agentBrowserCommand,
+    required this.agentBrowserAvailable,
+  });
+
+  @override
+  int get hashCode =>
+      enabled.hashCode ^
+      backend.hashCode ^
+      allowedDomains.hashCode ^
+      sessionName.hashCode ^
+      nativeHeadless.hashCode ^
+      nativeWebdriverUrl.hashCode ^
+      nativeChromePath.hashCode ^
+      computerUseEndpoint.hashCode ^
+      computerUseApiKey.hashCode ^
+      computerUseAllowRemoteEndpoint.hashCode ^
+      computerUseWindowAllowlist.hashCode ^
+      computerUseMaxCoordinateX.hashCode ^
+      computerUseMaxCoordinateY.hashCode ^
+      agentBrowserCommand.hashCode ^
+      agentBrowserAvailable.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BrowserConfigDto &&
+          runtimeType == other.runtimeType &&
+          enabled == other.enabled &&
+          backend == other.backend &&
+          allowedDomains == other.allowedDomains &&
+          sessionName == other.sessionName &&
+          nativeHeadless == other.nativeHeadless &&
+          nativeWebdriverUrl == other.nativeWebdriverUrl &&
+          nativeChromePath == other.nativeChromePath &&
+          computerUseEndpoint == other.computerUseEndpoint &&
+          computerUseApiKey == other.computerUseApiKey &&
+          computerUseAllowRemoteEndpoint ==
+              other.computerUseAllowRemoteEndpoint &&
+          computerUseWindowAllowlist == other.computerUseWindowAllowlist &&
+          computerUseMaxCoordinateX == other.computerUseMaxCoordinateX &&
+          computerUseMaxCoordinateY == other.computerUseMaxCoordinateY &&
+          agentBrowserCommand == other.agentBrowserCommand &&
+          agentBrowserAvailable == other.agentBrowserAvailable;
 }
 
 /// Channel summary for listing in UI
@@ -355,6 +496,98 @@ class FeatureToggles {
           memoryAutoSave == other.memoryAutoSave &&
           costTrackingEnabled == other.costTrackingEnabled &&
           skillsOpenEnabled == other.skillsOpenEnabled;
+}
+
+/// Gateway configuration DTO
+class GatewayConfigDto {
+  final String host;
+  final int port;
+  final bool requirePairing;
+  final bool allowPublicBind;
+  final bool trustForwardedHeaders;
+  final String? pathPrefix;
+  final int pairRateLimitPerMinute;
+  final int webhookRateLimitPerMinute;
+  final int rateLimitMaxKeys;
+  final BigInt idempotencyTtlSecs;
+  final int idempotencyMaxKeys;
+  final bool sessionPersistence;
+  final int sessionTtlHours;
+  final String? webDistDir;
+  final int pairingCodeLength;
+  final BigInt pairingCodeTtlSecs;
+  final int pairingMaxPendingCodes;
+  final int pairingMaxFailedAttempts;
+  final BigInt pairingLockoutSecs;
+
+  const GatewayConfigDto({
+    required this.host,
+    required this.port,
+    required this.requirePairing,
+    required this.allowPublicBind,
+    required this.trustForwardedHeaders,
+    this.pathPrefix,
+    required this.pairRateLimitPerMinute,
+    required this.webhookRateLimitPerMinute,
+    required this.rateLimitMaxKeys,
+    required this.idempotencyTtlSecs,
+    required this.idempotencyMaxKeys,
+    required this.sessionPersistence,
+    required this.sessionTtlHours,
+    this.webDistDir,
+    required this.pairingCodeLength,
+    required this.pairingCodeTtlSecs,
+    required this.pairingMaxPendingCodes,
+    required this.pairingMaxFailedAttempts,
+    required this.pairingLockoutSecs,
+  });
+
+  @override
+  int get hashCode =>
+      host.hashCode ^
+      port.hashCode ^
+      requirePairing.hashCode ^
+      allowPublicBind.hashCode ^
+      trustForwardedHeaders.hashCode ^
+      pathPrefix.hashCode ^
+      pairRateLimitPerMinute.hashCode ^
+      webhookRateLimitPerMinute.hashCode ^
+      rateLimitMaxKeys.hashCode ^
+      idempotencyTtlSecs.hashCode ^
+      idempotencyMaxKeys.hashCode ^
+      sessionPersistence.hashCode ^
+      sessionTtlHours.hashCode ^
+      webDistDir.hashCode ^
+      pairingCodeLength.hashCode ^
+      pairingCodeTtlSecs.hashCode ^
+      pairingMaxPendingCodes.hashCode ^
+      pairingMaxFailedAttempts.hashCode ^
+      pairingLockoutSecs.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GatewayConfigDto &&
+          runtimeType == other.runtimeType &&
+          host == other.host &&
+          port == other.port &&
+          requirePairing == other.requirePairing &&
+          allowPublicBind == other.allowPublicBind &&
+          trustForwardedHeaders == other.trustForwardedHeaders &&
+          pathPrefix == other.pathPrefix &&
+          pairRateLimitPerMinute == other.pairRateLimitPerMinute &&
+          webhookRateLimitPerMinute == other.webhookRateLimitPerMinute &&
+          rateLimitMaxKeys == other.rateLimitMaxKeys &&
+          idempotencyTtlSecs == other.idempotencyTtlSecs &&
+          idempotencyMaxKeys == other.idempotencyMaxKeys &&
+          sessionPersistence == other.sessionPersistence &&
+          sessionTtlHours == other.sessionTtlHours &&
+          webDistDir == other.webDistDir &&
+          pairingCodeLength == other.pairingCodeLength &&
+          pairingCodeTtlSecs == other.pairingCodeTtlSecs &&
+          pairingMaxPendingCodes == other.pairingMaxPendingCodes &&
+          pairingMaxFailedAttempts == other.pairingMaxFailedAttempts &&
+          pairingLockoutSecs == other.pairingLockoutSecs;
 }
 
 /// Memory config DTO

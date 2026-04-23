@@ -68,7 +68,7 @@ fn kvs_to_hashmap(kvs: &[KeyValueDto]) -> HashMap<String, String> {
 fn server_to_dto(s: &zeroclaw::config::schema::McpServerConfig) -> McpServerDto {
     McpServerDto {
         name: s.name.clone(),
-        enabled: s.enabled,
+        enabled: true,
         transport: transport_to_string(&s.transport),
         url: s.url.clone().unwrap_or_default(),
         command: s.command.clone(),
@@ -82,7 +82,6 @@ fn server_to_dto(s: &zeroclaw::config::schema::McpServerConfig) -> McpServerDto 
 fn dto_to_server(d: &McpServerDto) -> zeroclaw::config::schema::McpServerConfig {
     zeroclaw::config::schema::McpServerConfig {
         name: d.name.trim().to_string(),
-        enabled: d.enabled,
         transport: string_to_transport(&d.transport),
         url: if d.url.trim().is_empty() {
             None
@@ -205,15 +204,20 @@ pub async fn update_mcp_server(server: McpServerDto) -> String {
 /// Toggle an MCP server enabled/disabled by name. Returns "ok" or "error: ...".
 pub async fn toggle_mcp_server(name: String, enabled: bool) -> String {
     let name = name.trim().to_string();
+    if !enabled {
+        return format!(
+            "error: server '{}' cannot be disabled in-place on zeroclaw v0.7; remove it instead",
+            name
+        );
+    }
     {
         let mut cs = super::agent_api::config_state().write().await;
         let config = match cs.config.as_mut() {
             Some(c) => c,
             None => return "error: runtime not initialized".into(),
         };
-        match config.mcp.servers.iter_mut().find(|s| s.name == name) {
-            Some(existing) => existing.enabled = enabled,
-            None => return format!("error: server '{}' not found", name),
+        if !config.mcp.servers.iter().any(|s| s.name == name) {
+            return format!("error: server '{}' not found", name);
         }
     }
     sync_mcp_to_global().await;

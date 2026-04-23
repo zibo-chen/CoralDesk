@@ -157,6 +157,411 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pageWorkspace => 'Workspace';
 
   @override
+  String get pageGateway => 'Gateway';
+
+  @override
+  String get gatewayOverviewTitle => 'Gateway Overview';
+
+  @override
+  String get gatewayOverviewDesc =>
+      'Manage the network-facing control plane used for pairing, webhooks, and reverse-proxy access. Most desktop-only workflows can keep these defaults unchanged.';
+
+  @override
+  String get gatewayUsagePairing =>
+      'Pairing dashboards for browsers or remote devices';
+
+  @override
+  String get gatewayUsageWebhooks =>
+      'Webhook ingress for external integrations';
+
+  @override
+  String get gatewayUsageProxy =>
+      'Reverse-proxy routing and stable public URLs';
+
+  @override
+  String get gatewayModeLocal => 'Local Only';
+
+  @override
+  String get gatewayModePublic => 'Public Bind';
+
+  @override
+  String get gatewayModePairingOn => 'Pairing Required';
+
+  @override
+  String get gatewayModePairingOff => 'Pairing Disabled';
+
+  @override
+  String get gatewayModeSessionsOn => 'Sessions Persisted';
+
+  @override
+  String get gatewayModeSessionsOff => 'Ephemeral Sessions';
+
+  @override
+  String get gatewayEndpointTitle => 'Endpoint Preview';
+
+  @override
+  String get gatewayEndpointDesc =>
+      'Use this base URL for pairing flows, webhook integrations, and reverse-proxy routing.';
+
+  @override
+  String get gatewayCopyEndpoint => 'Copy Endpoint';
+
+  @override
+  String get gatewayCoreTitle => 'Core Server';
+
+  @override
+  String get gatewayCoreDesc =>
+      'Configure where the gateway listens and how dashboard assets are resolved.';
+
+  @override
+  String get gatewaySecurityTitle => 'Access & Session Security';
+
+  @override
+  String get gatewaySecurityDesc =>
+      'Control pairing requirements, public exposure, proxy trust, and whether web sessions survive restarts.';
+
+  @override
+  String get gatewayLimitsTitle => 'Rate Limits & Retention';
+
+  @override
+  String get gatewayLimitsDesc =>
+      'Protect the gateway from abuse and control how long request/session state is retained.';
+
+  @override
+  String get gatewayPairingTitle => 'Pairing Dashboard';
+
+  @override
+  String get gatewayPairingDesc =>
+      'Tune one-time pairing codes for browser onboarding and remote access flows.';
+
+  @override
+  String get gatewayHostLabel => 'Host';
+
+  @override
+  String get gatewayHostHint => '127.0.0.1 or localhost';
+
+  @override
+  String get gatewayPortLabel => 'Port';
+
+  @override
+  String get gatewayPortHint => '42617';
+
+  @override
+  String get gatewayPathPrefixLabel => 'Path Prefix';
+
+  @override
+  String get gatewayPathPrefixHint => '/gateway';
+
+  @override
+  String get gatewayWebDistDirLabel => 'Web Dashboard Dist Directory';
+
+  @override
+  String get gatewayWebDistDirHint =>
+      'Optional custom dashboard assets directory';
+
+  @override
+  String get gatewayRequirePairingLabel => 'Require Pairing';
+
+  @override
+  String get gatewayRequirePairingDesc =>
+      'New browser or remote clients must complete pairing before they can access the gateway.';
+
+  @override
+  String get gatewayAllowPublicBindLabel => 'Allow Public Bind';
+
+  @override
+  String get gatewayAllowPublicBindDesc =>
+      'Bind on a public interface instead of localhost only. Enable this only when you intentionally expose the gateway.';
+
+  @override
+  String get gatewayTrustForwardedHeadersLabel => 'Trust Forwarded Headers';
+
+  @override
+  String get gatewayTrustForwardedHeadersDesc =>
+      'Honor X-Forwarded-* headers from a trusted reverse proxy.';
+
+  @override
+  String get gatewaySessionPersistenceLabel => 'Persist Gateway Sessions';
+
+  @override
+  String get gatewaySessionPersistenceDesc =>
+      'Keep gateway web sessions across restarts until the configured TTL expires.';
+
+  @override
+  String get gatewayPairRateLimitLabel => 'Pair Requests Per Minute';
+
+  @override
+  String get gatewayWebhookRateLimitLabel => 'Webhook Requests Per Minute';
+
+  @override
+  String get gatewayRateLimitMaxKeysLabel => 'Rate Limit Key Capacity';
+
+  @override
+  String get gatewayIdempotencyTtlLabel => 'Idempotency TTL (seconds)';
+
+  @override
+  String get gatewayIdempotencyMaxKeysLabel => 'Idempotency Key Capacity';
+
+  @override
+  String get gatewaySessionTtlHoursLabel => 'Session TTL (hours)';
+
+  @override
+  String get gatewayPairingCodeLengthLabel => 'Code Length';
+
+  @override
+  String get gatewayPairingCodeTtlLabel => 'Code TTL (seconds)';
+
+  @override
+  String get gatewayPairingMaxPendingLabel => 'Max Pending Codes';
+
+  @override
+  String get gatewayPairingMaxFailedLabel => 'Max Failed Attempts';
+
+  @override
+  String get gatewayPairingLockoutLabel => 'Lockout Duration (seconds)';
+
+  @override
+  String get gatewayConfigUnavailable => 'Gateway configuration is unavailable';
+
+  @override
+  String get gatewayHostRequired => 'Gateway host cannot be empty';
+
+  @override
+  String get gatewayPathPrefixStartWithSlash => 'Path prefix must start with /';
+
+  @override
+  String get gatewayPathPrefixNoTrailingSlash =>
+      'Path prefix must not end with /';
+
+  @override
+  String get browserConfigUnavailable => 'Browser configuration is unavailable';
+
+  @override
+  String get browserOverviewTitle => 'Browser Runtime Overview';
+
+  @override
+  String get browserOverviewDesc =>
+      'Choose how DeskClaw drives browser tasks and verify whether the bundled desktop runtime is ready before enabling advanced automation flows.';
+
+  @override
+  String get browserModeEnabled => 'Runtime Enabled';
+
+  @override
+  String get browserModeDisabled => 'Runtime Disabled';
+
+  @override
+  String get browserModeAgentBrowserReady => 'Agent Browser Ready';
+
+  @override
+  String get browserModeAgentBrowserMissing => 'Agent Browser Missing';
+
+  @override
+  String get browserCommandLabel => 'Bundled Agent Browser Command';
+
+  @override
+  String get browserCommandUnavailable =>
+      'Not available on PATH or in the bundled desktop runtime';
+
+  @override
+  String get browserCoreTitle => 'Core Runtime';
+
+  @override
+  String get browserCoreDesc =>
+      'Set the primary browser backend, shared browsing session name, and the domain allowlist exposed to agents.';
+
+  @override
+  String get browserBackendLabel => 'Backend';
+
+  @override
+  String get browserBackendOptionAgentBrowser => 'Bundled Agent Browser';
+
+  @override
+  String get browserBackendOptionRustNative => 'Rust Native';
+
+  @override
+  String get browserBackendOptionComputerUse => 'Computer Use';
+
+  @override
+  String get browserBackendOptionAuto => 'Auto Detect';
+
+  @override
+  String get browserSessionNameLabel => 'Session Name';
+
+  @override
+  String get browserSessionNameHint =>
+      'Optional shared session name for the bundled browser runtime';
+
+  @override
+  String get browserAllowedDomainsLabel => 'Allowed Domains';
+
+  @override
+  String get browserAllowedDomainsHint => '*.example.com, github.com, *';
+
+  @override
+  String get browserNativeTitle => 'Rust Native Backend';
+
+  @override
+  String get browserNativeDesc =>
+      'Configure the local WebDriver-based runtime used when the native backend is selected.';
+
+  @override
+  String get browserNativeHeadlessLabel => 'Headless Mode';
+
+  @override
+  String get browserNativeHeadlessDesc =>
+      'Launch the native browser without a visible window when the task does not need interactive inspection.';
+
+  @override
+  String get browserNativeWebdriverUrlLabel => 'WebDriver URL';
+
+  @override
+  String get browserNativeWebdriverUrlHint => 'http://127.0.0.1:9515';
+
+  @override
+  String get browserNativeChromePathLabel => 'Chrome Executable Path';
+
+  @override
+  String get browserNativeChromePathHint =>
+      'Optional Chrome or Chromium executable path';
+
+  @override
+  String get browserComputerUseTitle => 'Computer Use Backend';
+
+  @override
+  String get browserComputerUseDesc =>
+      'Connect to a computer-use action endpoint for full desktop browsing and GUI control workflows.';
+
+  @override
+  String get browserComputerUseEndpointLabel => 'Action Endpoint';
+
+  @override
+  String get browserComputerUseEndpointHint =>
+      'http://127.0.0.1:8787/v1/actions';
+
+  @override
+  String get browserComputerUseApiKeyLabel => 'Endpoint API Key';
+
+  @override
+  String get browserComputerUseAllowRemoteLabel => 'Allow Remote Endpoint';
+
+  @override
+  String get browserComputerUseAllowRemoteDesc =>
+      'Permit non-local endpoints instead of restricting requests to local machine automation services only.';
+
+  @override
+  String get browserComputerUseWindowAllowlistLabel => 'Window Allowlist';
+
+  @override
+  String get browserComputerUseWindowAllowlistHint =>
+      'Cursor, Finder, Google Chrome';
+
+  @override
+  String get browserComputerUseMaxCoordinateXLabel => 'Max Coordinate X';
+
+  @override
+  String get browserComputerUseMaxCoordinateYLabel => 'Max Coordinate Y';
+
+  @override
+  String get workspaceAgentRoutingTitle => 'Advanced Agent Routing';
+
+  @override
+  String get workspaceAgentRoutingDesc =>
+      'Tune same-turn dedup behavior and filter which MCP tools are exposed when the agent decides how to route work.';
+
+  @override
+  String get workspaceDedupExemptLabel => 'Dedup Exempt Tools';
+
+  @override
+  String get workspaceDedupExemptHint =>
+      'browser_open, web_fetch, mcp_browser_click';
+
+  @override
+  String get workspaceDedupExemptDesc =>
+      'Comma-separated tools that bypass same-turn dedup protection.';
+
+  @override
+  String get workspaceToolFilterGroupsLabel => 'Tool Filter Groups';
+
+  @override
+  String get workspaceAddFilterGroup => 'Add Group';
+
+  @override
+  String get workspaceNoFilterGroups =>
+      'No MCP filter groups configured yet. Add one to selectively expose MCP tools per turn.';
+
+  @override
+  String workspaceFilterGroupTitle(int index) {
+    return 'Group $index';
+  }
+
+  @override
+  String get workspaceFilterGroupModeLabel => 'Activation Mode';
+
+  @override
+  String get workspaceFilterGroupModeDynamic => 'Dynamic';
+
+  @override
+  String get workspaceFilterGroupModeAlways => 'Always';
+
+  @override
+  String get workspaceFilterGroupToolsLabel => 'Tool Patterns';
+
+  @override
+  String get workspaceFilterGroupToolsHint => 'mcp_browser_*, mcp_filesystem_*';
+
+  @override
+  String get workspaceFilterGroupKeywordsLabel => 'Activation Keywords';
+
+  @override
+  String get workspaceFilterGroupKeywordsHint => 'browse, website, docs';
+
+  @override
+  String get workspaceFilterBuiltinsLabel => 'Filter Built-in Tools';
+
+  @override
+  String get workspaceToolFilterGroupToolsRequired =>
+      'Each tool filter group must include at least one tool pattern';
+
+  @override
+  String get toolsProviderSectionDesc =>
+      'Configure provider-specific credentials and upstream endpoints for web-facing tools.';
+
+  @override
+  String get toolsDomainPoliciesTitle => 'Domain Policies';
+
+  @override
+  String get toolsDomainPoliciesDesc =>
+      'Set shared allowlists and blocklists for tools that do not need a dedicated provider account.';
+
+  @override
+  String get toolsAllowedDomainsLabel => 'Allowed Domains';
+
+  @override
+  String get toolsBlockedDomainsLabel => 'Blocked Domains';
+
+  @override
+  String get toolsNoExtraCredentials => 'No Extra Credentials';
+
+  @override
+  String toolsBuiltInSummary(int count) {
+    return '$count built-in tools';
+  }
+
+  @override
+  String get toolsDefaultFetcherLabel => 'Default Extractor';
+
+  @override
+  String get toolsWebFetchAllowedDomainsHint =>
+      'docs.github.com, api.openai.com';
+
+  @override
+  String get toolsWebFetchBlockedDomainsHint =>
+      'login.example.com, internal.example.com';
+
+  @override
+  String get toolsHttpAllowedDomainsHint => '*.openai.com, api.github.com';
+
+  @override
   String get languageLabel => 'Language';
 
   @override
@@ -1178,6 +1583,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get subAgentsSectionDesc =>
       'Custom sub-agents handle specialized tasks independently, such as research or summarization.';
+
+  @override
+  String get navGateway => 'Gateway';
 
   @override
   String get navProxy => 'Proxy';

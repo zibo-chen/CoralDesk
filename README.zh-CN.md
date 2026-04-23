@@ -164,7 +164,7 @@ flutter pub get
 ### 3. 生成 Rust 桥接代码（如需）
 
 ```bash
-flutter_rust_bridge_codegen generate
+flutter_rust_bridge_codegen generate --config-file flutter_rust_bridge.yaml
 ```
 
 ### 4. 配置 CoralDesk

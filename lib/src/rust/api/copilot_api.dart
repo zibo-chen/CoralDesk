@@ -115,7 +115,7 @@ class CopilotDeviceFlowInfo {
 
 /// Status of a Copilot authorization poll attempt.
 class CopilotPollResult {
-  /// "success", "pending", "slow_down", "expired", or "error:<message>"
+  /// "success", "pending", "slow_down", "expired", or "error:[message]"
   final String status;
 
   /// GitHub username (populated on success).

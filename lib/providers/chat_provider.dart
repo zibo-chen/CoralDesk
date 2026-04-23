@@ -16,11 +16,14 @@ enum NavSection {
   channels,
   sessions,
   cronJobs,
+  browser,
+  gateway,
   knowledge,
   skills,
   mcp,
   agents,
-  agentWorkspaces,
+  workspace,
+  tools,
   configuration,
   models,
   proxy,
@@ -60,18 +63,12 @@ class SessionsNotifier extends StateNotifier<List<ChatSession>> {
   SessionsNotifier() : super([]);
 
   /// Load persisted sessions from Rust session store on app startup.
-  /// Restores project_id, ephemeral flag, and agent binding from persistence.
   /// Load persisted sessions from Rust store.
-  /// Returns a map of sessionId → agentBinding for startup sync.
-  Future<Map<String, String>> loadPersistedSessions() async {
-    final bindingMap = <String, String>{};
+  Future<void> loadPersistedSessions() async {
     try {
       final summaries = await sessions_api.listSessions();
       if (summaries.isNotEmpty) {
         final loaded = summaries.map((s) {
-          if (s.agentBinding.isNotEmpty) {
-            bindingMap[s.id] = s.agentBinding;
-          }
           return ChatSession(
             id: s.id,
             title: s.title,
@@ -92,7 +89,6 @@ class SessionsNotifier extends StateNotifier<List<ChatSession>> {
     } catch (e) {
       debugPrint('Failed to load persisted sessions: $e');
     }
-    return bindingMap;
   }
 
   String createSession({String? projectId, bool ephemeral = false}) {

@@ -1,5 +1,60 @@
 use flutter_rust_bridge::frb;
 
+fn normalize_optional(value: Option<&str>) -> Option<String> {
+    value
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+}
+
+fn normalize_vec(values: &[String]) -> Vec<String> {
+    values
+        .iter()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .collect()
+}
+
+fn dto_from_config(
+    name: &str,
+    cfg: &zeroclaw::config::DelegateAgentConfig,
+    meta: &super::agent_api::DelegateAgentMeta,
+) -> DelegateAgentDto {
+    DelegateAgentDto {
+        name: name.to_string(),
+        provider: cfg.provider.clone(),
+        model: cfg.model.clone(),
+        system_prompt: cfg.system_prompt.clone(),
+        api_key: cfg.api_key.clone(),
+        temperature: cfg.temperature,
+        max_depth: cfg.max_depth,
+        agentic: cfg.agentic,
+        allowed_tools: cfg.allowed_tools.clone(),
+        max_iterations: cfg.max_iterations as u32,
+        capabilities: meta.capabilities.clone(),
+        priority: meta.priority,
+        enabled: meta.enabled,
+        role_label: meta.role_label.clone(),
+        role_color: meta.role_color.clone(),
+        role_icon: meta.role_icon.clone(),
+        is_preset: meta.is_preset,
+        allow_nested_delegate: meta.allow_nested_delegate,
+    }
+}
+
+fn meta_from_dto(agent: &DelegateAgentDto) -> super::agent_api::DelegateAgentMeta {
+    super::agent_api::DelegateAgentMeta {
+        capabilities: normalize_vec(&agent.capabilities),
+        priority: agent.priority,
+        enabled: agent.enabled,
+        role_label: normalize_optional(agent.role_label.as_deref()),
+        role_color: normalize_optional(agent.role_color.as_deref()),
+        role_icon: normalize_optional(agent.role_icon.as_deref()),
+        is_preset: agent.is_preset,
+        allow_nested_delegate: agent.allow_nested_delegate,
+    }
+}
+
 // ──────────────────────── DTOs ────────────────────────────
 
 /// A delegate sub-agent configuration exposed to Flutter UI
@@ -42,29 +97,18 @@ pub async fn list_delegate_agents() -> Vec<DelegateAgentDto> {
         Some(c) => c,
         None => return vec![],
     };
+    let meta_map = super::agent_api::global_config()
+        .read()
+        .await
+        .delegate_agent_meta
+        .clone();
 
     let mut agents: Vec<DelegateAgentDto> = config
         .agents
         .iter()
-        .map(|(name, cfg)| DelegateAgentDto {
-            name: name.clone(),
-            provider: cfg.provider.clone(),
-            model: cfg.model.clone(),
-            system_prompt: cfg.system_prompt.clone(),
-            api_key: cfg.api_key.clone(),
-            temperature: cfg.temperature,
-            max_depth: cfg.max_depth,
-            agentic: cfg.agentic,
-            allowed_tools: cfg.allowed_tools.clone(),
-            max_iterations: cfg.max_iterations as u32,
-            capabilities: cfg.capabilities.clone(),
-            priority: cfg.priority,
-            enabled: cfg.enabled,
-            role_label: cfg.role_label.clone(),
-            role_color: cfg.role_color.clone(),
-            role_icon: cfg.role_icon.clone(),
-            is_preset: cfg.is_preset,
-            allow_nested_delegate: cfg.allow_nested_delegate,
+        .map(|(name, cfg)| {
+            let meta = meta_map.get(name).cloned().unwrap_or_default();
+            dto_from_config(name, cfg, &meta)
         })
         .collect();
 
@@ -79,26 +123,15 @@ pub async fn get_delegate_agent(name: String) -> Option<DelegateAgentDto> {
         Some(c) => c,
         None => return None,
     };
+    let meta_map = super::agent_api::global_config()
+        .read()
+        .await
+        .delegate_agent_meta
+        .clone();
 
-    config.agents.get(&name).map(|cfg| DelegateAgentDto {
-        name: name.clone(),
-        provider: cfg.provider.clone(),
-        model: cfg.model.clone(),
-        system_prompt: cfg.system_prompt.clone(),
-        api_key: cfg.api_key.clone(),
-        temperature: cfg.temperature,
-        max_depth: cfg.max_depth,
-        agentic: cfg.agentic,
-        allowed_tools: cfg.allowed_tools.clone(),
-        max_iterations: cfg.max_iterations as u32,
-        capabilities: cfg.capabilities.clone(),
-        priority: cfg.priority,
-        enabled: cfg.enabled,
-        role_label: cfg.role_label.clone(),
-        role_color: cfg.role_color.clone(),
-        role_icon: cfg.role_icon.clone(),
-        is_preset: cfg.is_preset,
-        allow_nested_delegate: cfg.allow_nested_delegate,
+    config.agents.get(&name).map(|cfg| {
+        let meta = meta_map.get(&name).cloned().unwrap_or_default();
+        dto_from_config(&name, cfg, &meta)
     })
 }
 
@@ -129,57 +162,19 @@ pub async fn upsert_delegate_agent(agent: DelegateAgentDto) -> String {
     let delegate_config = zeroclaw::config::DelegateAgentConfig {
         provider: agent.provider.trim().to_string(),
         model: agent.model.trim().to_string(),
-        system_prompt: agent
-            .system_prompt
-            .as_deref()
-            .map(str::trim)
-            .filter(|s| !s.is_empty())
-            .map(String::from),
-        api_key: agent
-            .api_key
-            .as_deref()
-            .map(str::trim)
-            .filter(|s| !s.is_empty())
-            .map(String::from),
-        enabled: agent.enabled,
-        capabilities: agent
-            .capabilities
-            .iter()
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
-            .collect(),
-        priority: agent.priority,
+        system_prompt: normalize_optional(agent.system_prompt.as_deref()),
+        api_key: normalize_optional(agent.api_key.as_deref()),
         temperature: agent.temperature,
         max_depth: agent.max_depth,
         agentic: agent.agentic,
-        allowed_tools: agent
-            .allowed_tools
-            .iter()
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
-            .collect(),
+        allowed_tools: normalize_vec(&agent.allowed_tools),
         max_iterations: agent.max_iterations.max(1) as usize,
-        role_label: agent
-            .role_label
-            .as_deref()
-            .map(str::trim)
-            .filter(|s| !s.is_empty())
-            .map(String::from),
-        role_color: agent
-            .role_color
-            .as_deref()
-            .map(str::trim)
-            .filter(|s| !s.is_empty())
-            .map(String::from),
-        role_icon: agent
-            .role_icon
-            .as_deref()
-            .map(str::trim)
-            .filter(|s| !s.is_empty())
-            .map(String::from),
-        is_preset: agent.is_preset,
-        allow_nested_delegate: agent.allow_nested_delegate,
+        timeout_secs: None,
+        agentic_timeout_secs: None,
+        skills_directory: None,
+        memory_namespace: None,
     };
+    let meta = meta_from_dto(&agent);
 
     {
         let mut cs = super::agent_api::config_state().write().await;
@@ -194,8 +189,9 @@ pub async fn upsert_delegate_agent(agent: DelegateAgentDto) -> String {
     {
         let mut gc = super::agent_api::global_config().write().await;
         if let Some(config) = gc.config.as_mut() {
-            config.agents.insert(name, delegate_config);
+            config.agents.insert(name.clone(), delegate_config);
         }
+        gc.delegate_agent_meta.insert(name, meta);
     }
 
     // Invalidate agent so delegate tool picks up the new config
@@ -206,7 +202,6 @@ pub async fn upsert_delegate_agent(agent: DelegateAgentDto) -> String {
 }
 
 /// Remove a delegate agent by name. Returns "ok" on success, error string otherwise.
-/// Preset roles (is_preset = true) cannot be deleted.
 pub async fn remove_delegate_agent(name: String) -> String {
     {
         let mut cs = super::agent_api::config_state().write().await;
@@ -214,12 +209,6 @@ pub async fn remove_delegate_agent(name: String) -> String {
             Some(c) => c,
             None => return "error: runtime not initialized".into(),
         };
-        // Check if it's a preset role
-        if let Some(agent) = config.agents.get(&name) {
-            if agent.is_preset {
-                return format!("error: cannot delete built-in preset role '{}'", name);
-            }
-        }
         if config.agents.remove(&name).is_none() {
             return format!("error: agent '{}' not found", name);
         }
@@ -231,6 +220,7 @@ pub async fn remove_delegate_agent(name: String) -> String {
         if let Some(config) = gc.config.as_mut() {
             config.agents.remove(&name);
         }
+        gc.delegate_agent_meta.remove(&name);
     }
 
     // Invalidate agent
@@ -313,58 +303,23 @@ pub async fn seed_preset_roles() -> u32 {
 
     for (name, icon, color, system_prompt, capabilities) in presets {
         if existing_names.contains(&name.to_string()) {
-            // Already exists — update is_preset flag if needed
-            let mut cs = super::agent_api::config_state().write().await;
-            if let Some(config) = cs.config.as_mut() {
-                if let Some(agent) = config.agents.get_mut(name) {
-                    if !agent.is_preset {
-                        agent.is_preset = true;
-                        agent.role_label = Some(name.to_string());
-                        agent.role_color = Some(color.to_string());
-                        agent.role_icon = Some(icon.to_string());
-                    }
-                }
-            }
-            drop(cs);
-            // Also sync to global_config
             let mut gc = super::agent_api::global_config().write().await;
-            if let Some(config) = gc.config.as_mut() {
-                if let Some(agent) = config.agents.get_mut(name) {
-                    if !agent.is_preset {
-                        agent.is_preset = true;
-                        agent.role_label = Some(name.to_string());
-                        agent.role_color = Some(color.to_string());
-                        agent.role_icon = Some(icon.to_string());
-                    }
-                }
-            }
+            let meta = gc.delegate_agent_meta.entry(name.to_string()).or_default();
+            meta.is_preset = true;
+            meta.role_label = Some(name.to_string());
+            meta.role_color = Some(color.to_string());
+            meta.role_icon = Some(icon.to_string());
+            meta.capabilities = capabilities.iter().map(|s| s.to_string()).collect();
             continue;
         }
 
-        // Read main provider/model from config to use for presets
-        let (provider, model) = {
-            let cs = super::agent_api::config_state().read().await;
-            match &cs.config {
-                Some(c) => (
-                    c.default_provider
-                        .clone()
-                        .unwrap_or_else(|| "openrouter".to_string()),
-                    c.default_model
-                        .clone()
-                        .unwrap_or_else(|| "anthropic/claude-sonnet-4-20250514".to_string()),
-                ),
-                None => continue,
-            }
-        };
+        let current = super::agent_api::get_current_config().await;
 
         let delegate_config = zeroclaw::config::DelegateAgentConfig {
-            provider,
-            model,
+            provider: current.provider,
+            model: current.model,
             system_prompt: Some(system_prompt.to_string()),
             api_key: None,
-            enabled: true,
-            capabilities: capabilities.iter().map(|s| s.to_string()).collect(),
-            priority: 0,
             temperature: None,
             max_depth: 3,
             agentic: true,
@@ -378,6 +333,15 @@ pub async fn seed_preset_roles() -> u32 {
                 "subagent_execute".to_string(),
             ],
             max_iterations: 10,
+            timeout_secs: None,
+            agentic_timeout_secs: None,
+            skills_directory: None,
+            memory_namespace: None,
+        };
+        let meta = super::agent_api::DelegateAgentMeta {
+            capabilities: capabilities.iter().map(|s| s.to_string()).collect(),
+            priority: 0,
+            enabled: true,
             role_label: Some(name.to_string()),
             role_color: Some(color.to_string()),
             role_icon: Some(icon.to_string()),
@@ -400,6 +364,7 @@ pub async fn seed_preset_roles() -> u32 {
             if let Some(config) = gc.config.as_mut() {
                 config.agents.insert(name.to_string(), delegate_config);
             }
+            gc.delegate_agent_meta.insert(name.to_string(), meta);
         }
     }
 

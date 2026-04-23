@@ -49,7 +49,7 @@ class EmbeddingConfigDto {
   final double keywordWeight;
   final double minRelevanceScore;
 
-  /// Base URL for custom embedding endpoints (extracted from "custom:<url>" provider)
+  /// Base URL for custom embedding endpoints (extracted from "custom:[url]" provider)
   final String? embeddingBaseUrl;
 
   /// API key for embedding provider

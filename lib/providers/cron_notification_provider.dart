@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:coraldesk/models/models.dart';
-import 'package:coraldesk/providers/agent_workspace_provider.dart';
 import 'package:coraldesk/providers/chat_provider.dart';
 import 'package:coraldesk/src/rust/api/cron_notification_api.dart'
     as cron_notif_api;
@@ -234,7 +233,7 @@ class CronNotificationNotifier extends StateNotifier<CronNotificationState> {
         messages: sessionMessages,
         projectId: session.projectId ?? '',
         ephemeral: session.ephemeral,
-        agentBinding: _ref.read(sessionAgentBindingProvider)[sessionId] ?? '',
+        agentBinding: '',
       );
     } catch (e) {
       debugPrint('Failed to persist cron-injected session: $e');

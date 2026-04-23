@@ -9,9 +9,12 @@ crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
 flutter_rust_bridge = "=2.11.1"
-zeroclaw = { path = "../zeroclaw", default-features = false, features = [
+zeroclaw = { package = "zeroclawlabs", path = "../3rdparty/zeroclaw", default-features = false, features = [
+    "agent-runtime",
     "rag-pdf",
 ] }
+zeroclaw-api = { path = "../3rdparty/zeroclaw/crates/zeroclaw-api" }
+zeroclaw-config = { path = "../3rdparty/zeroclaw/crates/zeroclaw-config" }
 tokio = { version = "1.42", features = [
     "rt-multi-thread",
     "macros",
